@@ -1,1 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Chat Engine</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        body { background: #0b0f19; color: #f8fafc; display: flex; justify-content: center; height: 100vh; align-items: center; }
+        .chat-container { width: 100%; max-width: 500px; height: 85vh; background: #111827; display: flex; flex-direction: column; border-radius: 12px; overflow: hidden; border: 1px solid #1f2937; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        header { padding: 15px; background: #1f2937; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #374151; }
+        header h2 { font-size: 1rem; color: #38bdf8; }
+        header input { background: #111827; border: 1px solid #4b5563; padding: 6px 10px; border-radius: 6px; color: white; width: 130px; outline: none; }
+        .messages-box { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .message { background: #1f2937; padding: 10px 14px; border-radius: 8px; word-break: break-word; max-width: 80%; border-left: 3px solid #38bdf8; }
+        .message strong { color: #38bdf8; display: block; font-size: 0.75rem; margin-bottom: 2px; }
+        .message-form { display: flex; padding: 12px; background: #1f2937; border-top: 1px solid #374151; }
+        .message-form input { flex: 1; background: #111827; border: 1px solid #4b5563; padding: 10px; border-radius: 6px; color: white; outline: none; }
+        .message-form button { background: #0284c7; color: white; border: none; padding: 0 18px; margin-left: 8px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .message-form button:hover { background: #0369a1; }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <header>
+            <h2>Go WebSocket Engine</h2>
+            <input type="text" id="username" placeholder="Handle / Name" />
+        </header>
 
+        <div id="chat-messages" class="messages-box"></div>
+
+        <form id="chat-form" class="message-form">
+            <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" required />
+            <button type="submit">Send</button>
+        </form>
+    </div>
+
+    <script>
+        // Automatically link to secure WebSocket protocol depending on hosting environment
+        const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+        const wsUri = protocol + window.location.host + '/ws';
+        const ws = new WebSocket(wsUri);
+
+        const messagesBox = document.getElementById('chat-messages');
+        const chatForm = document.getElementById('chat-form');
+        const messageInput = document.getElementById('message-input');
+        const usernameInput = document.getElementById('username');
+
+        ws.onmessage = function(event) {
+            const div = document.createElement('div');
+            div.classList.add('message');
+            div.innerHTML = event.data;
+            messagesBox.appendChild(div);
+            messagesBox.scrollTop = messagesBox.scrollHeight;
+        };
+
+        chatForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const text = messageInput.value.trim();
+            const user = usernameInput.value.trim() || 'Anonymous';
+            if (!text) return;
+
+            const packet = `<strong>${escapeHtml(user)}:</strong> ${escapeHtml(text)}`;
+            ws.send(packet);
+            messageInput.value = '';
+        });
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+    </script>
+</body>
+</html>
