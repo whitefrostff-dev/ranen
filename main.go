@@ -3,19 +3,18 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 	"sync"
 
 	"github.com/gorilla/websocket"
 )
 
-// Upgrader turns standard HTTP connections into persistent WebSockets
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		return true // Allow all incoming client origins
+		return true
 	},
 }
 
-// Hub manages active client connections thread-safely
 type Hub struct {
 	clients    map[*websocket.Conn]bool
 	broadcast  chan []byte
@@ -78,7 +77,6 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				break
 			}
-			// Broadcast incoming message packet to the central hub
 			hub.broadcast <- message
 		}
 	}()
@@ -87,15 +85,20 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 func main() {
 	go hub.run()
 
-	// Serve static frontend files from the "static" directory
-	fs := http.FileServer(http.Dir("./static"))
-	http.Handle("/", fs)
+	// Serve index.html directly for the root route
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "index.html")
+	})
 
-	// WebSocket endpoint route
 	http.HandleFunc("/ws", serveWs)
 
-	log.Println("High-Performance Chat Engine online on port 8080...")
-	err := http.ListenAndServe(":8080", nil)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	log.Println("Server started on port " + port)
+	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
 		log.Fatal("Server startup error: ", err)
 	}
