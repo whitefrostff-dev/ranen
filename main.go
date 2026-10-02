@@ -23,6 +23,7 @@ type User struct {
 	Hash  string `json:"hash"`
 	Pic   string `json:"pic"`
 	Bio   string `json:"bio"`
+	Hide  bool   `json:"hide"`
 }
 type Comment struct {
 	U string `json:"u"`
@@ -49,15 +50,20 @@ type DB struct {
 	Posts    []*Post           `json:"posts"`
 	Msgs     []*Msg            `json:"msgs"`
 	Sessions map[string]string `json:"sessions"`
+	Follows  map[string][]string `json:"follows"`
 }
 
 var (
 	db      = &DB{Users: map[string]*User{}, Sessions: map[string]string{}}
 	mu      sync.Mutex
+	seen    = map[string]int64{}
 	nameRe  = regexp.MustCompile(`^[a-z0-9_.]{3,20}$`)
 	kinds   = map[string]string{"image/jpeg": ".jpg", "image/png": ".png", "image/gif": ".gif", "image/webp": ".webp", "video/mp4": ".mp4", "video/webm": ".webm"}
 )
 
+func pubUser(u *User) map[string]any {
+	return map[string]any{"name": u.Name, "email": u.Email, "pic": u.Pic, "bio": u.Bio, "hide": u.Hide}
+}
 func save() { b, _ := json.Marshal(db); os.WriteFile("data.json", b, 0o600) }
 func rnd(n int) string { b := make([]byte, n); rand.Read(b); return hex.EncodeToString(b) }
 func hash(p, salt string) string {
@@ -81,7 +87,11 @@ func who(r *http.Request) string {
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	return db.Sessions[c.Value]
+	u := db.Sessions[c.Value]
+	if u != "" {
+		seen[u] = time.Now().Unix()
+	}
+	return u
 }
 func login(w http.ResponseWriter, u string) {
 	sid := rnd(24)
@@ -119,6 +129,9 @@ func main() {
 	if b, err := os.ReadFile("data.json"); err == nil {
 		json.Unmarshal(b, db)
 	}
+	if db.Follows == nil {
+		db.Follows = map[string][]string{}
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) { http.ServeFile(w, r, "index.html") })
 	mux.Handle("GET /uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
@@ -153,7 +166,7 @@ func main() {
 		db.Users[u] = &User{Name: u, Email: e, Salt: salt, Hash: hash(r.FormValue("password"), salt), Pic: pic}
 		login(w, u)
 		save()
-		out(w, db.Users[u])
+		out(w, pubUser(db.Users[u]))
 	})
 	mux.HandleFunc("POST /api/login", func(w http.ResponseWriter, r *http.Request) {
 		var b struct{ Username, Password string }
@@ -167,7 +180,7 @@ func main() {
 		}
 		login(w, u.Name)
 		save()
-		out(w, u)
+		out(w, pubUser(u))
 	})
 	mux.HandleFunc("POST /api/logout", func(w http.ResponseWriter, r *http.Request) {
 		if c, err := r.Cookie("sid"); err == nil {
@@ -186,7 +199,7 @@ func main() {
 			fail(w, 401, "Not logged in.")
 			return
 		}
-		out(w, db.Users[me])
+		out(w, pubUser(db.Users[me]))
 	})
 	mux.HandleFunc("POST /api/me", func(w http.ResponseWriter, r *http.Request) {
 		me := who(r)
@@ -214,7 +227,7 @@ func main() {
 			db.Users[me].Bio = b
 		}
 		save()
-		out(w, db.Users[me])
+		out(w, pubUser(db.Users[me]))
 	})
 	mux.HandleFunc("DELETE /api/me", func(w http.ResponseWriter, r *http.Request) {
 		me := who(r)
@@ -228,6 +241,7 @@ func main() {
 		}
 		db.Posts = keep
 		delete(db.Users, me)
+		delete(db.Follows, me)
 		for k, v := range db.Sessions {
 			if v == me {
 				delete(db.Sessions, k)
@@ -237,15 +251,30 @@ func main() {
 		out(w, "ok")
 	})
 	mux.HandleFunc("GET /api/users", func(w http.ResponseWriter, r *http.Request) {
-		if who(r) == "" {
+		me := who(r)
+		if me == "" {
 			fail(w, 401, "Log in first.")
 			return
 		}
 		mu.Lock()
 		defer mu.Unlock()
-		pub := map[string]map[string]string{}
+		now := time.Now().Unix()
+		fol, cnt, mine := map[string]int{}, map[string]int{}, map[string]bool{}
+		for _, l := range db.Follows {
+			for _, t := range l {
+				fol[t]++
+			}
+		}
+		for _, p := range db.Posts {
+			cnt[p.User]++
+		}
+		for _, t := range db.Follows[me] {
+			mine[t] = true
+		}
+		pub := map[string]map[string]any{}
 		for k, u := range db.Users {
-			pub[k] = map[string]string{"pic": u.Pic, "bio": u.Bio}
+			pub[k] = map[string]any{"pic": u.Pic, "bio": u.Bio, "hide": u.Hide, "online": k == me || (!u.Hide && now-seen[k] < 20),
+				"followers": fol[k], "followingCount": len(db.Follows[k]), "posts": cnt[k], "isFollowing": mine[k]}
 		}
 		out(w, pub)
 	})
@@ -381,6 +410,42 @@ func main() {
 			return
 		}
 		db.Msgs = append(db.Msgs, &Msg{me, b.To, strings.TrimSpace(b.Text), time.Now().UnixMilli()})
+		save()
+		out(w, "ok")
+	})
+
+	mux.HandleFunc("POST /api/follow/{u}", func(w http.ResponseWriter, r *http.Request) {
+		me, t := who(r), r.PathValue("u")
+		mu.Lock()
+		defer mu.Unlock()
+		if me == "" || t == me || db.Users[t] == nil {
+			fail(w, 400, "Cannot follow that user.")
+			return
+		}
+		l := db.Follows[me]
+		for i, x := range l {
+			if x == t {
+				db.Follows[me] = append(l[:i], l[i+1:]...)
+				save()
+				out(w, "ok")
+				return
+			}
+		}
+		db.Follows[me] = append(l, t)
+		save()
+		out(w, "ok")
+	})
+	mux.HandleFunc("POST /api/settings", func(w http.ResponseWriter, r *http.Request) {
+		me := who(r)
+		var b struct{ Hide bool }
+		json.NewDecoder(io.LimitReader(r.Body, 1<<12)).Decode(&b)
+		mu.Lock()
+		defer mu.Unlock()
+		if me == "" {
+			fail(w, 401, "Log in first.")
+			return
+		}
+		db.Users[me].Hide = b.Hide
 		save()
 		out(w, "ok")
 	})
