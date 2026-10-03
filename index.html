@@ -1,63 +1,48 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="color" data-tab="home">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Amlink</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#F5F2FF;--card:#fff;--ink:#16122E;--mute:#756F96;--line:#E6E2F6;--acc:#6D4AFF;--acc2:#FF4F7B;--on:#fff;--r:20px;--g:linear-gradient(135deg,var(--acc),var(--acc2));--top:60px;--bot:0px}
-html[data-theme=mono]{--bg:#fff;--card:#fff;--ink:#000;--mute:#555;--line:#d4d4d4;--acc:#000;--acc2:#000;--r:4px}
-html[data-theme=night]{--bg:#000;--card:#0F0F0F;--ink:#fff;--mute:#9a9a9a;--line:#262626;--acc:#fff;--acc2:#bbb;--on:#000;--r:14px}
-html[data-theme=color][data-tab=reels]:not([data-custom]){--acc:#FF2D6F;--acc2:#FF9A3D}
-html[data-theme=color][data-tab=chat]:not([data-custom]){--acc:#12B76A;--acc2:#0EA5E9}
-html[data-theme=color][data-tab=me]:not([data-custom]){--acc:#FF7A18;--acc2:#E11D74}
-html[data-theme=color][data-tab=search]:not([data-custom]){--acc:#0EA5E9;--acc2:#6366F1}
+:root{--bg:#FFFFFF;--card:#F1F8FF;--ink:#0B1B2A;--mute:#5F7487;--line:#DCEBF7;--acc:#4FB8FF;--acc2:#9AD8FF;--on:#06263F;--hero:linear-gradient(160deg,#4FB8FF,#BFE6FF 60%,#fff);--hero-ink:#06263F;--r:16px;--g:linear-gradient(135deg,var(--acc),var(--acc2));--top:60px;--bot:0px}
+html[data-theme=dark]{--bg:#000;--card:#111;--ink:#fff;--mute:#9a9a9a;--line:#262626;--acc:#fff;--acc2:#cfcfcf;--on:#000;--hero:linear-gradient(160deg,#000,#1c1c1c 60%,#3a3a3a);--hero-ink:#fff}
 *{box-sizing:border-box;margin:0}
 body{font-family:'Bricolage Grotesque',system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100dvh}
-button,input,textarea{font:inherit;color:inherit}button{cursor:pointer;border:0;background:none}
+button,input,textarea,summary{font:inherit;color:inherit}button{cursor:pointer;border:0;background:none}summary{cursor:pointer;font-weight:700}
 :focus-visible{outline:3px solid var(--acc);outline-offset:2px}
-a{color:var(--acc);cursor:pointer;font-weight:600}
-svg{display:block}.sp{flex:1}.mu{color:var(--mute);font-size:14px}
+a{color:var(--acc);cursor:pointer;font-weight:600}svg{display:block}.sp{flex:1}.mu{color:var(--mute);font-size:14px}
 .btn{background:var(--g);color:var(--on);padding:11px 20px;border-radius:99px;font-weight:700;display:inline-flex;gap:8px;align-items:center;justify-content:center}
 .btn.sm{padding:7px 14px;font-size:14px}.btn.ghost{background:var(--card);color:var(--ink);border:1px solid var(--line)}.btn.danger{background:#E5384F;color:#fff}.btn:disabled{opacity:.5}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r)}
-html[data-theme=mono] .card{border-color:#000}
 .avw{position:relative;width:var(--s);height:var(--s);flex:none;display:inline-block}
-.av{width:100%;height:100%;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:var(--g);color:var(--on);font-weight:800}
-.av img{width:100%;height:100%;object-fit:cover}
+.av{width:100%;height:100%;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:var(--g);color:var(--on);font-weight:800}.av img{width:100%;height:100%;object-fit:cover}
 .dot{position:absolute;right:0;bottom:0;width:28%;height:28%;min-width:10px;min-height:10px;border-radius:50%;background:#22c55e;border:2px solid var(--card)}
-.who{display:flex;gap:10px;align-items:center;color:var(--ink)}.who span{display:flex;flex-direction:column}.who small{color:var(--mute);font-weight:400}
-.empty{padding:50px 20px;text-align:center;color:var(--mute)}
-.err{color:#E5384F;font-size:14px;min-height:18px}
-/* auth */
+.who{display:flex;gap:10px;align-items:center;color:var(--ink);text-align:left}.who>span{display:flex;flex-direction:column}.who small{color:var(--mute);font-weight:400}
+.empty{padding:50px 20px;text-align:center;color:var(--mute)}.err{color:#E5384F;font-size:14px;min-height:18px}
 #auth{min-height:100dvh;display:grid;grid-template-columns:1fr 1fr}body.in #auth{display:none}
-.hero{background:linear-gradient(160deg,#6D4AFF,#2A1A9E 55%,#FF4F7B);color:#fff;padding:48px;display:flex;flex-direction:column;justify-content:flex-end}
-.hero h1{font-size:clamp(56px,10vw,130px);line-height:.88;font-weight:800;letter-spacing:-.05em}.hero p{margin-top:16px;max-width:340px;font-size:18px;opacity:.92}
+.hero{background:var(--hero);color:var(--hero-ink);padding:48px;display:flex;flex-direction:column;justify-content:flex-end}
+.hero h1{font-size:clamp(56px,10vw,130px);line-height:.88;font-weight:800;letter-spacing:-.05em}.hero p{margin-top:16px;max-width:340px;font-size:18px}
 .form{padding:40px;display:flex;flex-direction:column;justify-content:center;gap:12px;max-width:460px;margin:auto;width:100%}
 .form input[type=text],.form input[type=email],.form input[type=password]{padding:14px 16px;border-radius:14px;border:1px solid var(--line);background:var(--card);width:100%}
-.pick{display:flex;gap:14px;align-items:center}.pick .av{width:64px;height:64px;font-size:26px}
 .chk{display:flex;gap:10px;font-size:14px;color:var(--mute);align-items:flex-start}
-/* app shell */
-#app{display:none;grid-template-columns:240px minmax(0,1fr) 320px;max-width:1280px;margin:auto}body.in #app{display:grid}
+#app{display:none;grid-template-columns:260px minmax(0,1fr) 320px;max-width:1300px;margin:auto}body.in #app{display:grid}
 .top{grid-column:1/-1;position:sticky;top:0;z-index:20;display:flex;gap:12px;align-items:center;padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top,0px));background:var(--bg);border-bottom:1px solid var(--line)}
-.logo{font-size:30px;font-weight:800;letter-spacing:-.05em;background:var(--g);-webkit-background-clip:text;background-clip:text;color:transparent;width:208px}
-html[data-theme=mono] .logo{color:#000;background:none}html[data-theme=night] .logo{color:#fff;background:none}
-.sbox{flex:1;max-width:420px;margin:auto;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:99px;padding:0 14px;color:var(--mute)}
-.sbox input{border:0;background:none;padding:10px 0;width:100%;outline:0;color:var(--ink)}
-.gear{display:none}
-nav{position:sticky;top:var(--top);height:calc(100dvh - var(--top));padding:14px 10px;display:flex;flex-direction:column;gap:4px}
-nav button{display:flex;gap:14px;align-items:center;padding:12px 14px;border-radius:14px;font-weight:600;font-size:17px;color:var(--ink)}
-nav button.on{background:var(--card);color:var(--acc);box-shadow:inset 0 0 0 1px var(--line)}
-nav button.mk{background:var(--g);color:var(--on);margin:6px 0}
-main{min-width:0}.wrap{padding:18px;max-width:640px;margin:auto}
+.logo{font-size:30px;font-weight:800;letter-spacing:-.05em;color:var(--acc);width:228px}
+.sbox{flex:1;max-width:420px;margin:auto;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:99px;padding:0 14px;color:var(--mute)}.sbox input{border:0;background:none;padding:10px 0;width:100%;outline:0;color:var(--ink)}
+.bell{position:relative;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--card);border:1px solid var(--line)}
+.bd{position:absolute;top:-4px;right:-4px;background:#E5384F;color:#fff;font:700 11px/1 system-ui;border-radius:99px;padding:3px 6px}
+nav{position:sticky;top:var(--top);height:calc(100dvh - var(--top));padding:12px 10px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+nav button{display:flex;gap:14px;align-items:center;padding:10px 12px;border-radius:14px;font-weight:600;font-size:16px;color:var(--ink);text-align:left;width:100%}
+nav button.on{background:var(--card);box-shadow:inset 0 0 0 1px var(--line);color:var(--acc)}nav button.mk{background:var(--g);color:var(--on);margin:8px 0}nav hr{border:0;border-top:1px solid var(--line);margin:8px 0}
+nav small{margin-left:auto;font-size:10px;color:var(--mute);border:1px solid var(--line);border-radius:99px;padding:2px 6px}
+.mob{display:none}main{min-width:0}.wrap{padding:18px;max-width:640px;margin:auto}.wrap>h2{margin-bottom:12px}
 #side{padding:18px 14px;display:flex;flex-direction:column;gap:14px;position:sticky;top:var(--top);align-self:start}
-.sec{padding:16px}.sec h3{margin-bottom:10px;font-size:16px}.sec>*+*{margin-top:10px}
-.prow{display:flex;align-items:center;gap:10px;padding:12px 14px;margin-top:10px}.prow.s{padding:6px 0;margin:0}
-/* home */
+.sec{padding:16px}.sec h3{margin-bottom:10px;font-size:16px}.sec>*+*{margin-top:10px}.sec a{display:block}
+.prow{display:flex;align-items:center;gap:10px;padding:12px 14px;margin-top:10px;width:100%}.prow.s{padding:6px 0;margin:0}
 .stories{display:flex;gap:14px;overflow-x:auto;padding:4px 2px 14px;scrollbar-width:none}
-.st{display:flex;flex-direction:column;align-items:center;gap:6px;width:70px;flex:none;position:relative;font-size:12px;color:var(--ink)}
-.st small{max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st{display:flex;flex-direction:column;align-items:center;gap:6px;width:70px;flex:none;position:relative;font-size:12px;color:var(--ink)}.st small{max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ring{padding:3px;border-radius:50%;background:var(--g);display:block}.ring .avw{border:3px solid var(--bg);border-radius:50%}
 .plus{position:absolute;top:44px;right:4px;width:22px;height:22px;border-radius:50%;background:var(--g);color:var(--on);display:grid;place-items:center;border:2px solid var(--bg)}
 .compose{display:flex;gap:12px;align-items:center;padding:12px 14px;cursor:pointer;color:var(--mute)}
@@ -65,68 +50,95 @@ main{min-width:0}.wrap{padding:18px;max-width:640px;margin:auto}
 .post{margin-top:16px;overflow:hidden}.post header{display:flex;align-items:center;gap:10px;padding:12px 14px}.post header .who{flex:1}.post p{padding:0 14px 12px;line-height:1.45}
 .m{width:100%;max-height:640px;object-fit:cover;display:block;background:#000}
 .acts{display:flex;gap:16px;padding:12px 14px;align-items:center}.acts button{display:flex;gap:6px;align-items:center;font-weight:600;color:var(--mute)}
-.liked{color:#FF3B5C!important}.liked svg{fill:#FF3B5C}
-.mobonly{display:none}
-/* reels */
+.liked{color:#FF3B5C!important}.liked svg,.saved svg{fill:currentColor}.saved{color:var(--acc)!important}.mobonly{display:none}
 #reels{height:calc(100dvh - var(--top) - var(--bot));overflow-y:scroll;scroll-snap-type:y mandatory;background:#000;max-width:460px;margin:auto;scrollbar-width:none}
 .reel{height:100%;scroll-snap-align:start;position:relative;color:#fff}.reel video{width:100%;height:100%;object-fit:cover}
-.reel .info{position:absolute;left:16px;right:84px;bottom:22px;text-shadow:0 1px 8px #000;background:linear-gradient(transparent,#0008);padding:30px 0 0}.reel .info a{color:#fff}
-.rail{position:absolute;right:10px;bottom:30px;display:flex;flex-direction:column;gap:20px;align-items:center}
-.rail button{color:#fff;display:flex;flex-direction:column;align-items:center;gap:2px;filter:drop-shadow(0 1px 4px #000)}
-/* chat */
-.chat{display:grid;grid-template-columns:280px 1fr;height:calc(100dvh - var(--top) - var(--bot));border-left:1px solid var(--line);border-right:1px solid var(--line)}
-.list{overflow:auto;border-right:1px solid var(--line)}
-.list button{display:flex;gap:12px;align-items:center;width:100%;padding:13px 14px;text-align:left;border-bottom:1px solid var(--line);color:var(--ink)}.list .on{background:var(--card)}
-.conv{display:flex;flex-direction:column;min-height:0}.ch{display:flex;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line)}.ch small{display:block;color:var(--mute)}
-.back{display:none}
-.msgs{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:6px}
-.b{max-width:76%;padding:9px 13px;border-radius:18px 18px 18px 4px;background:var(--card);border:1px solid var(--line);align-self:flex-start}.b.me{align-self:flex-end;background:var(--g);color:var(--on);border:0;border-radius:18px 18px 4px 18px}.b small{display:block;font-size:10px;opacity:.7;text-align:right}
-.send{display:flex;gap:8px;padding:10px 14px}.send input{flex:1;padding:12px 16px;border-radius:99px;border:1px solid var(--line);background:var(--card)}
-/* profile, settings */
+.reel .info{position:absolute;left:16px;right:84px;bottom:22px;text-shadow:0 1px 8px #000}.reel .info a{color:#fff}
+.rail{position:absolute;right:10px;bottom:30px;display:flex;flex-direction:column;gap:20px;align-items:center}.rail button{color:#fff;display:flex;flex-direction:column;align-items:center;gap:2px;filter:drop-shadow(0 1px 4px #000)}
+.chat{display:grid;grid-template-columns:280px 1fr;height:calc(100dvh - var(--top) - var(--bot));border-left:1px solid var(--line);border-right:1px solid var(--line);background:var(--bg)}
+.list{overflow:auto;border-right:1px solid var(--line)}.list button{display:flex;gap:12px;align-items:center;width:100%;padding:13px 14px;text-align:left;border-bottom:1px solid var(--line);color:var(--ink)}.list .on{background:var(--card)}
+.conv{display:flex;flex-direction:column;min-height:0}.ch{display:flex;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--card)}.back{display:none;font-size:22px}
+.msgs{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:6px;overflow-anchor:none}
+.b{max-width:76%;padding:9px 13px;border-radius:18px 18px 18px 4px;background:var(--card);border:1px solid var(--line);align-self:flex-start;overflow-wrap:anywhere}
+.b.me{align-self:flex-end;background:var(--g);color:var(--on);border:0;border-radius:18px 18px 4px 18px}.b small{display:block;font-size:10px;opacity:.7;text-align:right}
+.send{display:flex;gap:8px;padding:10px 14px;background:var(--card)}.send input{flex:1;padding:12px 16px;border-radius:99px;border:1px solid var(--line);background:var(--bg)}
 .ph{display:flex;gap:22px;align-items:center}.nums{display:flex;gap:18px;margin:8px 0}.nums span{display:flex;flex-direction:column;color:var(--mute);font-size:13px}.nums b{color:var(--ink);font-size:18px}
+.avedit{position:relative;cursor:pointer}.cam{position:absolute;right:0;bottom:2px;width:28px;height:28px;border-radius:50%;background:var(--g);color:var(--on);display:grid;place-items:center;border:3px solid var(--bg)}
 .bio{margin:12px 0}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;margin-top:18px}.grid .t{aspect-ratio:1;background:var(--line);overflow:hidden;font-size:13px;padding:0}.grid img,.grid video{width:100%;height:100%;object-fit:cover}.grid .t div{padding:8px}
-.seg{display:flex;gap:8px;flex-wrap:wrap}.seg button,.sw button{padding:10px 14px;border-radius:12px;border:1px solid var(--line);font-weight:600;background:var(--bg)}.seg .on,.sw .on{outline:3px solid var(--acc)}
-.sw{display:flex;gap:10px;flex-wrap:wrap}.sw button{width:44px;height:44px;padding:0;border-radius:50%}.sw button:first-child{width:auto;padding:0 14px;border-radius:99px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;margin-top:18px}.grid .t{aspect-ratio:1;background:var(--line);overflow:hidden;font-size:13px}.grid img,.grid video{width:100%;height:100%;object-fit:cover}.grid .t div{padding:8px}
+.seg{display:flex;gap:8px;flex-wrap:wrap}.seg button{padding:10px 14px;border-radius:12px;border:1px solid var(--line);font-weight:600;background:var(--bg)}.seg .on{outline:3px solid var(--acc)}
 .tg{display:flex;justify-content:space-between;align-items:center}.tg input{width:22px;height:22px;accent-color:var(--acc)}
-.sec a{display:block}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}.tile{padding:14px;display:flex;flex-direction:column;gap:10px;font-weight:600;font-size:16px;text-align:left;color:var(--ink)}.tile small{font-size:11px;color:var(--mute);font-weight:400}
+details.sec p{color:var(--mute);line-height:1.5}details summary{list-style:none;display:flex;justify-content:space-between}details summary::after{content:'⌄'}
+.nt{display:flex;gap:12px;align-items:center;padding:12px 14px;margin-top:8px;width:100%;text-align:left;color:var(--ink)}.nt.un{background:color-mix(in srgb,var(--acc) 12%,var(--card))}
 dialog{border:0;border-radius:var(--r);max-width:560px;width:92%;padding:22px;background:var(--card);color:var(--ink);max-height:86vh;overflow:auto;margin:auto}dialog::backdrop{background:#000a}
 dialog h3{margin-bottom:10px}dialog li,dialog p{margin:8px 0;line-height:1.5;font-size:15px}dialog ul{padding-left:20px}
-dialog textarea{width:100%;min-height:90px;border:0;background:none;resize:none;outline:0;font-size:17px}
-dialog video,dialog img.pv{width:100%;max-height:300px;object-fit:cover;border-radius:12px;margin:8px 0}
+dialog textarea{width:100%;min-height:90px;border:0;background:none;resize:none;outline:0;font-size:17px}dialog video,dialog img.pv{width:100%;max-height:300px;object-fit:cover;border-radius:12px;margin:8px 0}
 .x{position:absolute;top:10px;right:14px;font-size:18px;color:var(--mute)}
-#toast{position:fixed;left:50%;bottom:calc(var(--bot) + 24px);transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:99px;z-index:99;display:none}
-@media(max-width:1100px){#app{grid-template-columns:76px minmax(0,1fr)}#side{display:none}.mobonly{display:block}nav button span{display:none}nav button{justify-content:center}.logo{width:auto}}
+#toast{position:fixed;left:50%;bottom:calc(var(--bot) + 24px);transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:99px;z-index:99;display:none;max-width:90vw}
+@media(max-width:1100px){#app{grid-template-columns:76px minmax(0,1fr)}#side{display:none}.mobonly{display:block}nav button span,nav small{display:none}nav button{justify-content:center}.logo{width:auto}}
 @media(max-width:760px){
-#auth{grid-template-columns:1fr}.hero{padding:30px 24px;min-height:32vh}
+#auth{grid-template-columns:1fr}.hero{padding:30px 24px;min-height:30vh}
 :root{--top:58px;--bot:calc(64px + env(safe-area-inset-bottom,0px))}
-#app{grid-template-columns:minmax(0,1fr)}.top{padding-top:calc(8px + env(safe-area-inset-top,0px))}.sbox{margin:0}.gear{display:block}.dsk{display:none}
-nav{position:fixed;top:auto;bottom:0;left:0;right:0;height:auto;flex-direction:row;justify-content:space-around;background:var(--bg);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));z-index:30}
-nav button{padding:10px 14px}nav button.on{box-shadow:none;background:none}nav button.mk{margin:0;border-radius:14px;padding:10px 18px}
-main{padding-bottom:var(--bot)}.wrap{padding:12px}#reels{max-width:none;border-radius:0}
-.chat{grid-template-columns:1fr;border:0}.conv{display:none}.chat.open .list{display:none}.chat.open .conv{display:flex}.back{display:block}
-}
+#app{grid-template-columns:minmax(0,1fr)}.top{padding-top:calc(8px + env(safe-area-inset-top,0px))}.sbox{margin:0}.dsk{display:none}.mob{display:flex}
+nav{position:fixed;top:auto;bottom:0;left:0;right:0;height:auto;flex-direction:row;justify-content:space-around;background:var(--card);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));z-index:30;overflow:visible}
+nav button{width:auto;padding:10px 14px}nav button.on{box-shadow:none;background:none}nav button.mk{margin:0;border-radius:14px;padding:10px 18px}
+main{padding-bottom:var(--bot)}.wrap{padding:12px}#reels{max-width:none}
+.chat{grid-template-columns:1fr;border:0}.conv{display:none}.chat.open .list{display:none}.chat.open .conv{display:flex}.back{display:block}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+
+/* modern restyle */
+:root{--r:24px;--sh:0 10px 34px rgba(40,120,190,.13)}html[data-theme=dark]{--sh:0 10px 34px rgba(0,0,0,.55)}
+body{background:radial-gradient(900px 520px at 88% -8%,color-mix(in srgb,var(--acc) 17%,transparent),transparent),var(--bg);background-attachment:fixed}
+.card{border:0;box-shadow:var(--sh)}.avw,.av,.ring,.ring .avw{border-radius:34%}.dot{border-radius:99px;border-color:var(--card)}
+.top{background:color-mix(in srgb,var(--bg) 70%,transparent);backdrop-filter:blur(16px);border:0}.logo{font-size:32px}
+.sbox,.bell{border:0;box-shadow:var(--sh)}
+nav{margin:10px;background:var(--card);border-radius:28px;box-shadow:var(--sh);height:calc(100dvh - var(--top) - 20px);top:calc(var(--top) + 10px)}
+nav button{position:relative}nav button.on{background:color-mix(in srgb,var(--acc) 14%,transparent);box-shadow:none}
+nav .bd{top:6px;right:8px}.dev{margin-top:auto;padding:12px;font-size:11px;color:var(--mute);line-height:1.4}.dev b{color:var(--acc)}
+.chips button{border:0;box-shadow:var(--sh)}.compose{box-shadow:var(--sh)}.post{margin-top:18px}
+.b{border:0;box-shadow:var(--sh);border-radius:22px 22px 22px 6px;position:relative;user-select:text;-webkit-touch-callout:none;padding-right:30px}
+.b.me{border-radius:22px 22px 6px 22px;box-shadow:var(--sh)}
+.b.del{opacity:.6;font-style:italic;padding-right:13px}.b.flash{outline:3px solid var(--acc)}
+.mm{position:absolute;top:4px;right:6px;opacity:0;font-weight:800;color:inherit;transition:opacity .15s}.b:hover .mm,.b:focus-within .mm{opacity:.8}
+@media(hover:none){.mm{display:none}.b{padding-right:13px}}
+.qt{background:color-mix(in srgb,currentColor 12%,transparent);border-left:3px solid var(--acc);border-radius:10px;padding:5px 9px;margin-bottom:6px;font-size:13px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.qt b{display:block;font-size:12px}
+.rx{position:absolute;bottom:-12px;left:10px;background:var(--card);color:var(--ink);border-radius:99px;padding:1px 7px;font-size:13px;box-shadow:var(--sh)}.b:has(.rx){margin-bottom:10px}
+.rbar{display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--card);border-top:1px solid var(--line);border-left:4px solid var(--acc);font-size:13px;color:var(--mute)}.rbar:empty{display:none}.rbar span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.send input{border:0;box-shadow:var(--sh)}
+.ub{background:var(--acc);color:var(--on);font:700 11px/1 system-ui;border-radius:99px;padding:4px 7px;margin-left:auto}
+.react{display:flex;justify-content:space-between;margin-bottom:12px}.react button{font-size:28px;padding:6px;border-radius:14px}.react button:hover{background:var(--bg)}
+.act{display:flex;gap:14px;align-items:center;width:100%;padding:14px 8px;font-weight:600;font-size:16px;border-top:1px solid var(--line)}
+dialog.sheet{margin:auto auto 0;width:100%;max-width:520px;border-radius:28px 28px 0 0}
+.sw{display:flex;gap:10px;flex-wrap:wrap}.sw button{width:40px;height:40px;border-radius:14px;border:0}.sw button.on{outline:3px solid var(--ink);outline-offset:2px}
+.devcard{text-align:center;padding:26px 18px}.devcard .av{width:84px;height:84px;margin:0 auto 12px;font-size:34px;border-radius:34%}.devcard h3{font-size:20px}
+@media(min-width:761px){dialog.sheet{margin:auto;border-radius:var(--r)}}
+@media(max-width:760px){nav{margin:0 12px calc(10px + env(safe-area-inset-bottom,0px));border-radius:28px;border:0;box-shadow:var(--sh);top:auto}.dev{display:none}}
+
+/* auth + media + black/white polish */
+html[data-theme=dark] body{background:radial-gradient(900px 520px at 88% -8%,#ffffff14,transparent),#000}
+html[data-theme=dark] .card,html[data-theme=dark] .sbox,html[data-theme=dark] .bell,html[data-theme=dark] nav,html[data-theme=dark] .chips button,html[data-theme=dark] .b{border:1px solid var(--line)}
+.form{overflow-y:auto;max-height:100dvh}.form h2{font-size:30px;letter-spacing:-.03em}.c{text-align:center}.dv{margin-top:6px}.dv b{color:var(--ink)}
+.pw{position:relative}.pw input{padding-right:48px!important}.eye{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:18px;padding:6px;opacity:.7}
+.or{display:flex;align-items:center;gap:10px;color:var(--mute);font-size:13px}.or::before,.or::after{content:'';flex:1;border-top:1px solid var(--line)}
+.fl{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--mute)}.fl input,.fl select{padding:13px 14px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:15px;width:100%}
+.code{letter-spacing:.5em;text-align:center;font-size:26px!important;font-weight:700}
+.mi{display:block;max-width:250px;width:100%;max-height:300px;object-fit:cover;border-radius:14px;margin-bottom:5px;cursor:pointer;background:#000}.b audio{width:230px;max-width:100%;display:block;margin-bottom:4px}
+.ib{width:42px;height:42px;display:grid;place-items:center;border-radius:50%;flex:none;cursor:pointer;color:var(--mute)}.ib:hover{background:var(--bg)}
+.send .recui{display:none;flex:1;align-items:center;gap:12px;justify-content:space-between}.send.rec .recui{display:flex}.send.rec>:not(.recui){display:none}#rt{color:#E5384F;font-weight:700}
+.vb{color:var(--acc);font-size:.85em}.ann{grid-column:1/-1;background:var(--g);color:var(--on);padding:10px 16px;font-weight:600;gap:12px;justify-content:center;align-items:center}.ann button{color:inherit;font-size:18px}
+.ainp{width:100%;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);margin:10px 0;font-size:15px}textarea.ainp{min-height:80px;resize:vertical}
+.rsn{display:block;width:100%;text-align:left;padding:14px 8px;border-top:1px solid var(--line);font-weight:600}
 </style>
 </head>
 <body>
 <section id="auth">
  <div class="hero"><h1>Am<br>link</h1><p>Post it. Watch it. Talk about it. Find your people.</p></div>
- <div class="form">
-  <h2 id="aT">Create your account</h2>
-  <div class="pick" id="pr"><div class="av" id="sp">+</div><label class="btn ghost">Add profile photo<input type="file" id="sf" accept="image/*" hidden></label></div>
-  <input type="text" id="fU" placeholder="Username (letters, numbers, . _)" autocomplete="username">
-  <input type="email" id="fM" placeholder="Email">
-  <input type="password" id="fP" placeholder="Password (6+ characters)" autocomplete="current-password">
-  <label class="chk" id="tr"><input type="checkbox" id="fT"><span>I am 13 or older and agree to the <a data-doc="terms">Terms and Conditions</a> and <a data-doc="privacy">Privacy Policy</a>.</span></label>
-  <div class="err" id="err"></div>
-  <button class="btn" id="gob">Create account</button>
-  <button id="sw" style="color:var(--mute)">Already on Amlink? <a>Log in</a></button>
- </div>
+ <div class="form" id="af"></div>
 </section>
 <div id="app">
- <header class="top"><div class="logo">Amlink</div>
-  <label class="sbox" id="sbx"></label><button class="gear" id="gb" aria-label="Settings" onclick="go('settings')"></button></header>
+ <header class="top"><div class="logo">Amlink</div><label class="sbox" id="sbx"></label><button class="bell" id="bell" aria-label="Notifications" onclick="go('notifs')"></button></header>
+ <div id="ann" class="ann" style="display:none"></div>
  <nav id="nav"></nav><main id="main"></main><aside id="side"></aside>
 </div>
 <dialog id="dlg"><div id="dB"></div><button class="x" onclick="dlg.close()" aria-label="Close">✕</button></dialog>
@@ -134,52 +146,85 @@ main{padding-bottom:var(--bot)}.wrap{padding:12px}#reels{max-width:none;border-r
 <script>
 const $=s=>document.querySelector(s),L=localStorage;
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const P={home:'<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',reels:'<rect x="3" y="3" width="18" height="18" rx="4"/><path d="M10 8.5v7l6-3.5z"/>',plus:'<rect x="3" y="3" width="18" height="18" rx="5"/><path d="M12 8v8M8 12h8"/>',chat:'<path d="M21 12a8 8 0 0 1-8 8H4l1.5-3.6A8 8 0 1 1 21 12z"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',heart:'<path d="M12 21s-8-5.5-8-11a4.5 4.5 0 0 1 8-2.5A4.5 4.5 0 0 1 20 10c0 5.5-8 11-8 11z"/>',search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>',trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',flag:'<path d="M5 21V4h12l-2 4 2 4H5"/>'};
+const P={shield:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',phone:'<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',camera:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',clip:'<path d="M20 11l-8 8a5 5 0 0 1-7-7l9-9a3.5 3.5 0 0 1 5 5l-9 9a2 2 0 0 1-3-3l8-8"/>',home:'<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',reels:'<rect x="3" y="3" width="18" height="18" rx="4"/><path d="M10 8.5v7l6-3.5z"/>',plus:'<rect x="3" y="3" width="18" height="18" rx="5"/><path d="M12 8v8M8 12h8"/>',chat:'<path d="M21 12a8 8 0 0 1-8 8H4l1.5-3.6A8 8 0 1 1 21 12z"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',heart:'<path d="M12 21s-8-5.5-8-11a4.5 4.5 0 0 1 8-2.5A4.5 4.5 0 0 1 20 10c0 5.5-8 11-8 11z"/>',search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>',trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',flag:'<path d="M5 21V4h12l-2 4 2 4H5"/>',users:'<circle cx="9" cy="8" r="3.5"/><path d="M2 20a7 7 0 0 1 14 0"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14a5 5 0 0 1 5 5"/>',bookmark:'<path d="M6 3h12v18l-6-4-6 4z"/>',clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',feed:'<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 9h10M7 13h6"/>',group:'<circle cx="12" cy="8" r="3"/><circle cx="5" cy="10" r="2.2"/><circle cx="19" cy="10" r="2.2"/><path d="M6 20a6 6 0 0 1 12 0"/>',store:'<path d="M4 9l1.5-5h13L20 9M4 9v11h16V9M4 9a3 3 0 0 0 6 0 3 3 0 0 0 4 0 3 3 0 0 0 6 0"/>',cal:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>',gift:'<rect x="3" y="9" width="18" height="12" rx="2"/><path d="M12 9v12M3 13h18M12 9c-3 0-5-4-2-5s2 5 2 5zm0 0c3 0 5-4 2-5s-2 5-2 5z"/>',menu:'<path d="M4 7h16M4 12h16M4 17h16"/>',bell:'<path d="M6 17V11a6 6 0 0 1 12 0v6l2 2H4zM10 21h4"/>',help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 1-1 1.7M12 17h.01"/>'};
 const ic=(n,s=24)=>`<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n]}</svg>`;
 const pref=(k,d)=>{try{return L.getItem('amlink:'+k)||d}catch(e){return d}},setPref=(k,v)=>{try{L.setItem('amlink:'+k,v)}catch(e){}};
-const ACC=['#6D4AFF,#FF4F7B','#0EA5E9,#6366F1','#12B76A,#0EA5E9','#FF7A18,#E11D74','#F43F5E,#F59E0B'];
-let me=null,users={},posts=[],tab='home',view=null,mode='signup',feed='all',q='',chatWith=null,chatOpen=false,thread=[],signPic='',cfile=null;
-function theme(){const h=document.documentElement,a=pref('accent','auto');h.dataset.theme=pref('theme','color');
- if(a==='auto'){h.style.removeProperty('--acc');h.style.removeProperty('--acc2');h.removeAttribute('data-custom')}else{const[x,y]=a.split(',');h.style.setProperty('--acc',x);h.style.setProperty('--acc2',y);h.setAttribute('data-custom','1')}}
-const setTheme=k=>{setPref('theme',k);theme();render()},setAcc=k=>{setPref('accent',k);theme();render()};
-const toast=t=>{const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(e.t);e.t=setTimeout(()=>e.style.display='none',2400)};
-const show=h=>{$('#dB').innerHTML=h;dlg.showModal()};
+const DEV='Nwodili Yaemerie Convenant',PHONE='+2347077187114',MAIL='whitefrostff@gmail.com';
+const MENU=[['home','Home','home','inherit'],['invite','Invite friends','heart','inherit'],['chat','Messages','chat','inherit'],['friends','Friends','users','inherit'],['reels','Reels','reels','inherit'],['saved','Saved','bookmark','inherit'],['memories','Memories','clock','inherit'],['feeds','Feeds','feed','inherit'],['groups','Groups','group','inherit',1],['market','Marketplace','store','inherit',1],['events','Events','cal','inherit',1],['bdays','Birthdays','gift','inherit',1]];
+let isAdmin=false,sres=null,sugs=[],qt,atab='overview',me=null,users={},posts=[],notifs=[],tab='home',view=null,mode='signup',feed='all',q='',chatWith=null,chatOpen=false,thread=[],sending=0,cfile=null,ftab='following',notifSeen=0,reply=null,unr={},unrReady=false,prevOn=null;
+function theme(){const t=pref('theme','dark');document.documentElement.dataset.theme=t==='auto'?(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'):t}
+const setTheme=k=>{setPref('theme',k);theme();render()};
+const toast=t=>{const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(e.t);e.t=setTimeout(()=>e.style.display='none',2800)};
+const show=(h,c='')=>{$('#dB').innerHTML=h;dlg.className=c;dlg.showModal()};
 const ago=t=>{const s=(Date.now()-t)/1e3|0;return s<60?'now':s<3600?(s/60|0)+'m':s<86400?(s/3600|0)+'h':(s/86400|0)+'d'};
 const av=(u,sz=42,dot)=>{const d=users[u]||{};return `<span class="avw" style="--s:${sz}px"><span class="av">${d.pic?`<img src="${d.pic}" alt="">`:esc((u||'?')[0].toUpperCase())}</span>${dot&&d.online?'<i class="dot"></i>':''}</span>`};
-async function api(p,o){const r=await fetch(p,{credentials:'same-origin',...o});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Something went wrong.');return j}
+async function api(p,o){const r=await fetch(p,{credentials:'same-origin',...o});const j=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(j.error||'Something went wrong.');e.needs=j.needsCode;e.email=j.email;throw e}return j}
 const jpost=(p,b)=>api(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
 const readFile=f=>new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(f)});
 const shrink=(url,w)=>new Promise((ok,no)=>{const i=new Image();i.onload=()=>{const s=Math.min(1,w/i.width),c=document.createElement('canvas');c.width=i.width*s;c.height=i.height*s;c.getContext('2d').drawImage(i,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',.85))};i.onerror=no;i.src=url});
-const docs={terms:`<h3>Terms and Conditions</h3><ul><li>You must be at least 13 years old.</li><li>You own what you post and let Amlink display it to other users.</li><li>You are responsible for your account and password.</li><li>No illegal, hateful, violent, sexual or misleading content, and no harassment.</li><li>We may remove content or suspend accounts that break these terms.</li><li>Amlink is provided as is and these terms may be updated.</li></ul><p><i>Starter text. Have a lawyer review it before launch.</i></p>`,privacy:`<h3>Privacy Policy</h3><ul><li>We collect your username, email, photo, posts, comments and messages.</li><li>We use them to run your account and keep Amlink safe.</li><li>We do not sell your personal data.</li><li>You can edit or delete your account and content in Settings.</li><li>Contact: support@amlink.app</li></ul><p><i>Starter text. Update it to match your real setup.</i></p>`,rules:`<h3>Community Guidelines</h3><ul><li>Be kind. No bullying, threats or hate.</li><li>Only post what you have the right to share.</li><li>No nudity, graphic violence or spam.</li><li>Do not share other people's private details.</li><li>Report anything that breaks these rules.</li></ul>`};
+const docs={terms:`<h3>Terms and Conditions</h3><ul><li>You must be at least 13 years old.</li><li>You own what you post and let Amlink display it to other users.</li><li>You are responsible for your account and password.</li><li>No illegal, hateful, violent, sexual or misleading content, and no harassment.</li><li>We may remove content or suspend accounts that break these terms.</li><li>Amlink is provided as is and these terms may be updated.</li></ul><p><i>Starter text. Have a lawyer review it before launch.</i></p>`,privacy:`<h3>Privacy Policy</h3><ul><li>We collect your username, email, photo, posts, comments and messages.</li><li>We use them to run your account and keep Amlink safe.</li><li>We do not sell your personal data.</li><li>You can edit or delete your account and content in Settings.</li><li>Contact: whitefrostff@gmail.com</li></ul><p><i>Starter text. Update it to match your real setup.</i></p>`,rules:`<h3>Community Guidelines</h3><ul><li>Be kind. No bullying, threats or hate.</li><li>Only post what you have the right to share.</li><li>No nudity, graphic violence or spam.</li><li>Do not share other people's private details.</li><li>Report anything that breaks these rules.</li></ul>`};
 document.addEventListener('click',e=>{const d=e.target.closest('[data-doc]');if(d){e.preventDefault();show(docs[d.dataset.doc])}});
-/* auth */
-$('#sf').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{signPic=await shrink(await readFile(f),400);$('#sp').innerHTML=`<img src="${signPic}" alt="Your photo">`}catch(x){$('#err').textContent='Could not read that image.'}};
-$('#sw').onclick=()=>{mode=mode==='signup'?'login':'signup';const s=mode==='signup';$('#aT').textContent=s?'Create your account':'Welcome back';$("#gob").textContent=s?'Create account':'Log in';['pr','tr','fM'].forEach(i=>$('#'+i).style.display=s?'':'none');$('#sw').innerHTML=s?'Already on Amlink? <a>Log in</a>':'New here? <a>Create account</a>';$('#err').textContent=''};
-$("#gob").onclick=async()=>{const u=$('#fU').value.trim().toLowerCase(),p=$('#fP').value;try{
- if(mode==='signup'){const f=new FormData();f.append('username',u);f.append('password',p);f.append('email',$('#fM').value.trim());f.append('terms',$('#fT').checked?'1':'0');if(signPic)f.append('pic',await(await fetch(signPic)).blob(),'pic.jpg');enter(await api('/api/signup',{method:'POST',body:f}))}
- else enter(await jpost('/api/login',{username:u,password:p}))}catch(e){$('#err').textContent=e.message}};
-async function enter(u){me=u.name;document.body.classList.add('in');$('#sbx').innerHTML=ic('search',18)+'<input id="q" placeholder="Search people by @username" oninput="onq(this.value)" onfocus="if(tab!==\'search\'){tab=\'search\';view=null;render()}">';$('#gb').innerHTML=ic('gear');
- $('#nav').innerHTML=[['home','Home','home'],['reels','Reels','reels'],['create','Create','plus'],['chat','Chat','chat'],['me','Profile','user'],['settings','Settings','gear']].map(([t,l,i])=>`<button data-t="${t}" class="${t==='create'?'mk':''} ${t==='settings'?'dsk':''}" onclick="${t==='create'?'openCreate()':`go('${t}')`}" aria-label="${l}">${ic(i)}<span>${l}</span></button>`).join('');
- await load();setInterval(poll,3000);setInterval(refreshPosts,9000)}
+/* auth: signup with email code, login, login code, forgot password, Google */
+let A={v:'login',email:'',purpose:'verify',until:0},cfg={google:''},gReady=null;
+const aGo=v=>{A.v=v;authRender()};
+const maxDob=()=>new Date(Date.now()-13*365.25*864e5).toISOString().slice(0,10);
+const eye='<button type="button" class="eye" onclick="const i=this.previousElementSibling;i.type=i.type===\'password\'?\'text\':\'password\'" aria-label="Show or hide password">👁</button>';
+const gBox='<div class="or"><span>or</span></div><div id="gbtn"><button class="btn ghost" style="width:100%" onclick="toast(\'Google login is not set up yet. The site owner must add a Google client ID.\')"><b>G</b> Continue with Google</button></div>';
+const errT=t=>{const e=$('#err');if(e)e.textContent=t};
+function authRender(){const d=A.v;let h='';
+ if(d==='login')h=`<h2>Welcome back</h2><input type="text" id="fU" placeholder="Username or email" autocomplete="username"><div class="pw"><input type="password" id="fP" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">${eye}</div><a style="align-self:flex-end" onclick="aGo('forgot')">Forgot password?</a><div class="err" id="err"></div><button class="btn" onclick="doLogin()">Log in</button><button class="btn ghost" onclick="aGo('logincode')">✉ Email me a login code</button>${gBox}<p class="mu c">New to Amlink? <a onclick="aGo('signup')">Create an account</a></p>`;
+ else if(d==='signup')h=`<h2>Create your account</h2><input type="text" id="fU" placeholder="Username (letters, numbers, . _)" autocomplete="username"><input type="text" id="fN" placeholder="Full name" autocomplete="name" maxlength="40"><input type="email" id="fE" placeholder="Email" autocomplete="email"><div class="pw"><input type="password" id="fP" placeholder="Password (6+ characters)" autocomplete="new-password">${eye}</div><label class="fl">Date of birth<input type="date" id="fD" max="${maxDob()}"></label><label class="fl">Gender<select id="fG"><option value="">Select…</option><option value="female">Female</option><option value="male">Male</option><option value="other">Non-binary / other</option><option value="none">Prefer not to say</option></select></label><label class="chk"><input type="checkbox" id="fT"><span>I agree to the <a data-doc="terms">Terms and Conditions</a> and <a data-doc="privacy">Privacy Policy</a>.</span></label><div class="err" id="err"></div><button class="btn" onclick="doSignup()">Create account</button>${gBox}<p class="mu c">Already on Amlink? <a onclick="aGo('login')">Log in</a></p>`;
+ else if(d==='code')h=`<h2>Check your email</h2><p class="mu">We sent a 6-digit code to <b>${esc(A.email)}</b>. It expires in 10 minutes.</p><input id="fC" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="······" onkeydown="if(event.key==='Enter')doVerify()">${A.purpose==='reset'?`<div class="pw"><input type="password" id="fP" placeholder="New password (6+ characters)" autocomplete="new-password">${eye}</div>`:''}<div class="err" id="err"></div><button class="btn" onclick="doVerify()">${A.purpose==='reset'?'Reset password':A.purpose==='login'?'Log in':'Verify and continue'}</button><p class="mu c">Didn't get it? <a onclick="resend()">Resend code</a> · <a onclick="aGo('login')">Back</a></p>`;
+ else h=`<h2>${d==='forgot'?'Reset your password':'Log in with a code'}</h2><p class="mu">Enter your email and we'll send you a 6-digit code.</p><input type="email" id="fE" placeholder="Email" autocomplete="email" onkeydown="if(event.key==='Enter')doEmail()"><div class="err" id="err"></div><button class="btn" onclick="doEmail()">Send code</button><p class="mu c"><a onclick="aGo('login')">Back to log in</a></p>`;
+ $('#af').innerHTML=h+`<p class="mu c dv">Built by <b>${esc(DEV)}</b></p>`;if(d==='code')$('#fC').focus();if(d==='login'||d==='signup')gInit()}
+function gInit(){if(!cfg.google)return;const b=$('#gbtn');if(!b)return;(gReady=gReady||new Promise(r=>{const s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.onload=()=>{google.accounts.id.initialize({client_id:cfg.google,callback:x=>gLogin(x.credential)});r()};document.head.append(s)})).then(()=>{b.innerHTML='';google.accounts.id.renderButton(b,{theme:'outline',size:'large',width:Math.min(360,b.clientWidth||320),text:'continue_with',shape:'pill'})})}
+async function gLogin(c){try{enter(await jpost('/api/google',{credential:c}))}catch(e){toast(e.message)}}
+async function doLogin(){try{enter(await jpost('/api/login',{username:$('#fU').value.trim(),password:$('#fP').value}))}catch(e){if(e.needs){A.email=e.email;A.purpose='verify';aGo('code');resend(1)}else errT(e.message)}}
+async function doSignup(){try{const r=await jpost('/api/signup',{username:$('#fU').value.trim(),fullName:$('#fN').value.trim(),email:$('#fE').value.trim(),password:$('#fP').value,dob:$('#fD').value,gender:$('#fG').value,terms:$('#fT').checked});A.email=r.email;A.purpose='verify';A.until=Date.now()+45000;aGo('code')}catch(e){errT(e.message)}}
+async function doEmail(){const e=$('#fE').value.trim();if(!/^\S+@\S+\.\S+$/.test(e))return errT('Enter a valid email.');A.email=e;A.purpose=A.v==='forgot'?'reset':'login';try{await jpost('/api/code/send',{email:e,purpose:A.purpose});A.until=Date.now()+45000;aGo('code')}catch(x){errT(x.message)}}
+async function resend(quiet){if(!quiet&&Date.now()<A.until)return toast('Please wait a moment before asking for another code.');try{await jpost('/api/code/send',{email:A.email,purpose:A.purpose});A.until=Date.now()+45000;toast('If that email has an account, a new code is on its way.')}catch(e){toast(e.message)}}
+async function doVerify(){try{const r=await jpost('/api/code/verify',{email:A.email,purpose:A.purpose,code:$('#fC').value,password:A.purpose==='reset'?$('#fP').value:''});if(A.purpose==='reset'){aGo('login');toast('Password updated. Log in with your new password.')}else enter(r)}catch(e){errT(e.message)}}
+const navBtn=(id,l,i,c,cls='',soon)=>`<button data-t="${id}" class="${cls}" onclick="nav('${id}')" aria-label="${l}"><span style="display:contents;color:${c||'inherit'}">${ic(i)}</span><span>${l}</span>${soon?'<small>Soon</small>':''}</button>`;
+async function enter(u){me=u.name;isAdmin=!!u.admin;document.body.classList.add('in');
+ $('#sbx').innerHTML=ic('search',18)+'<input id="q" placeholder="Search people by @username" oninput="onq(this.value)" onfocus="if(tab!==\'search\'){tab=\'search\';view=null;render()}">';
+ $('#nav').innerHTML=`<button class="dsk" data-t="me" onclick="openProfile('${me}')">${av(me,32)}<span><b>${esc(me)}</b></span></button>`+MENU.map(m=>navBtn(m[0],m[1],m[2],m[3],'dsk',m[4])).join('')+`<button class="mk dsk" onclick="openCreate()">${ic('plus')}<span>Create</span></button><hr class="dsk">`+navBtn('settings','Settings & privacy','gear','','dsk')+navBtn('help','Help & support','help','','dsk')+navBtn('contact','Contact us','phone','','dsk')+(isAdmin?navBtn('admin','Admin panel','shield','','dsk'):'')+`<div class="dsk dev">Built by <b>${DEV}</b></div>`
+ +[['home','Home','home'],['reels','Reels','reels']].map(x=>navBtn(x[0],x[1],x[2],'','mob')).join('')+`<button class="mk mob" onclick="openCreate()" aria-label="Create">${ic('plus')}</button>`+navBtn('chat','Chat','chat','','mob')+navBtn('menu','Menu','menu','','mob');
+ await load();showAnn();setInterval(async()=>{try{cfg=await api('/api/config');showAnn()}catch(e){}},60000);setInterval(loadSugs,30000);loadNotifs(1);setInterval(poll,3000);setInterval(refreshPosts,9000)}
 async function logout(){await api('/api/logout',{method:'POST'});location.reload()}
 async function delAcc(){if(confirm('Delete your account and posts? This cannot be undone.')){await api('/api/me',{method:'DELETE'});location.reload()}}
 /* data */
-async function loadUsers(){users=await api('/api/users')}
-async function load(){try{await loadUsers();posts=await api('/api/posts');render()}catch(e){toast(e.message)}}
-async function refreshPosts(){try{const p=await api('/api/posts');if(JSON.stringify(p)!==JSON.stringify(posts)){posts=p;if(tab==='home'||tab==='me')render()}}catch(e){}}
-async function poll(){try{const o=JSON.stringify(users);await loadUsers();if(o!==JSON.stringify(users)){$('#side').innerHTML=sideHTML();if(tab==='chat'||tab==='search')keep()}if(tab==='chat')loadThread()}catch(e){}}
+const loadUsers=async()=>{users=await api('/api/users')};
+async function loadSugs(){try{sugs=await api('/api/suggestions');$('#side').innerHTML=sideHTML()}catch(e){}}
+async function load(){try{await loadUsers();loadSugs();posts=await api('/api/posts');render()}catch(e){toast(e.message)}}
+async function refreshPosts(){try{const p=await api('/api/posts');if(JSON.stringify(p)!==JSON.stringify(posts)){posts=p;if(['home','me','saved','memories'].includes(tab))render()}}catch(e){}}
+const nText=n=>n.type==='like'?'liked your post':n.type==='comment'?'commented on your post':'started following you';
+const unread=()=>notifs.filter(n=>!n.read).length;
+function updBell(){const u=unread();$('#bell').innerHTML=ic('bell')+(u?`<i class="bd">${u>9?'9+':u}</i>`:'');document.title=(u?`(${u}) `:'')+'Amlink'}
+function beep(){if(pref('snd','1')!=='1')return;try{const c=new(window.AudioContext||window.webkitAudioContext)(),o=c.createOscillator(),g=c.createGain();o.frequency.value=760;g.gain.value=.05;o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+.12)}catch(e){}}
+function alertUser(kind,text){if(pref('n_'+kind,'1')!=='1')return;toast('🔔 '+text);beep();if(document.hidden&&pref('bn','0')==='1'&&window.Notification&&Notification.permission==='granted')new Notification('Amlink',{body:text})}
+const msgTotal=()=>Object.values(unr).reduce((a,b)=>a+b.n,0);
+function badges(){document.querySelectorAll('[data-t=chat]').forEach(b=>{b.querySelector('.bd')?.remove();const n=msgTotal();if(n)b.insertAdjacentHTML('beforeend',`<i class="bd">${n>9?'9+':n}</i>`)});document.title=(unread()+msgTotal()?`(${unread()+msgTotal()}) `:'')+'Amlink'}
+async function loadNotifs(first){const n=await api('/api/notifications');if(!first)n.filter(x=>!x.read&&x.at>notifSeen).reverse().forEach(x=>alertUser('social',`${x.from} ${nText(x)}`));notifs=n;notifSeen=Math.max(notifSeen,...n.map(x=>x.at));updBell();badges();if(tab==='notifs'&&!first)render()}
+async function loadUnread(){const u=await api('/api/unread');if(unrReady)Object.keys(u).forEach(k=>{if(u[k].n>(unr[k]?.n||0)&&!(tab==='chat'&&curChat()===k&&!document.hidden))alertUser('msg',`${k}: ${u[k].last}`)});unr=u;unrReady=true;badges();if(tab==='chat'){const l=$('.list');if(l)l.innerHTML=chatList()}}
+async function poll(){try{const o=JSON.stringify(users);await loadUsers();
+ const on=new Set(Object.keys(users).filter(u=>u!==me&&users[u].online));if(prevOn)on.forEach(u=>{if(!prevOn.has(u)&&(users[u].isFollowing||users[u].followsMe))alertUser('online',u+' is online')});prevOn=on;
+ if(o!==JSON.stringify(users)){$('#side').innerHTML=sideHTML();if(tab==='search')keep()}
+ if(tab==='chat')await loadThread();loadUnread();loadNotifs()}catch(e){}}
 function keep(){const v=$('#ci')?.value;render();const c=$('#ci');if(c&&v){c.value=v;c.focus()}}
+const nav=id=>{if(id==='invite')return openInvite();const m=MENU.find(x=>x[0]===id);if(m&&m[4])return toast(m[1]+' is coming soon');if(id==='feeds'){feed='fol';return go('home')}if(id==='home')feed='all';go(id)};
 const go=t=>{tab=t;view=null;chatOpen=false;render();scrollTo(0,0)};
 const openProfile=u=>{tab='me';view=u===me?null:u;render();scrollTo(0,0)};
-const onq=v=>{q=v;if(tab!=='search')tab='search';render()};
-async function follow(u){try{await api('/api/follow/'+u,{method:'POST'});await loadUsers();render()}catch(e){toast(e.message)}}
+const onq=v=>{q=v;sres=null;if(tab!=='search'){tab='search';view=null;render()}clearTimeout(qt);qt=setTimeout(runSearch,220)};
+async function follow(u){try{await api('/api/follow/'+u,{method:'POST'});await loadUsers();loadSugs();if(tab==='search'&&q.trim())await runSearch();render()}catch(e){toast(e.message)}}
 async function like(id){try{await api(`/api/posts/${id}/like`,{method:'POST'});posts=await api('/api/posts');const o=$('#reels')?.scrollTop;render();if(o)$('#reels').scrollTop=o;if($('#cmx'))openComments(id)}catch(e){toast(e.message)}}
-async function delPost(id){if(confirm('Delete this post?')){await api('/api/posts/'+id,{method:'DELETE'});load()}}
+async function delPost(id){if(confirm('Delete this post?')){const mine=posts.find(p=>p.id===id)?.user===me;try{await api((mine?'/api/posts/':'/api/admin/posts/')+id,{method:'DELETE'});load()}catch(e){toast(e.message)}}}
+const savedIds=()=>{try{return JSON.parse(pref('saved','[]'))}catch(e){return[]}};
+function toggleSave(id){let s=savedIds();s=s.includes(id)?s.filter(x=>x!==id):[...s,id];setPref('saved',JSON.stringify(s));toast(s.includes(id)?'Saved':'Removed from saved');render()}
 /* views */
-function postHTML(p){const lk=p.likes.includes(me),m=p.type==='video'?`<video class="m" src="${p.src}" controls playsinline preload="metadata"></video>`:p.type==='image'?`<img class="m" src="${p.src}" alt="Post by ${esc(p.user)}">`:'';
- return `<article class="card post"><header><a class="who" onclick="openProfile('${p.user}')">${av(p.user,42,1)}<span><b>${esc(p.user)}</b><small>${ago(p.t)}</small></span></a>${p.user!==me&&!(users[p.user]||{}).isFollowing?`<button class="btn sm ghost" onclick="follow('${p.user}')">Follow</button>`:''}</header>${p.text?`<p>${esc(p.text)}</p>`:''}${m}
- <div class="acts"><button class="${lk?'liked':''}" onclick="like('${p.id}')" aria-label="Like">${ic('heart')}${p.likes.length}</button><button onclick="openComments('${p.id}')" aria-label="Comments">${ic('chat')}${p.comments.length}</button><span class="sp"></span>${p.user===me?`<button onclick="delPost('${p.id}')" aria-label="Delete">${ic('trash',20)}</button>`:`<button onclick="toast('Reported. Thank you.')" aria-label="Report">${ic('flag',20)}</button>`}</div></article>`}
-const sugCard=()=>{const s=Object.keys(users).filter(u=>u!==me&&!users[u].isFollowing).slice(0,5);return `<div class="card sec"><h3>Suggested for you</h3>${s.map(u=>`<div class="prow s"><a class="who" onclick="openProfile('${u}')">${av(u,38,1)}<b>${esc(u)}</b></a><span class="sp"></span><a onclick="follow('${u}')">Follow</a></div>`).join('')||'<p class="mu">No suggestions yet. Invite friends to join!</p>'}</div>`};
+function postHTML(p){const lk=p.likes.includes(me),sv=savedIds().includes(p.id),m=p.type==='video'?`<video class="m" src="${p.src}" controls playsinline preload="metadata"></video>`:p.type==='image'?`<img class="m" src="${p.src}" alt="Post by ${esc(p.user)}">`:'';
+ return `<article class="card post"><header><a class="who" onclick="openProfile('${p.user}')">${av(p.user,42,1)}<span><b>${esc(p.user)}${(users[p.user]||{}).badge?' <span class="vb">✔</span>':''}</b><small>${ago(p.t)}</small></span></a>${p.user!==me&&!(users[p.user]||{}).isFollowing?`<button class="btn sm ghost" onclick="follow('${p.user}')">Follow</button>`:''}</header>${p.text?`<p>${esc(p.text)}</p>`:''}${m}
+ <div class="acts"><button class="${lk?'liked':''}" onclick="like('${p.id}')" aria-label="Like">${ic('heart')}${p.likes.length}</button><button onclick="openComments('${p.id}')" aria-label="Comments">${ic('chat')}${p.comments.length}</button><button class="${sv?'saved':''}" onclick="toggleSave('${p.id}')" aria-label="Save">${ic('bookmark')}</button><span class="sp"></span>${(p.user===me||isAdmin)?`<button onclick="delPost('${p.id}')" aria-label="Delete">${ic('trash',20)}</button>`:''}${p.user!==me?`<button onclick="openReport('post','${p.id}')" aria-label="Report">${ic('flag',20)}</button>`:''}</div></article>`}
+const sugCard=()=>`<div class="card sec"><h3>Suggested for you</h3>${sugs.slice(0,5).map(p=>`<div class="prow s"><a class="who" onclick="openProfile('${p.name}')">${av(p.name,38,1)}<span><b>${esc(p.fullName||p.name)}</b><small>${esc(p.reason||'@'+p.name)}</small></span></a><span class="sp"></span><a onclick="follow('${p.name}')">Follow</a></div>`).join('')||'<p class="mu">No suggestions yet. Invite friends to join!</p>'}</div>`;
 const onlineCard=()=>{const o=Object.keys(users).filter(u=>u!==me&&users[u].online);return `<div class="card sec"><h3>Online now · ${o.length}</h3>${o.map(u=>`<div class="prow s"><a class="who" onclick="openChat('${u}')">${av(u,38,1)}<b>${esc(u)}</b></a></div>`).join('')||'<p class="mu">No one else is online.</p>'}</div>`};
 const sideHTML=()=>sugCard()+onlineCard();
 function home(){const list=posts.filter(p=>feed==='all'||p.user===me||(users[p.user]||{}).isFollowing),ppl=Object.keys(users).filter(u=>u!==me).sort((a,b)=>users[b].online-users[a].online).slice(0,14);
@@ -191,38 +236,113 @@ function home(){const list=posts.filter(p=>feed==='all'||p.user===me||(users[p.u
 function reels(){const v=posts.filter(p=>p.type==='video');
  return `<div id="reels">${v.length?v.map(p=>`<section class="reel"><video src="${p.src}" loop muted playsinline onclick="this.muted=!this.muted;toast(this.muted?'Muted':'Sound on')"></video><div class="info"><a onclick="openProfile('${p.user}')">@${esc(p.user)}</a><p>${esc(p.text)}</p></div><div class="rail"><button onclick="openProfile('${p.user}')">${av(p.user,48)}</button><button class="${p.likes.includes(me)?'liked':''}" onclick="like('${p.id}')" aria-label="Like">${ic('heart',32)}<small>${p.likes.length}</small></button><button onclick="openComments('${p.id}')" aria-label="Comments">${ic('chat',32)}<small>${p.comments.length}</small></button></div></section>`).join(''):`<div class="empty" style="color:#bbb;padding-top:30vh">No reels yet.<br><br><button class="btn" onclick="openCreate()">Post a video</button></div>`}</div>`}
 function autoplay(){const io=new IntersectionObserver(es=>es.forEach(e=>{const v=e.target.querySelector('video');e.isIntersecting?v.play().catch(()=>{}):v.pause()}),{threshold:.6});document.querySelectorAll('.reel').forEach(r=>io.observe(r))}
-function chat(){const n=Object.keys(users).filter(u=>u!==me).sort((a,b)=>users[b].online-users[a].online||a.localeCompare(b));
- if(!n.length)return `<div class="empty">No one else has joined yet.<br>Invite a friend, or use Search to find people by username.</div>`;
- const c=users[chatWith]&&chatWith!==me?chatWith:n[0],d=users[c];
- return `<div class="chat ${chatOpen?'open':''}"><div class="list">${n.map(u=>`<button class="${u===c?'on':''}" onclick="openChat('${u}')">${av(u,46,1)}<span><b>${esc(u)}</b><small class="mu" style="display:block">${users[u].online?'Online':'Offline'}</small></span></button>`).join('')}</div>
- <div class="conv"><div class="ch"><button class="back" onclick="chatOpen=false;render()" aria-label="Back">←</button><a class="who" onclick="openProfile('${c}')">${av(c,40,1)}<span><b>${esc(c)}</b><small>${d.online?'Online now':'Offline'}</small></span></a></div>
- <div class="msgs" id="msgs">${thread.map(m=>`<div class="b ${m.from===me?'me':''}">${esc(m.t)}<small>${new Date(m.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</small></div>`).join('')||'<div class="empty">Say hi to '+esc(c)+'.</div>'}</div>
- <div class="send"><input id="ci" placeholder="Message ${esc(c)}" onkeydown="if(event.key==='Enter')sendMsg()"><button class="btn" onclick="sendMsg()">Send</button></div></div></div>`}
-function openChat(u){chatWith=u;chatOpen=true;tab='chat';thread=[];render();loadThread()}
-async function loadThread(){const c=chatWith||Object.keys(users).filter(u=>u!==me)[0];if(!c)return;try{const t=await api('/api/messages?with='+c);if(JSON.stringify(t)!==JSON.stringify(thread)){thread=t;keep();scrollMsgs()}}catch(e){}}
-const scrollMsgs=()=>{const m=$('#msgs');if(m)m.scrollTop=m.scrollHeight};
-async function sendMsg(){const i=$('#ci'),t=i.value.trim(),c=chatWith||Object.keys(users).filter(u=>u!==me)[0];if(!t)return;i.value='';try{await jpost('/api/messages',{to:c,text:t});loadThread()}catch(e){toast(e.message)}}
+/* chat: only the message pane is redrawn; long-press / right-click / ⋯ opens message actions */
+const chatNames=()=>Object.keys(users).filter(u=>u!==me).sort((a,b)=>(unr[b]?.n||0)-(unr[a]?.n||0)||users[b].online-users[a].online||a.localeCompare(b));
+const curChat=()=>users[chatWith]&&chatWith!==me?chatWith:chatNames()[0];
+const chatList=()=>{const c=curChat();return chatNames().map(u=>`<button class="${u===c?'on':''}" onclick="openChat('${u}')">${av(u,46,1)}<span><b>${esc(u)}</b><small class="mu" style="display:block">${users[u].online?'Online':'Offline'}</small></span>${unr[u]?`<i class="ub">${unr[u].n}</i>`:''}</button>`).join('')};
+const bub=m=>{const mine=m.from===me,tm=new Date(m.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});if(m.del)return `<div class="b del ${mine?'me':''}">Message deleted</div>`;
+ const rc=Object.values(m.reacts||{}),rx=rc.length?`<span class="rx">${[...new Set(rc)].join('')}${rc.length>1?' '+rc.length:''}</span>`:'';
+ return `<div class="b ${mine?'me':''}" data-id="${m.id||''}">${m.rid?`<div class="qt" data-q="${m.rid}"><b>${esc(m.rf===me?'You':m.rf)}</b>${esc(m.rt)}</div>`:''}${m.kind?mediaHTML(m):''}${m.t?esc(m.t):''}<small>${tm}${m.pending?' · sending…':mine&&m.read?' ✓✓':''}</small>${rx}${m.id?`<button class="mm" onclick="openMsgMenu('${m.id}')" aria-label="Message options">⋯</button>`:''}</div>`};
+function renderMsgs(force){const m=$('#msgs');if(!m)return;const near=m.scrollHeight-m.scrollTop-m.clientHeight<80;m.innerHTML=thread.map(bub).join('')||'<div class="empty">Say hi.</div>';if(near||force)m.scrollTop=m.scrollHeight}
+function bindMsgs(){const m=$('#msgs');if(!m)return;let t;const id=e=>e.target.closest('.b[data-id]')?.dataset.id;
+ m.addEventListener('touchstart',e=>{const i=id(e);if(i)t=setTimeout(()=>{navigator.vibrate?.(15);openMsgMenu(i)},450)},{passive:true});
+ ['touchend','touchmove','touchcancel'].forEach(ev=>m.addEventListener(ev,()=>clearTimeout(t),{passive:true}));
+ m.addEventListener('contextmenu',e=>{const i=id(e);if(i){e.preventDefault();openMsgMenu(i)}});
+ m.addEventListener('click',e=>{const q=e.target.closest('[data-q]');if(!q)return;const b=m.querySelector(`.b[data-id="${q.dataset.q}"]`);if(b){b.scrollIntoView({block:'center',behavior:'smooth'});b.classList.add('flash');setTimeout(()=>b.classList.remove('flash'),1200)}})}
+function openMsgMenu(id){if(dlg.open)return;const m=thread.find(x=>x.id===id);if(!m||m.del)return;
+ show(`<div class="react">${['❤️','😂','😮','😢','👍','🙏'].map(e=>`<button onclick="reactMsg('${id}','${e}')" aria-label="React ${e}">${e}</button>`).join('')}</div>
+ <button class="act" onclick="setReply('${id}')">↩ Reply</button>${m.t?`<button class="act" onclick="copyMsg('${id}')">⧉ Copy</button>`:''}${m.from===me?`<button class="act" style="color:#E5384F" onclick="delMsg('${id}')">🗑 Delete for everyone</button>`:''}`,'sheet')}
+function setReply(id){const m=thread.find(x=>x.id===id);dlg.close();if(!m)return;reply={id,from:m.from,t:m.t||({image:'📷 Photo',video:'🎥 Video',audio:'🎤 Voice note'}[m.kind]||'')};showReply();$('#ci')?.focus()}
+function showReply(){const r=$('#rbar');if(!r)return;r.innerHTML=reply?`<span><b>Replying to ${reply.from===me?'yourself':esc(reply.from)}</b><br>${esc(reply.t.slice(0,80))}</span><button onclick="reply=null;showReply()" aria-label="Cancel reply">✕</button>`:''}
+async function copyMsg(id){const m=thread.find(x=>x.id===id);dlg.close();if(!m)return;try{await navigator.clipboard.writeText(m.t)}catch(e){const t=document.createElement('textarea');t.value=m.t;document.body.append(t);t.select();document.execCommand('copy');t.remove()}toast('Message copied')}
+async function reactMsg(id,e){dlg.close();try{await jpost(`/api/messages/${id}/react`,{emoji:e});loadThread(1)}catch(x){toast(x.message)}}
+async function delMsg(id){dlg.close();if(!confirm('Delete this message for everyone?'))return;try{await api('/api/messages/'+id,{method:'DELETE'});loadThread(1)}catch(x){toast(x.message)}}
+let rec=null;
+const mediaHTML=m=>m.kind==='image'?`<img class="mi" src="${m.src}" alt="Photo" onclick="viewImg('${m.src}')">`:m.kind==='video'?`<video class="mi" src="${m.src}" controls playsinline preload="metadata"></video>`:m.kind==='audio'?`<audio src="${m.src}" controls preload="metadata"></audio>`:'';
+const viewImg=src=>show(`<img class="pv" style="max-height:78vh;object-fit:contain;background:none" src="${src}" alt="">`);
+async function sendBlob(blob,name,kind){const c=curChat();if(!c)return;const r=reply;reply=null;showReply();
+ const tmp={from:me,to:c,at:Date.now(),kind:kind==='voice'?'audio':blob.type.startsWith('video')?'video':'image',src:URL.createObjectURL(blob),t:'',pending:1,rid:r?r.id:'',rf:r?r.from:'',rt:r?r.t.slice(0,80):''};thread.push(tmp);renderMsgs(1);sending++;
+ try{const fd=new FormData();fd.append('to',c);fd.append('kind',kind);fd.append('reply',r?r.id:'');fd.append('media',blob,name);await api('/api/messages/media',{method:'POST',body:fd})}catch(e){toast(e.message);thread=thread.filter(x=>x!==tmp);renderMsgs()}
+ sending--;loadThread(1)}
+async function sendFile(inp){const f=inp.files[0];inp.value='';if(!f)return;
+ if(f.type.startsWith('video')){if(f.size>28e6)return toast('Video is over 28 MB.');return sendBlob(f,f.name,'')}
+ if(f.type.startsWith('image')){try{const d=await shrink(await readFile(f),1600);sendBlob(await(await fetch(d)).blob(),'photo.jpg','')}catch(e){toast('Could not read that image.')}}else toast('Choose a photo or video.')}
+async function micToggle(){if(rec)return;try{const st=await navigator.mediaDevices.getUserMedia({audio:true}),mr=new MediaRecorder(st),ch=[];rec={mr,st,ch,t0:Date.now()};mr.ondataavailable=e=>e.data.size&&ch.push(e.data);mr.start();$('#sendbar').classList.add('rec');
+ rec.iv=setInterval(()=>{const n=(Date.now()-rec.t0)/1e3|0,t=$('#rt');if(t)t.textContent=`● ${n/60|0}:${String(n%60).padStart(2,'0')}`;if(n>=180)stopRec(true)},500)}catch(e){rec=null;toast('Microphone access was blocked or is not available.')}}
+function stopRec(send){const r=rec;if(!r)return;rec=null;clearInterval(r.iv);$('#sendbar')?.classList.remove('rec');
+ r.mr.onstop=()=>{r.st.getTracks().forEach(t=>t.stop());if(send&&r.ch.length){const ty=r.mr.mimeType||'audio/webm';sendBlob(new Blob(r.ch,{type:ty}),'voice.'+(ty.includes('mp4')?'m4a':'webm'),'voice')}};r.mr.stop()}
+function chat(){const c=curChat();if(!c)return `<div class="empty">No one else has joined yet.<br>Invite a friend, or use Search to find people by username.</div>`;const d=users[c];
+ return `<div class="chat ${chatOpen?'open':''}"><div class="list">${chatList()}</div><div class="conv"><div class="ch"><button class="back" onclick="chatOpen=false;render()" aria-label="Back">←</button><a class="who" onclick="openProfile('${c}')">${av(c,40,1)}<span><b>${esc(c)}</b><small>${d.online?'Online now':'Offline'}</small></span></a></div>
+ <div class="msgs" id="msgs">${thread.map(bub).join('')||'<div class="empty">Say hi to '+esc(c)+'.</div>'}</div><div class="rbar" id="rbar"></div>
+ <div class="send" id="sendbar"><label class="ib" aria-label="Send photo or video">${ic('clip')}<input type="file" accept="image/*,video/*" hidden onchange="sendFile(this)"></label><label class="ib" aria-label="Take a photo">${ic('camera')}<input type="file" accept="image/*" capture="environment" hidden onchange="sendFile(this)"></label><input id="ci" placeholder="Message ${esc(c)}" autocomplete="off" onkeydown="if(event.key==='Enter')sendMsg()"><button class="ib" onclick="micToggle()" aria-label="Record voice note">${ic('mic')}</button><button class="btn" onclick="sendMsg()">Send</button><span class="recui"><button class="ib" onclick="stopRec(false)" aria-label="Cancel recording">✕</button><span id="rt">● 0:00</span><button class="btn" onclick="stopRec(true)">Send</button></span></div></div></div>`}
+function openChat(u){chatWith=u;chatOpen=true;thread=[];reply=null;tab='chat';render();loadThread(1)}
+async function loadThread(force){if(sending)return;const c=curChat();if(!c)return;try{const t=await api('/api/messages?with='+c);if(sending||c!==curChat())return;if(force||JSON.stringify(t)!==JSON.stringify(thread)){thread=t;renderMsgs(force);if(unr[c]){delete unr[c];badges();const l=$('.list');if(l)l.innerHTML=chatList()}}}catch(e){}}
+async function sendMsg(){const i=$('#ci'),t=i.value.trim(),c=curChat();if(!t||!c)return;const r=reply;i.value='';i.focus();reply=null;showReply();
+ thread.push({from:me,to:c,t,at:Date.now(),rid:r?r.id:'',rf:r?r.from:'',rt:r?r.t.slice(0,80):''});renderMsgs(1);sending++;
+ try{await jpost('/api/messages',{to:c,text:t,reply:r?r.id:''})}catch(e){toast(e.message);thread.pop();renderMsgs()}sending--;loadThread(1)}
 const personRow=u=>`<div class="card prow"><a class="who" onclick="openProfile('${u}')">${av(u,48,1)}<span><b>${esc(u)}</b><small>${esc(users[u].bio)||users[u].followers+' followers'}</small></span></a><span class="sp"></span><button class="btn sm ${users[u].isFollowing?'ghost':''}" onclick="follow('${u}')">${users[u].isFollowing?'Following':'Follow'}</button><button class="btn sm ghost" onclick="openChat('${u}')" aria-label="Message">${ic('chat',18)}</button></div>`;
-function search(){const s=q.trim().toLowerCase().replace(/^@/,''),n=Object.keys(users).filter(u=>u!==me&&(!s||u.includes(s)||(users[u].bio||'').toLowerCase().includes(s)));
- return `<div class="wrap"><h2>${s?'Results for @'+esc(s):'People on Amlink'}</h2>${n.length?n.map(personRow).join(''):`<div class="empty">Nobody found for "@${esc(s)}".<br>Check the exact username.</div>`}</div>`}
-function profile(){const u=view||me,d=users[u];if(!d)return '<div class="empty">User not found.</div>';const ps=posts.filter(p=>p.user===u);
- return `<div class="wrap"><div class="ph">${av(u,96,1)}<div><h2>@${esc(u)}</h2><div class="nums"><span><b>${ps.length}</b>posts</span><span><b>${d.followers}</b>followers</span><span><b>${d.followingCount}</b>following</span></div><small class="mu">${d.online?'● Online now':'Offline'}</small></div></div>
- <p class="bio">${esc(d.bio)||(u===me?'No bio yet. Add one in Settings.':'')}</p>
- <div class="row">${u===me?`<button class="btn ghost" onclick="go('settings')">Edit profile and settings</button>`:`<button class="btn ${d.isFollowing?'ghost':''}" onclick="follow('${u}')">${d.isFollowing?'Following':'Follow'}</button><button class="btn ghost" onclick="openChat('${u}')">Message</button>`}</div>
+async function runSearch(){const t=q.trim();try{sres=t?await api('/api/search?q='+encodeURIComponent(t)):null}catch(e){sres=[]}const b=$('#sres');if(tab==='search'&&b)b.innerHTML=searchBody()}
+const pRow=p=>`<div class="card prow"><a class="who" onclick="openProfile('${p.name}')">${av(p.name,48,1)}<span><b>${esc(p.fullName||p.name)}${p.badge?' <span class="vb">✔</span>':''}</b><small>@${esc(p.name)}${p.reason?' · '+esc(p.reason):p.bio?' · '+esc(p.bio.slice(0,40)):''}</small></span></a><span class="sp"></span><button class="btn sm ${p.isFollowing?'ghost':''}" onclick="follow('${p.name}')">${p.isFollowing?'Following':'Follow'}</button><button class="btn sm ghost" onclick="openChat('${p.name}')" aria-label="Message">${ic('chat',18)}</button></div>`;
+const searchBody=()=>{const t=q.trim();if(!t)return `<h3 style="margin:6px 0">People you may know</h3>${sugs.map(pRow).join('')||'<div class="empty">Type a name or @username to find people.</div>'}`;if(sres===null)return '<div class="empty">Searching…</div>';return sres.length?sres.map(pRow).join(''):`<div class="empty">Nobody found for "${esc(t)}".<br>Try another spelling or the exact @username.</div>`};
+const search=()=>{if(q.trim()&&sres===null)runSearch();return `<div class="wrap"><h2>Search</h2><div id="sres">${searchBody()}</div></div>`};
+function friends(){const o=Object.keys(users).filter(u=>u!==me),l=ftab==='following'?o.filter(u=>users[u].isFollowing):ftab==='followers'?o.filter(u=>users[u].followsMe):o.filter(u=>!users[u].isFollowing);
+ return `<div class="wrap"><h2>Friends</h2><div class="chips" style="margin-top:0">${[['following','Following'],['followers','Followers'],['find','Find people']].map(([k,t])=>`<button class="${ftab===k?'on':''}" onclick="ftab='${k}';render()">${t}</button>`).join('')}</div>${l.length?l.map(personRow).join(''):`<div class="empty">${ftab==='find'?'Everyone is followed. Invite more friends!':'Nobody here yet.'}</div>`}</div>`}
+const listPosts=(t,l,e)=>`<div class="wrap"><h2>${t}</h2>${l.length?l.map(postHTML).join(''):`<div class="empty">${e}</div>`}</div>`;
+const saved=()=>listPosts('Saved',posts.filter(p=>savedIds().includes(p.id)),'Tap the bookmark on any post to save it here.');
+function memories(){const d=new Date();return listPosts('Memories',posts.filter(p=>{const x=new Date(p.t);return p.user===me&&x.getDate()===d.getDate()&&x.getMonth()===d.getMonth()&&x.getFullYear()<d.getFullYear()}),'Your posts from this day in past years will show up here.')}
+function notifsView(){setTimeout(async()=>{if(unread()){try{await api('/api/notifications/read',{method:'POST'});notifs.forEach(n=>n.read=true);updBell()}catch(e){}}},1200);
+ return `<div class="wrap"><h2>Notifications</h2>${notifs.map(n=>`<button class="card nt ${n.read?'':'un'}" onclick="${n.post?`openComments('${n.post}')`:`openProfile('${n.from}')`}">${av(n.from,44)}<span class="sp"><b>${esc(n.from)}</b> ${nText(n)}</span><small class="mu">${ago(n.at)}</small></button>`).join('')||'<div class="empty">No notifications yet. Likes, comments and new followers show up here.</div>'}</div>`}
+function menu(){return `<div class="wrap"><h2>Menu</h2><button class="card prow" onclick="openProfile('${me}')">${av(me,48)}<span class="who"><span><b>${esc(me)}</b><small>See your profile</small></span></span></button>
+ <button class="card prow" onclick="openInvite()"><span style="color:inherit">${ic('heart',28)}</span><b>Invite friends</b></button>
+ <div class="tiles">${MENU.filter(m=>!['home','invite'].includes(m[0])).map(m=>`<button class="card tile" onclick="nav('${m[0]}')"><span style="color:${m[3]}">${ic(m[2],30)}</span>${m[1]}${m[4]?'<small>Coming soon</small>':''}</button>`).join('')}</div>
+ <button class="card prow" onclick="go('settings')">${ic('gear',26)}<b>Settings & privacy</b></button><button class="card prow" onclick="go('help')">${ic('help',26)}<b>Help & support</b></button><button class="card prow" onclick="go('contact')">${ic('phone',26)}<b>Contact us</b></button>${isAdmin?`<button class="card prow" onclick="go('admin')">${ic('shield',26)}<b>Admin panel</b></button>`:''}
+ <div style="margin-top:14px"><button class="btn ghost" onclick="logout()">Log out</button></div><p class="mu" style="margin-top:18px;text-align:center">Amlink v1.0 · Built by <a onclick="go('about')">${DEV}</a></p></div>`}
+const help=()=>`<div class="wrap"><h2>Help & support</h2>${[['How do I add friends?','Use the search bar and type their exact @username, then tap Follow. You can also pick from Suggested for you.'],['How do I hide that I am online?','Settings & privacy, then turn off "Show when I\'m online".'],['How do I change my profile photo?','Open your Profile and tap your photo, or use Settings & privacy.'],['How do notifications work?','You get an alert when someone likes or comments on your post or follows you. Turn on browser notifications in Settings.'],['How do I report something?','Tap the flag on a post. Our team reviews reports.'],['How do I delete my account?','Settings & privacy, then Delete my account at the bottom.']].map(([a,b])=>`<details class="card sec" style="margin-top:10px"><summary>${a}</summary><p>${b}</p></details>`).join('')}<p class="mu" style="margin-top:14px">Still stuck? Email whitefrostff@gmail.com</p></div>`;
+function profile(){const u=view||me,d=users[u];if(!d)return '<div class="empty">User not found.</div>';const ps=posts.filter(p=>p.user===u),mine=u===me;
+ return `<div class="wrap"><div class="ph">${mine?`<label class="avedit" title="Change photo">${av(u,96,1)}<input type="file" accept="image/*" hidden onchange="newPic(this)"><span class="cam">${ic('plus',14)}</span></label>`:av(u,96,1)}<div><h2>${esc(d.fullName||u)}${d.badge?' <span class="vb">✔</span>':''}</h2><small class="mu">@${esc(u)}</small><div class="nums"><span><b>${ps.length}</b>posts</span><span><b>${d.followers}</b>followers</span><span><b>${d.followingCount}</b>following</span></div><small class="mu">${d.online?'● Online now':'Offline'}</small></div></div>
+ <p class="bio">${esc(d.bio)||(mine?'No bio yet. Add one in Settings.':'')}</p>
+ <div class="row">${mine?`<button class="btn ghost" onclick="go('settings')">Settings & privacy</button>`:`<button class="btn ${d.isFollowing?'ghost':''}" onclick="follow('${u}')">${d.isFollowing?'Following':'Follow'}</button><button class="btn ghost" onclick="openChat('${u}')">Message</button><button class="btn ghost" onclick="openReport('user','${u}')">Report</button><button class="btn ghost" onclick="blockUser('${u}')">Block</button>`}</div>
  <div class="grid">${ps.map(p=>`<div class="t">${p.type==='image'?`<img src="${p.src}" alt="">`:p.type==='video'?`<video src="${p.src}" muted preload="metadata"></video>`:`<div>${esc(p.text)}</div>`}</div>`).join('')}</div></div>`}
-function settings(){const t=pref('theme','color'),a=pref('accent','auto');
- return `<div class="wrap"><h2>Settings</h2>
- <div class="card sec"><h3>Appearance</h3><div class="seg">${[['color','🌈 Colorful'],['mono','⚪ Black and white'],['night','⚫ Night']].map(([k,l])=>`<button class="${t===k?'on':''}" onclick="setTheme('${k}')">${l}</button>`).join('')}</div><p class="mu">Accent colour (Colorful theme)</p><div class="sw"><button class="${a==='auto'?'on':''}" onclick="setAcc('auto')">Auto</button>${ACC.map(c=>`<button class="${a===c?'on':''}" style="background:linear-gradient(135deg,${c.split(',')[0]},${c.split(',')[1]})" onclick="setAcc('${c}')" aria-label="Accent colour"></button>`).join('')}</div></div>
- <div class="card sec"><h3>Privacy</h3><label class="tg"><span>Show when I'm online</span><input type="checkbox" ${users[me].hide?'':'checked'} onchange="setHide(!this.checked)"></label></div>
- <div class="card sec"><h3>Profile</h3><div class="row"><label class="btn ghost">Change photo<input type="file" accept="image/*" hidden onchange="newPic(this)"></label><button class="btn ghost" onclick="editBio()">Edit bio</button></div></div>
- <div class="card sec"><h3>Legal</h3><a data-doc="terms">Terms and Conditions</a><a data-doc="privacy">Privacy Policy</a><a data-doc="rules">Community Guidelines</a></div>
+const tgl=(k,l,d=1)=>`<label class="tg"><span>${l}</span><input type="checkbox" ${pref(k,d?'1':'0')==='1'?'checked':''} onchange="setPref('${k}',this.checked?'1':'0')"></label>`;
+function settings(){const t=pref('theme','dark'),a=pref('accent','auto'),u=users[me];
+ return `<div class="wrap"><h2>Settings & privacy</h2>
+ <div class="card sec"><h3>Account</h3><div class="who">${av(me,48)}<span><b>@${esc(me)}</b><small>Your username can't be changed</small></span></div><div class="row"><label class="btn ghost">Change photo<input type="file" accept="image/*" hidden onchange="newPic(this)"></label><button class="btn ghost" onclick="editName()">Edit name</button><button class="btn ghost" onclick="editBio()">Edit bio</button><button class="btn ghost" onclick="openPw()">Change password</button><button class="btn ghost" onclick="openInfo()">Date of birth & gender</button></div></div>
+ <div class="card sec"><h3>Appearance</h3><div class="seg">${[['dark','🌙 Black and white'],['light','☀️ White and light blue'],['auto','Auto']].map(([k,l])=>`<button class="${t===k?'on':''}" onclick="setTheme('${k}')">${l}</button>`).join('')}</div></div>
+ <div class="card sec"><h3>Notifications</h3><label class="tg"><span>Browser notifications (when this tab is in the background)</span><input type="checkbox" ${pref('bn','0')==='1'&&window.Notification&&Notification.permission==='granted'?'checked':''} onchange="setBN(this)"></label>${tgl('n_social','Likes, comments and new followers')}${tgl('n_msg','New messages')}${tgl('n_online','When people you follow come online')}${tgl('snd','Notification sound')}</div>
+ <div class="card sec"><h3>Privacy</h3><label class="tg"><span>Show when I'm online</span><input type="checkbox" ${u.hide?'':'checked'} onchange="setHide(!this.checked)"></label><p class="mu">Messages show ✓✓ when they have been read.</p><button class="btn ghost" onclick="openBlocks()">Blocked accounts</button></div>
+ <div class="card sec"><h3>Data on this device</h3><button class="btn ghost" onclick="setPref('saved','[]');toast('Saved posts cleared')">Clear saved posts</button></div>
+ <div class="card sec"><h3>About</h3><a onclick="go('about')">About Amlink and the developer</a><a data-doc="terms">Terms and Conditions</a><a data-doc="privacy">Privacy Policy</a><a data-doc="rules">Community Guidelines</a><a onclick="go('help')">Help & support</a><a onclick="go('contact')">Contact us</a></div>
  <div class="card sec"><div class="row"><button class="btn ghost" onclick="logout()">Log out</button><button class="btn danger" onclick="delAcc()">Delete my account</button></div></div></div>`}
+const about=()=>`<div class="wrap"><h2>About Amlink</h2><div class="card devcard"><div class="av">${esc(DEV[0])}</div><small class="mu">Founder and developer</small><h3>${esc(DEV)}</h3><p class="mu" style="margin-top:10px">Amlink was designed and built by ${esc(DEV)}: one place to post, watch reels, chat and find your people.</p></div>
+ <div class="card sec" style="margin-top:12px"><h3>App info</h3><p class="mu">Version 1.0<br>© ${new Date().getFullYear()} Amlink. All rights reserved.<br>Support: whitefrostff@gmail.com</p></div></div>`;
+async function openInfo(){try{const m=await api('/api/me');show(`<h3>Date of birth & gender</h3><div class="sec" style="padding:0"><label class="fl">Date of birth<input type="date" id="iD" value="${esc(m.dob||'')}" max="${maxDob()}"></label><label class="fl">Gender<select id="iG">${[['','Not set'],['female','Female'],['male','Male'],['other','Non-binary / other'],['none','Prefer not to say']].map(([v,l])=>`<option value="${v}" ${m.gender===v?'selected':''}>${l}</option>`).join('')}</select></label><div class="err" id="ie"></div><button class="btn" onclick="saveInfo()">Save</button></div><p class="mu">Only you can see this.</p>`)}catch(e){toast(e.message)}}
+async function saveInfo(){try{const fd=new FormData();fd.append('dob',$('#iD').value);fd.append('gender',$('#iG').value);await api('/api/me',{method:'POST',body:fd});dlg.close();toast('Saved')}catch(e){$('#ie').textContent=e.message}}
+const REASONS=['Spam or scam','Nudity or sexual content','Harassment or bullying','Hate speech','Violence or threats','Something else'];
+function openReport(type,target){show(`<h3>Report ${type==='post'?'this post':'@'+esc(target)}</h3><p class="mu">Why are you reporting this?</p>${REASONS.map(r=>`<button class="rsn" onclick="sendReport('${type}','${esc(target)}','${r}')">${r}</button>`).join('')}`,'sheet')}
+async function sendReport(type,target,reason){try{await jpost('/api/report',{type,target,reason});dlg.close();toast('Report sent. Thank you for keeping Amlink safe.')}catch(e){toast(e.message)}}
+async function blockUser(u){if(!confirm('Block @'+u+'? You will not see each other or be able to message.'))return;try{await api('/api/block/'+u,{method:'POST'});await loadUsers();posts=await api('/api/posts');toast('Blocked');go('home')}catch(e){toast(e.message)}}
+async function openBlocks(){try{const l=await api('/api/blocks');show(`<h3>Blocked accounts</h3>${l.map(n=>`<div class="prow s"><b>@${esc(n)}</b><span class="sp"></span><button class="btn sm ghost" onclick="unblock('${esc(n)}')">Unblock</button></div>`).join('')||'<p class="mu">You have not blocked anyone.</p>'}`)}catch(e){toast(e.message)}}
+async function unblock(n){await api('/api/block/'+n,{method:'POST'});await loadUsers();posts=await api('/api/posts');dlg.close();toast('Unblocked');render()}
+async function editName(){const n=prompt('Your full name',users[me].fullName||'');if(n===null)return;try{const fd=new FormData();fd.append('fullName',n);await api('/api/me',{method:'POST',body:fd});load()}catch(e){toast(e.message)}}
+function showAnn(){const a=$('#ann');if(!a)return;const t=cfg.announce,id=cfg.announceId||'';a.innerHTML=t&&pref('annSeen','')!==id?`<span>📢 ${esc(t)}</span><button onclick="setPref('annSeen','${esc(id)}');showAnn()" aria-label="Dismiss">✕</button>`:'';a.style.display=a.innerHTML?'flex':'none'}
+const contactView=()=>`<div class="wrap"><h2>Contact us</h2><div class="card sec"><h3>We'd love to hear from you</h3><p class="mu">Questions, problems, reports or ideas? Reach the Amlink team:</p><a class="btn" href="tel:${PHONE}">📞 Call ${PHONE}</a><a class="btn ghost" href="https://wa.me/${PHONE.slice(1)}" target="_blank" rel="noopener">💬 WhatsApp</a><a class="btn ghost" href="mailto:${MAIL}">✉ ${MAIL}</a></div><div class="card sec" style="margin-top:12px"><p class="mu">Amlink is built and run by ${esc(DEV)}.</p></div></div>`;
+/* admin panel */
+const aAct=async(p,m,b)=>{try{await api(p,{method:m,headers:{'Content-Type':'application/json'},body:b?JSON.stringify(b):undefined});loadAdmin()}catch(e){toast(e.message)}};
+const adminView=()=>{if(!isAdmin)return '<div class="empty">Admins only.</div>';setTimeout(loadAdmin,0);return `<div class="wrap"><h2>Admin panel</h2><div class="chips" style="margin-top:0">${[['overview','Overview'],['reports','Reports'],['users','Users']].map(([k,t])=>`<button class="${atab===k?'on':''}" onclick="atab='${k}';render()">${t}</button>`).join('')}</div>${atab==='users'?'<input class="ainp" id="aq" placeholder="Search by name, username or email" oninput="clearTimeout(window.aqt);window.aqt=setTimeout(loadAdmin,300)">':''}<div id="adm"><div class="empty">Loading…</div></div></div>`};
+async function loadAdmin(){const b=$('#adm');if(!b)return;try{
+ if(atab==='overview'){const x=await api('/api/admin/stats');b.innerHTML=`<div class="tiles">${[['Users',x.users],['Online now',x.online],['New this week',x.new7],['Posts',x.posts],['Messages',x.messages],['Open reports',x.reports],['Unverified signups',x.pending],['Suspended',x.banned]].map(([l,v])=>`<div class="card tile"><b style="font-size:28px">${v}</b>${l}</div>`).join('')}</div><div class="card sec"><h3>Announcement to everyone</h3><textarea class="ainp" id="an" maxlength="300" placeholder="Shown at the top for every user. Leave empty to remove it.">${esc(x.announce)}</textarea><button class="btn" onclick="aAct('/api/admin/announce','POST',{text:$('#an').value}).then(()=>toast('Announcement updated'))">Publish</button></div>`}
+ else if(atab==='reports'){const r=await api('/api/admin/reports');b.innerHTML=r.map(x=>`<div class="card sec" style="margin-top:10px"><b>${esc(x.type)} report</b> <small class="mu">by @${esc(x.by)} · ${ago(x.at)} · ${esc(x.status)}</small><p>${esc(x.reason)}</p><p class="mu">${x.type==='post'?`@${esc(x.author)}: ${esc(x.preview)}`:`User @${esc(x.target)}`}</p>${x.status==='open'?`<div class="row"><button class="btn sm ghost" onclick="aAct('/api/admin/reports/${x.id}/resolve','POST',{action:'dismiss'})">Dismiss</button>${x.type==='post'?`<button class="btn sm danger" onclick="aAct('/api/admin/reports/${x.id}/resolve','POST',{action:'delete_post'})">Delete post</button>`:''}<button class="btn sm danger" onclick="aAct('/api/admin/reports/${x.id}/resolve','POST',{action:'ban'})">Suspend user</button></div>`:''}</div>`).join('')||'<div class="empty">No reports.</div>'}
+ else{const u=await api('/api/admin/users?q='+encodeURIComponent($('#aq')?.value||''));b.innerHTML=u.map(x=>`<div class="card sec" style="margin-top:10px"><div class="who">${av(x.name,44)}<span><b>@${esc(x.name)}${x.badge?' <span class="vb">✔</span>':''}${x.admin?' (admin)':''}</b><small>${esc(x.fullName||'')} ${esc(x.email)}<br>${x.created?'Joined '+new Date(x.created*1000).toLocaleDateString():'Joined: before tracking'} · ${x.posts} posts${x.pending?' · unverified':''}${x.banned?' · SUSPENDED':''}</small></span></div>${x.admin?'':`<div class="row" style="margin-top:10px"><button class="btn sm ghost" onclick="aAct('/api/admin/users/${x.name}/badge','POST',{badge:${!x.badge}})">${x.badge?'Remove badge':'Give badge ✔'}</button><button class="btn sm ghost" onclick="aAct('/api/admin/users/${x.name}/ban','POST',{banned:${!x.banned}})">${x.banned?'Restore':'Suspend'}</button><button class="btn sm danger" onclick="if(confirm('Delete @${x.name} and all their posts?'))aAct('/api/admin/users/${x.name}','DELETE')">Delete</button></div>`}</div>`).join('')||'<div class="empty">No users found.</div>'}
+ }catch(e){b.innerHTML=`<div class="empty">${esc(e.message)}</div>`}}
+function openPw(){show(`<h3>Change password</h3><div class="sec" style="padding:0"><input id="p0" type="password" placeholder="Current password" style="width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink)"><input id="p1" type="password" placeholder="New password (6+ characters)" style="width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink)"><div class="err" id="pe"></div><button class="btn" onclick="savePw()">Update password</button></div>`)}
+async function savePw(){try{await jpost('/api/password',{old:$('#p0').value,new:$('#p1').value});dlg.close();toast('Password updated')}catch(e){$('#pe').textContent=e.message}}
+async function setBN(el){if(!window.Notification){el.checked=false;return toast('This browser does not support notifications')}if(el.checked){const r=await Notification.requestPermission();if(r!=='granted'){el.checked=false;setPref('bn','0');return toast('Notifications were blocked in your browser')}setPref('bn','1')}else setPref('bn','0')}
 async function setHide(v){await jpost('/api/settings',{hide:v});loadUsers()}
 async function newPic(i){const f=i.files[0];if(!f)return;try{const fd=new FormData();fd.append('pic',await(await fetch(await shrink(await readFile(f),400))).blob(),'pic.jpg');await api('/api/me',{method:'POST',body:fd});load();toast('Photo updated')}catch(e){toast('Could not use that image.')}}
 async function editBio(){const b=prompt('Your bio (150 characters)',users[me].bio||'');if(b===null)return;const fd=new FormData();fd.append('bio',b);await api('/api/me',{method:'POST',body:fd});load()}
-function render(){const h=document.documentElement;h.dataset.tab=tab;document.querySelectorAll('#nav [data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===tab&&!(tab==='me'&&view)));
- const m=$('#main');m.innerHTML=({home,reels,chat,me:profile,search,settings})[tab]();$('#side').innerHTML=sideHTML();if(tab==='reels')autoplay();if(tab==='chat')scrollMsgs()}
-/* create + comments */
+function render(){if(tab!=='chat'&&rec)stopRec(false);document.querySelectorAll('#nav [data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===tab&&!(tab==='me'&&view)));
+ $('#main').innerHTML=({home,reels,chat,me:profile,search,friends,saved,memories,notifs:notifsView,menu,help,settings,about,contact:contactView,admin:adminView})[tab]();$('#side').innerHTML=sideHTML();if(tab==='reels')autoplay();if(tab==='chat'){renderMsgs(1);bindMsgs();showReply()}}
+function openInvite(){const l=location.origin;show(`<h3>Invite friends</h3><p>Share your link. When they sign up, search for your @username to connect.</p><p><b>${esc(l)}</b></p><div class="row"><button class="btn" onclick="navigator.clipboard.writeText('${esc(l)}').then(()=>toast('Link copied'))">Copy link</button>${navigator.share?`<button class="btn ghost" onclick="navigator.share({title:'Amlink',text:'Join me on Amlink!',url:'${esc(l)}'})">Share</button>`:''}</div>`)}
 function openCreate(){cfile=null;show(`<h3>Create post</h3><textarea id="ct" placeholder="What's on your mind?" maxlength="1000"></textarea><div id="cp"></div><div class="row"><label class="btn ghost">${ic('plus',18)} Photo or video<input type="file" accept="image/*,video/*" hidden onchange="cpick(this)"></label><span class="sp"></span><button class="btn" id="cb" onclick="cpublish()">Post</button></div><div class="err" id="ce"></div>`)}
 async function cpick(i){const f=i.files[0],e=$('#ce');if(!f)return;e.textContent='';
  if(f.type.startsWith('video')){if(f.size>55e6){e.textContent='Video is over 55 MB.';return}cfile=f;$('#cp').innerHTML=`<video src="${URL.createObjectURL(f)}" controls playsinline></video>`}
@@ -231,9 +351,9 @@ async function cpick(i){const f=i.files[0],e=$('#ce');if(!f)return;e.textContent
 async function cpublish(){const t=$('#ct').value.trim(),b=$('#cb'),e=$('#ce');if(!t&&!cfile){e.textContent='Write something or add a photo or video.';return}
  b.disabled=true;b.textContent='Posting…';const fd=new FormData();fd.append('text',t);if(cfile)fd.append('media',cfile,cfile.name||'photo.jpg');
  try{await api('/api/posts',{method:'POST',body:fd});dlg.close();if(tab!=='reels')tab='home';await load();toast('Posted')}catch(x){e.textContent=x.message;b.disabled=false;b.textContent='Post'}}
-function openComments(id){const p=posts.find(x=>x.id===id);if(!p)return;show(`<div id="cmx"><h3>Comments</h3>${p.comments.map(c=>`<p><b>${esc(c.u)}</b> ${esc(c.t)}</p>`).join('')||'<p class="mu">No comments yet.</p>'}<div class="send" style="padding:10px 0 0"><input id="cmi" placeholder="Add a comment" onkeydown="if(event.key==='Enter')addComment('${id}')"><button class="btn sm" onclick="addComment('${id}')">Send</button></div></div>`)}
+function openComments(id){const p=posts.find(x=>x.id===id);if(!p)return toast('That post was deleted');show(`<div id="cmx"><h3>Comments</h3>${p.comments.map(c=>`<p><b>${esc(c.u)}</b> ${esc(c.t)}</p>`).join('')||'<p class="mu">No comments yet.</p>'}<div class="send" style="padding:10px 0 0"><input id="cmi" placeholder="Add a comment" onkeydown="if(event.key==='Enter')addComment('${id}')"><button class="btn sm" onclick="addComment('${id}')">Send</button></div></div>`)}
 async function addComment(id){const i=$('#cmi'),t=i.value.trim();if(!t)return;try{await jpost(`/api/posts/${id}/comment`,{text:t});posts=await api('/api/posts');render();openComments(id)}catch(e){toast(e.message)}}
-theme();api('/api/me').then(enter).catch(()=>{});
+theme();authRender();api('/api/config').then(c=>{cfg=c;if(!document.body.classList.contains('in')&&(A.v==='login'||A.v==='signup'))authRender()}).catch(()=>{});api('/api/me').then(enter).catch(()=>{});
 </script>
 </body>
 </html>
