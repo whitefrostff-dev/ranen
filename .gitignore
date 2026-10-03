@@ -1,0 +1,7 @@
+# Never commit user data or secrets
+data.json
+data.json.tmp
+backups/
+uploads/
+.env
+*.log
