@@ -24,6 +24,14 @@ type User struct {
 	Pic   string `json:"pic"`
 	Bio   string `json:"bio"`
 	Hide  bool   `json:"hide"`
+	DOB     string `json:"dob"`
+	Gender  string `json:"gender"`
+	Pending bool   `json:"pending"`
+	FullName string `json:"fullName"`
+	EmailOK  bool   `json:"emailOk"`
+	Badge    bool   `json:"badge"`
+	Banned   bool   `json:"banned"`
+	Created  int64  `json:"created"`
 }
 type Comment struct {
 	U string `json:"u"`
@@ -40,10 +48,28 @@ type Post struct {
 	Comments []Comment `json:"comments"`
 }
 type Msg struct {
-	From string `json:"from"`
+	ID      string            `json:"id"`
+	From    string            `json:"from"`
+	To      string            `json:"to"`
+	T       string            `json:"t"`
+	At      int64             `json:"at"`
+	RID     string            `json:"rid"`
+	RT      string            `json:"rt"`
+	RF      string            `json:"rf"`
+	Read    bool              `json:"read"`
+	Deleted bool              `json:"del"`
+	Reacts  map[string]string `json:"reacts"`
+	Src     string            `json:"src"`
+	Kind    string            `json:"kind"`
+}
+type Notif struct {
+	ID   string `json:"id"`
 	To   string `json:"to"`
-	T    string `json:"t"`
+	From string `json:"from"`
+	Type string `json:"type"`
+	Post string `json:"post"`
 	At   int64  `json:"at"`
+	Read bool   `json:"read"`
 }
 type DB struct {
 	Users    map[string]*User  `json:"users"`
@@ -51,6 +77,11 @@ type DB struct {
 	Msgs     []*Msg            `json:"msgs"`
 	Sessions map[string]string `json:"sessions"`
 	Follows  map[string][]string `json:"follows"`
+	Notifs   []*Notif `json:"notifs"`
+	Blocks   map[string][]string `json:"blocks"`
+	Reports  []*Report `json:"reports"`
+	Announce string `json:"announce"`
+	AnnounceID string `json:"announceId"`
 }
 
 var (
@@ -58,13 +89,48 @@ var (
 	mu      sync.Mutex
 	seen    = map[string]int64{}
 	nameRe  = regexp.MustCompile(`^[a-z0-9_.]{3,20}$`)
-	kinds   = map[string]string{"image/jpeg": ".jpg", "image/png": ".png", "image/gif": ".gif", "image/webp": ".webp", "video/mp4": ".mp4", "video/webm": ".webm"}
+	kinds   = map[string]string{"image/jpeg": ".jpg", "image/png": ".png", "image/gif": ".gif", "image/webp": ".webp", "audio/ogg": ".ogg", "audio/mpeg": ".mp3", "audio/wave": ".wav", "video/mp4": ".mp4", "video/webm": ".webm"}
 )
 
 func pubUser(u *User) map[string]any {
-	return map[string]any{"name": u.Name, "email": u.Email, "pic": u.Pic, "bio": u.Bio, "hide": u.Hide}
+	return map[string]any{"name": u.Name, "email": u.Email, "pic": u.Pic, "bio": u.Bio, "hide": u.Hide, "dob": u.DOB, "gender": u.Gender, "fullName": u.FullName, "badge": u.Badge, "admin": isAdminUser(u)}
 }
-func save() { b, _ := json.Marshal(db); os.WriteFile("data.json", b, 0o600) }
+// notify must be called with mu held.
+func notify(to, from, typ, post string) {
+	if to == "" || to == from {
+		return
+	}
+	if typ == "like" {
+		for _, n := range db.Notifs {
+			if n.To == to && n.From == from && n.Type == "like" && n.Post == post && !n.Read {
+				return
+			}
+		}
+	}
+	db.Notifs = append(db.Notifs, &Notif{rnd(5), to, from, typ, post, time.Now().UnixMilli(), false})
+	if len(db.Notifs) > 1000 {
+		db.Notifs = db.Notifs[len(db.Notifs)-1000:]
+	}
+}
+func envOr(k, d string) string {
+	if v := os.Getenv(k); v != "" {
+		return v
+	}
+	return d
+}
+
+var dataDir = envOr("DATA_DIR", ".")
+var uploadDir = filepath.Join(dataDir, "uploads")
+
+// save queues a snapshot of everything to be written (Postgres or data.json). Call with mu held.
+func save() {
+	b, err := json.Marshal(db)
+	if err != nil {
+		log.Println("save:", err)
+		return
+	}
+	enqueue(b)
+}
 func rnd(n int) string { b := make([]byte, n); rand.Read(b); return hex.EncodeToString(b) }
 func hash(p, salt string) string {
 	h := []byte(salt + p)
@@ -88,6 +154,9 @@ func who(r *http.Request) string {
 	mu.Lock()
 	defer mu.Unlock()
 	u := db.Sessions[c.Value]
+	if x := db.Users[u]; x == nil || x.Banned {
+		return ""
+	}
 	if u != "" {
 		seen[u] = time.Now().Unix()
 	}
@@ -99,89 +168,17 @@ func login(w http.ResponseWriter, u string) {
 	http.SetCookie(w, &http.Cookie{Name: "sid", Value: sid, Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode, MaxAge: 30 * 86400})
 }
 
-// saveUpload stores an uploaded image or video and returns its URL and kind.
-func saveUpload(r *http.Request, field string) (string, string, error) {
-	f, _, err := r.FormFile(field)
-	if err != nil {
-		return "", "", nil
-	}
-	defer f.Close()
-	head := make([]byte, 512)
-	n, _ := f.Read(head)
-	ct := http.DetectContentType(head[:n])
-	ext, ok := kinds[ct]
-	if !ok {
-		return "", "", os.ErrInvalid
-	}
-	os.MkdirAll("uploads", 0o755)
-	name := rnd(12) + ext
-	dst, err := os.Create(filepath.Join("uploads", name))
-	if err != nil {
-		return "", "", err
-	}
-	defer dst.Close()
-	dst.Write(head[:n])
-	io.Copy(dst, f)
-	return "/uploads/" + name, strings.SplitN(ct, "/", 2)[0], nil
-}
-
 func main() {
-	if b, err := os.ReadFile("data.json"); err == nil {
-		json.Unmarshal(b, db)
-	}
-	if db.Follows == nil {
-		db.Follows = map[string][]string{}
+	loadState()
+	for _, m := range db.Msgs {
+		if m.ID == "" {
+			m.ID, m.Read = rnd(5), true
+		}
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) { http.ServeFile(w, r, "index.html") })
-	mux.Handle("GET /uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
+	mux.Handle("GET /uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploadDir))))
 
-	mux.HandleFunc("POST /api/signup", func(w http.ResponseWriter, r *http.Request) {
-		r.Body = http.MaxBytesReader(w, r.Body, 12<<20)
-		if r.ParseMultipartForm(12<<20) != nil {
-			fail(w, 400, "Upload too large.")
-			return
-		}
-		u, e := strings.ToLower(strings.TrimSpace(r.FormValue("username"))), strings.TrimSpace(r.FormValue("email"))
-		if !nameRe.MatchString(u) || !strings.Contains(e, "@") || len(r.FormValue("password")) < 6 {
-			fail(w, 400, "Check your username, email and password.")
-			return
-		}
-		if r.FormValue("terms") != "1" {
-			fail(w, 400, "Accept the Terms and Privacy Policy to continue.")
-			return
-		}
-		pic, kind, err := saveUpload(r, "pic")
-		if err != nil || (pic != "" && kind != "image") {
-			fail(w, 400, "Profile photo must be an image.")
-			return
-		}
-		mu.Lock()
-		defer mu.Unlock()
-		if db.Users[u] != nil {
-			fail(w, 409, "That username is taken.")
-			return
-		}
-		salt := rnd(8)
-		db.Users[u] = &User{Name: u, Email: e, Salt: salt, Hash: hash(r.FormValue("password"), salt), Pic: pic}
-		login(w, u)
-		save()
-		out(w, pubUser(db.Users[u]))
-	})
-	mux.HandleFunc("POST /api/login", func(w http.ResponseWriter, r *http.Request) {
-		var b struct{ Username, Password string }
-		json.NewDecoder(io.LimitReader(r.Body, 1<<16)).Decode(&b)
-		mu.Lock()
-		defer mu.Unlock()
-		u := db.Users[strings.ToLower(b.Username)]
-		if u == nil || u.Hash != hash(b.Password, u.Salt) {
-			fail(w, 401, "Wrong username or password.")
-			return
-		}
-		login(w, u.Name)
-		save()
-		out(w, pubUser(u))
-	})
 	mux.HandleFunc("POST /api/logout", func(w http.ResponseWriter, r *http.Request) {
 		if c, err := r.Cookie("sid"); err == nil {
 			mu.Lock()
@@ -225,6 +222,19 @@ func main() {
 				b = b[:150]
 			}
 			db.Users[me].Bio = b
+		}
+		if _, ok := r.MultipartForm.Value["fullName"]; ok {
+			if f := []rune(strings.TrimSpace(r.FormValue("fullName"))); len(f) <= 40 {
+				db.Users[me].FullName = string(f)
+			}
+		}
+		if _, ok := r.MultipartForm.Value["gender"]; ok {
+			if g := r.FormValue("gender"); g == "" || g == "female" || g == "male" || g == "other" || g == "none" {
+				db.Users[me].Gender = g
+			}
+		}
+		if d := r.FormValue("dob"); d != "" && okDOB(d) {
+			db.Users[me].DOB = d
 		}
 		save()
 		out(w, pubUser(db.Users[me]))
@@ -271,10 +281,21 @@ func main() {
 		for _, t := range db.Follows[me] {
 			mine[t] = true
 		}
+		fm := map[string]bool{}
+		for k, l := range db.Follows {
+			for _, t := range l {
+				if t == me {
+					fm[k] = true
+				}
+			}
+		}
 		pub := map[string]map[string]any{}
 		for k, u := range db.Users {
-			pub[k] = map[string]any{"pic": u.Pic, "bio": u.Bio, "hide": u.Hide, "online": k == me || (!u.Hide && now-seen[k] < 20),
-				"followers": fol[k], "followingCount": len(db.Follows[k]), "posts": cnt[k], "isFollowing": mine[k]}
+			if u.Pending || u.Banned || (k != me && blocked(me, k)) {
+				continue
+			}
+			pub[k] = map[string]any{"fullName": u.FullName, "badge": u.Badge, "pic": u.Pic, "bio": u.Bio, "hide": u.Hide, "online": k == me || (!u.Hide && now-seen[k] < 20),
+				"followers": fol[k], "followingCount": len(db.Follows[k]), "posts": cnt[k], "isFollowing": mine[k], "followsMe": fm[k]}
 		}
 		out(w, pub)
 	})
@@ -287,6 +308,9 @@ func main() {
 		defer mu.Unlock()
 		res := []*Post{}
 		for i := len(db.Posts) - 1; i >= 0; i-- {
+			if a := db.Users[db.Posts[i].User]; a == nil || a.Banned || a.Pending || (db.Posts[i].User != me && blocked(me, db.Posts[i].User)) {
+				continue
+			}
 			res = append(res, db.Posts[i])
 		}
 		out(w, res)
@@ -305,6 +329,10 @@ func main() {
 		src, kind, err := saveUpload(r, "media")
 		if err != nil {
 			fail(w, 400, "Only JPG, PNG, GIF, WebP, MP4 and WebM files are allowed.")
+			return
+		}
+		if kind == "audio" {
+			fail(w, 400, "Only photos and videos can be posted.")
 			return
 		}
 		text := strings.TrimSpace(r.FormValue("text"))
@@ -351,6 +379,7 @@ func main() {
 			}
 		}
 		p.Likes = append(p.Likes, me)
+		notify(p.User, me, "like", p.ID)
 		save()
 		out(w, p)
 	})
@@ -366,6 +395,7 @@ func main() {
 			return
 		}
 		p.Comments = append(p.Comments, Comment{me, strings.TrimSpace(b.Text)})
+		notify(p.User, me, "comment", p.ID)
 		save()
 		out(w, p)
 	})
@@ -391,34 +421,123 @@ func main() {
 		}
 		mu.Lock()
 		defer mu.Unlock()
-		res := []*Msg{}
+		res, changed := []*Msg{}, false
 		for _, m := range db.Msgs {
 			if (m.From == me && m.To == with) || (m.From == with && m.To == me) {
+				if m.To == me && !m.Read {
+					m.Read, changed = true, true
+				}
 				res = append(res, m)
 			}
+		}
+		if changed {
+			save()
+		}
+		if len(res) > 300 {
+			res = res[len(res)-300:]
 		}
 		out(w, res)
 	})
 	mux.HandleFunc("POST /api/messages", func(w http.ResponseWriter, r *http.Request) {
 		me := who(r)
-		var b struct{ To, Text string }
-		json.NewDecoder(io.LimitReader(r.Body, 1<<14)).Decode(&b)
+		var b struct{ To, Text, Reply string }
+		json.NewDecoder(io.LimitReader(r.Body, 1<<15)).Decode(&b)
+		text := strings.TrimSpace(b.Text)
 		mu.Lock()
 		defer mu.Unlock()
-		if me == "" || db.Users[b.To] == nil || strings.TrimSpace(b.Text) == "" {
+		if me == "" || db.Users[b.To] == nil || text == "" || len(text) > 4000 || blocked(me, b.To) {
 			fail(w, 400, "Could not send message.")
 			return
 		}
-		db.Msgs = append(db.Msgs, &Msg{me, b.To, strings.TrimSpace(b.Text), time.Now().UnixMilli()})
+		m := &Msg{ID: rnd(5), From: me, To: b.To, T: text, At: time.Now().UnixMilli()}
+		linkReply(m, b.Reply)
+		db.Msgs = append(db.Msgs, m)
+		save()
+		out(w, m)
+	})
+	mux.HandleFunc("POST /api/messages/{id}/react", func(w http.ResponseWriter, r *http.Request) {
+		me := who(r)
+		var b struct{ Emoji string }
+		json.NewDecoder(io.LimitReader(r.Body, 1<<10)).Decode(&b)
+		mu.Lock()
+		defer mu.Unlock()
+		for _, m := range db.Msgs {
+			if m.ID == r.PathValue("id") && me != "" && (m.From == me || m.To == me) && !m.Deleted {
+				if m.Reacts == nil {
+					m.Reacts = map[string]string{}
+				}
+				if b.Emoji == "" || m.Reacts[me] == b.Emoji {
+					delete(m.Reacts, me)
+				} else if len([]rune(b.Emoji)) <= 4 {
+					m.Reacts[me] = b.Emoji
+				}
+				save()
+				out(w, "ok")
+				return
+			}
+		}
+		fail(w, 404, "Not found.")
+	})
+	mux.HandleFunc("DELETE /api/messages/{id}", func(w http.ResponseWriter, r *http.Request) {
+		me := who(r)
+		mu.Lock()
+		defer mu.Unlock()
+		for _, m := range db.Msgs {
+			if m.ID == r.PathValue("id") && me != "" && m.From == me {
+				m.Deleted, m.T, m.RT, m.Reacts, m.Src, m.Kind = true, "", "", nil, "", ""
+				save()
+				out(w, "ok")
+				return
+			}
+		}
+		fail(w, 404, "Not found.")
+	})
+	mux.HandleFunc("GET /api/unread", func(w http.ResponseWriter, r *http.Request) {
+		me := who(r)
+		if me == "" {
+			fail(w, 401, "Log in first.")
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		res := map[string]map[string]any{}
+		for _, m := range db.Msgs {
+			if m.To == me && !m.Read && !m.Deleted {
+				e := res[m.From]
+				if e == nil {
+					e = map[string]any{"n": 0, "last": ""}
+					res[m.From] = e
+				}
+				e["n"], e["last"] = e["n"].(int)+1, msgLabel(m)
+			}
+		}
+		out(w, res)
+	})
+	mux.HandleFunc("POST /api/password", func(w http.ResponseWriter, r *http.Request) {
+		me := who(r)
+		var b struct{ Old, New string }
+		json.NewDecoder(io.LimitReader(r.Body, 1<<12)).Decode(&b)
+		mu.Lock()
+		defer mu.Unlock()
+		u := db.Users[me]
+		if u == nil || u.Hash != hash(b.Old, u.Salt) {
+			fail(w, 400, "Your current password is wrong.")
+			return
+		}
+		if len(b.New) < 6 {
+			fail(w, 400, "New password needs at least 6 characters.")
+			return
+		}
+		u.Salt = rnd(8)
+		u.Hash = hash(b.New, u.Salt)
 		save()
 		out(w, "ok")
 	})
-
 	mux.HandleFunc("POST /api/follow/{u}", func(w http.ResponseWriter, r *http.Request) {
 		me, t := who(r), r.PathValue("u")
 		mu.Lock()
 		defer mu.Unlock()
-		if me == "" || t == me || db.Users[t] == nil {
+		if me == "" || t == me || db.Users[t] == nil || blocked(me, t) {
 			fail(w, 400, "Cannot follow that user.")
 			return
 		}
@@ -432,6 +551,7 @@ func main() {
 			}
 		}
 		db.Follows[me] = append(l, t)
+		notify(t, me, "follow", "")
 		save()
 		out(w, "ok")
 	})
@@ -449,6 +569,39 @@ func main() {
 		save()
 		out(w, "ok")
 	})
+
+	mux.HandleFunc("GET /api/notifications", func(w http.ResponseWriter, r *http.Request) {
+		me := who(r)
+		if me == "" {
+			fail(w, 401, "Log in first.")
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		res := []*Notif{}
+		for i := len(db.Notifs) - 1; i >= 0 && len(res) < 50; i-- {
+			if db.Notifs[i].To == me {
+				res = append(res, db.Notifs[i])
+			}
+		}
+		out(w, res)
+	})
+	mux.HandleFunc("POST /api/notifications/read", func(w http.ResponseWriter, r *http.Request) {
+		me := who(r)
+		mu.Lock()
+		defer mu.Unlock()
+		for _, n := range db.Notifs {
+			if n.To == me {
+				n.Read = true
+			}
+		}
+		save()
+		out(w, "ok")
+	})
+
+	registerAuth(mux)
+	registerAdmin(mux)
+	registerDM(mux)
 
 	addr := ":8080"
 	if p := os.Getenv("PORT"); p != "" {
