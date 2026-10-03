@@ -300,7 +300,8 @@ func main() {
 		out(w, pub)
 	})
 	mux.HandleFunc("GET /api/posts", func(w http.ResponseWriter, r *http.Request) {
-		if who(r) == "" {
+		me := who(r)
+		if me == "" {
 			fail(w, 401, "Log in first.")
 			return
 		}
