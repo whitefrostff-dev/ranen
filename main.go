@@ -82,6 +82,8 @@ type DB struct {
 	Reports  []*Report `json:"reports"`
 	Announce string `json:"announce"`
 	AnnounceID string `json:"announceId"`
+	Audit    []*Audit `json:"audit"`
+	SignupsClosed bool `json:"signupsClosed"`
 }
 
 var (
@@ -205,7 +207,10 @@ func main() {
 			return
 		}
 		r.Body = http.MaxBytesReader(w, r.Body, 12<<20)
-		r.ParseMultipartForm(12 << 20)
+		if r.ParseMultipartForm(12<<20) != nil {
+			fail(w, 400, "Upload too large.")
+			return
+		}
 		pic, kind, err := saveUpload(r, "pic")
 		if err != nil || (pic != "" && kind != "image") {
 			fail(w, 400, "Profile photo must be an image.")
@@ -243,20 +248,15 @@ func main() {
 		me := who(r)
 		mu.Lock()
 		defer mu.Unlock()
-		keep := db.Posts[:0]
-		for _, p := range db.Posts {
-			if p.User != me {
-				keep = append(keep, p)
-			}
+		if me == "" {
+			fail(w, 401, "Log in first.")
+			return
 		}
-		db.Posts = keep
-		delete(db.Users, me)
-		delete(db.Follows, me)
-		for k, v := range db.Sessions {
-			if v == me {
-				delete(db.Sessions, k)
-			}
+		if isAdminUser(db.Users[me]) {
+			fail(w, 400, "The admin account can't be deleted here.")
+			return
 		}
+		purgeUser(me)
 		save()
 		out(w, "ok")
 	})
@@ -609,5 +609,5 @@ func main() {
 		addr = ":" + p
 	}
 	log.Println("Amlink running on http://localhost" + addr)
-	log.Fatal(http.ListenAndServe(addr, mux))
+	log.Fatal(http.ListenAndServe(addr, middleware(mux)))
 }
