@@ -15,16 +15,22 @@ If Render complains about the Go version, add an env var `GO_VERSION` matching `
 | `DATABASE_URL` | Supabase Postgres connection string (Connect > pooler). Without it, data.json is used |
 | `RESEND_API_KEY` | Sends the email codes through Resend |
 | `RESEND_FROM` | e.g. `Amlink <noreply@yourdomain.com>` (needs a domain verified in Resend) |
-| `ADMIN_EMAILS` | Comma-separated admin emails (default: whitefrostff@gmail.com) |
 | `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_BUCKET` | Keeps photos/videos/voice notes in Supabase Storage (bucket must be Public; default name `uploads`) |
-| `GOOGLE_CLIENT_ID` | Turns on "Continue with Google" |
+| `GOOGLE_CLIENT_ID` | Turns on "Continue with Google" (the main way to sign up and log in) |
 | `DATA_DIR`, `PORT` | Local data folder (when not using a database), port (default 8080) |
 
 Set these in Render: your service > Environment. Never put them in your code or on GitHub.
 
+## Google sign-in (main login)
+1. console.cloud.google.com: create a project, set up the Google Auth Platform / OAuth consent screen (External).
+2. Credentials > Create client > **Web application**. Under **Authorized JavaScript origins** add your site, e.g. `https://your-app.onrender.com` (https only; add `http://localhost:8080` for local tests if Google accepts it).
+3. Copy the **Client ID** into Render as `GOOGLE_CLIENT_ID`.
+4. While the app is in "Testing", only the test users you list can sign in. **Publish the app** to let everyone in.
+New users finish a 3-page form (username, details, terms). Email codes / passwords only appear on the site if email sending (`RESEND_API_KEY` or `SMTP_HOST`) is configured.
+
 ## Admin
-Sign up (or log in with an email code) using an email listed in `ADMIN_EMAILS` and verify it.
-An "Admin panel" appears in the menu: stats, reports, users (suspend, delete, verified badge), announcements.
+Only the Google-verified account **whitefrostff@gmail.com** is an admin (fixed in `admin.go`).
+Panel: stats, announcements, pause sign-ups, reports, users (suspend, delete, badge, clear photo/bio), all posts and comments, activity log, CSV export. Admins cannot read private messages.
 
 ## Notes
 - Without `RESEND_API_KEY` the codes are printed in the server log instead of emailed.
