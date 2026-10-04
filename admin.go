@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bytes"
+	"encoding/csv"
+	"io"
 	"net/http"
 	"sort"
 	"strconv"
@@ -18,17 +21,63 @@ type Report struct {
 	Status string `json:"status"`
 }
 
-// isAdminUser: an admin is an account whose VERIFIED email is listed in ADMIN_EMAILS.
+// The ONLY admin is this Google-verified email. It is deliberately not configurable.
+const adminEmail = "whitefrostff@gmail.com"
+
 func isAdminUser(u *User) bool {
-	if u == nil || !u.EmailOK || u.Pending || u.Banned {
-		return false
-	}
-	for _, e := range strings.Split(envOr("ADMIN_EMAILS", "whitefrostff@gmail.com"), ",") {
-		if strings.EqualFold(strings.TrimSpace(e), u.Email) {
-			return true
+	return u != nil && u.EmailOK && !u.Pending && !u.Banned && strings.EqualFold(u.Email, adminEmail)
+}
+
+type Audit struct {
+	At     int64  `json:"at"`
+	By     string `json:"by"`
+	Action string `json:"action"`
+	Detail string `json:"detail"`
+}
+
+type statusRW struct {
+	http.ResponseWriter
+	code int
+}
+
+func (s *statusRW) WriteHeader(c int) { s.code = c; s.ResponseWriter.WriteHeader(c) }
+
+// middleware adds basic security headers and records every successful admin change in the audit log.
+func middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		if strings.HasPrefix(r.URL.Path, "/api/admin/") && r.Method != "GET" {
+			me := who(r)
+			body, _ := io.ReadAll(io.LimitReader(r.Body, 1<<12))
+			r.Body = io.NopCloser(bytes.NewReader(body))
+			sw := &statusRW{w, 200}
+			next.ServeHTTP(sw, r)
+			if sw.code < 400 && me != "" {
+				d := []rune(strings.TrimSpace(string(body)))
+				if len(d) > 200 {
+					d = d[:200]
+				}
+				mu.Lock()
+				db.Audit = append(db.Audit, &Audit{time.Now().UnixMilli(), me, r.Method + " " + strings.TrimPrefix(r.URL.Path, "/api/admin/"), string(d)})
+				if len(db.Audit) > 500 {
+					db.Audit = db.Audit[len(db.Audit)-500:]
+				}
+				save()
+				mu.Unlock()
+			}
+			return
 		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func csvSafe(s string) string {
+	if s != "" && strings.ContainsRune("=+-@", rune(s[0])) {
+		return "'" + s
 	}
-	return false
+	return s
 }
 
 func has(l []string, x string) bool {
@@ -371,8 +420,9 @@ func registerAdmin(mux *http.ServeMux) {
 		mu.Lock()
 		defer mu.Unlock()
 		now, week := time.Now().Unix(), time.Now().AddDate(0, 0, -7).Unix()
-		s := map[string]any{"posts": len(db.Posts), "messages": len(db.Msgs), "announce": db.Announce}
+		s := map[string]any{"posts": len(db.Posts), "messages": len(db.Msgs), "announce": db.Announce, "signupsClosed": db.SignupsClosed}
 		users, pending, banned, online, new7, open := 0, 0, 0, 0, 0, 0
+		onl := []string{}
 		for k, u := range db.Users {
 			if u.Pending {
 				pending++
@@ -387,6 +437,7 @@ func registerAdmin(mux *http.ServeMux) {
 			}
 			if now-seen[k] < 20 {
 				online++
+				onl = append(onl, k)
 			}
 		}
 		for _, x := range db.Reports {
@@ -395,6 +446,7 @@ func registerAdmin(mux *http.ServeMux) {
 			}
 		}
 		s["users"], s["pending"], s["banned"], s["online"], s["new7"], s["reports"] = users, pending, banned, online, new7, open
+		s["onlineUsers"] = onl
 		out(w, s)
 	})
 
@@ -590,5 +642,124 @@ func registerAdmin(mux *http.ServeMux) {
 		}
 		save()
 		out(w, "ok")
+	})
+
+	mux.HandleFunc("GET /api/admin/posts", func(w http.ResponseWriter, r *http.Request) {
+		if !adminOK(w, r) {
+			return
+		}
+		q := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
+		mu.Lock()
+		defer mu.Unlock()
+		res := []map[string]any{}
+		for i := len(db.Posts) - 1; i >= 0 && len(res) < 60; i-- {
+			p := db.Posts[i]
+			if q != "" && !strings.Contains(strings.ToLower(p.User+" "+p.Text), q) {
+				continue
+			}
+			cs := []map[string]any{}
+			for j, c := range p.Comments {
+				cs = append(cs, map[string]any{"i": j, "u": c.U, "t": c.T})
+			}
+			res = append(res, map[string]any{"id": p.ID, "user": p.User, "text": p.Text, "type": p.Type, "src": p.Src, "t": p.T, "likes": len(p.Likes), "comments": cs})
+		}
+		out(w, res)
+	})
+	mux.HandleFunc("DELETE /api/admin/posts/{id}/comments/{i}", func(w http.ResponseWriter, r *http.Request) {
+		if !adminOK(w, r) {
+			return
+		}
+		idx, err := strconv.Atoi(r.PathValue("i"))
+		mu.Lock()
+		defer mu.Unlock()
+		for _, p := range db.Posts {
+			if p.ID == r.PathValue("id") && err == nil && idx >= 0 && idx < len(p.Comments) {
+				p.Comments = append(p.Comments[:idx], p.Comments[idx+1:]...)
+				save()
+				out(w, "ok")
+				return
+			}
+		}
+		fail(w, 404, "Not found.")
+	})
+	mux.HandleFunc("POST /api/admin/users/{name}/clear", func(w http.ResponseWriter, r *http.Request) {
+		if !adminOK(w, r) {
+			return
+		}
+		var b struct{ Field string }
+		readJSON(r, &b)
+		mu.Lock()
+		defer mu.Unlock()
+		u := db.Users[r.PathValue("name")]
+		if u == nil {
+			fail(w, 404, "Not found.")
+			return
+		}
+		switch b.Field {
+		case "pic":
+			u.Pic = ""
+		case "bio":
+			u.Bio = ""
+		case "fullName":
+			u.FullName = ""
+		default:
+			fail(w, 400, "Bad request.")
+			return
+		}
+		save()
+		out(w, "ok")
+	})
+	mux.HandleFunc("POST /api/admin/settings", func(w http.ResponseWriter, r *http.Request) {
+		if !adminOK(w, r) {
+			return
+		}
+		var b struct{ SignupsClosed bool }
+		readJSON(r, &b)
+		mu.Lock()
+		defer mu.Unlock()
+		db.SignupsClosed = b.SignupsClosed
+		save()
+		out(w, "ok")
+	})
+	mux.HandleFunc("GET /api/admin/audit", func(w http.ResponseWriter, r *http.Request) {
+		if !adminOK(w, r) {
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		res := []*Audit{}
+		for i := len(db.Audit) - 1; i >= 0 && len(res) < 100; i-- {
+			res = append(res, db.Audit[i])
+		}
+		out(w, res)
+	})
+	mux.HandleFunc("GET /api/admin/export.csv", func(w http.ResponseWriter, r *http.Request) {
+		if !adminOK(w, r) {
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		cnt := map[string]int{}
+		for _, p := range db.Posts {
+			cnt[p.User]++
+		}
+		names := []string{}
+		for k := range db.Users {
+			names = append(names, k)
+		}
+		sort.Strings(names)
+		w.Header().Set("Content-Type", "text/csv")
+		w.Header().Set("Content-Disposition", "attachment; filename=amlink-users.csv")
+		cw := csv.NewWriter(w)
+		cw.Write([]string{"username", "email", "full_name", "joined", "email_verified", "suspended", "badge", "posts"})
+		for _, k := range names {
+			u := db.Users[k]
+			joined := ""
+			if u.Created > 0 {
+				joined = time.Unix(u.Created, 0).Format("2006-01-02")
+			}
+			cw.Write([]string{csvSafe(u.Name), csvSafe(u.Email), csvSafe(u.FullName), joined, strconv.FormatBool(u.EmailOK && !u.Pending), strconv.FormatBool(u.Banned), strconv.FormatBool(u.Badge), strconv.Itoa(cnt[k])})
+		}
+		cw.Flush()
 	})
 }
