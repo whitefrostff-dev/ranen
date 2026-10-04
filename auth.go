@@ -32,6 +32,40 @@ var (
 	loginFails = map[string][]time.Time{}
 )
 
+func mailEnabled() bool { return os.Getenv("RESEND_API_KEY") != "" || os.Getenv("SMTP_HOST") != "" }
+
+var reserved = map[string]bool{"admin": true, "administrator": true, "amlink": true, "support": true, "root": true, "moderator": true, "staff": true, "official": true, "system": true, "help": true}
+
+type gTicket struct {
+	Email, Name string
+	Exp         time.Time
+}
+
+var gTickets = map[string]*gTicket{}
+
+// googleIdentity checks a Google sign-in token with Google and returns the verified email and name.
+func googleIdentity(cred string) (string, string, string) {
+	cid := os.Getenv("GOOGLE_CLIENT_ID")
+	if cid == "" {
+		return "", "", "Google login is not set up yet."
+	}
+	resp, err := (&http.Client{Timeout: 8 * time.Second}).Get("https://oauth2.googleapis.com/tokeninfo?id_token=" + url.QueryEscape(cred))
+	if err != nil {
+		return "", "", "Could not reach Google. Try again."
+	}
+	defer resp.Body.Close()
+	var g struct {
+		Aud           string `json:"aud"`
+		Email         string `json:"email"`
+		Name          string `json:"name"`
+		EmailVerified string `json:"email_verified"`
+	}
+	if resp.StatusCode != 200 || json.NewDecoder(io.LimitReader(resp.Body, 1<<16)).Decode(&g) != nil || g.Aud != cid || g.EmailVerified != "true" || !emailRe.MatchString(g.Email) {
+		return "", "", "Google sign-in failed."
+	}
+	return strings.ToLower(g.Email), g.Name, ""
+}
+
 func okDOB(s string) bool {
 	t, err := time.Parse("2006-01-02", s)
 	return err == nil && t.Before(time.Now().AddDate(-13, 0, 0)) && t.After(time.Now().AddDate(-120, 0, 0))
@@ -120,7 +154,7 @@ func registerAuth(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/config", func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		defer mu.Unlock()
-		out(w, map[string]string{"google": os.Getenv("GOOGLE_CLIENT_ID"), "announce": db.Announce, "announceId": db.AnnounceID})
+		out(w, map[string]any{"google": os.Getenv("GOOGLE_CLIENT_ID"), "announce": db.Announce, "announceId": db.AnnounceID, "mail": mailEnabled(), "signupsClosed": db.SignupsClosed})
 	})
 
 	mux.HandleFunc("POST /api/signup", func(w http.ResponseWriter, r *http.Request) {
@@ -129,6 +163,10 @@ func registerAuth(mux *http.ServeMux) {
 			Terms                                  bool
 		}
 		readJSON(r, &b)
+		if !mailEnabled() {
+			fail(w, 400, "Please use Continue with Google to sign up.")
+			return
+		}
 		u, e := strings.ToLower(strings.TrimSpace(b.Username)), strings.ToLower(strings.TrimSpace(b.Email))
 		switch {
 		case !nameRe.MatchString(u):
@@ -156,6 +194,10 @@ func registerAuth(mux *http.ServeMux) {
 		}
 		mu.Lock()
 		defer mu.Unlock()
+		if db.SignupsClosed || reserved[u] {
+			fail(w, 403, "That is not available right now.")
+			return
+		}
 		if x := byEmail(e); x != nil {
 			if !x.Pending {
 				fail(w, 409, "That email is already registered. Try logging in.")
@@ -277,57 +319,120 @@ func registerAuth(mux *http.ServeMux) {
 	})
 
 	mux.HandleFunc("POST /api/google", func(w http.ResponseWriter, r *http.Request) {
-		cid := os.Getenv("GOOGLE_CLIENT_ID")
-		if cid == "" {
-			fail(w, 400, "Google login is not set up yet.")
-			return
-		}
 		var b struct{ Credential string }
 		readJSON(r, &b)
-		resp, err := (&http.Client{Timeout: 8 * time.Second}).Get("https://oauth2.googleapis.com/tokeninfo?id_token=" + url.QueryEscape(b.Credential))
-		if err != nil {
-			fail(w, 502, "Could not reach Google. Try again.")
+		email, name, msg := googleIdentity(b.Credential)
+		if msg != "" {
+			fail(w, 401, msg)
 			return
 		}
-		defer resp.Body.Close()
-		var g struct {
-			Aud           string `json:"aud"`
-			Email         string `json:"email"`
-			EmailVerified string `json:"email_verified"`
-		}
-		if resp.StatusCode != 200 || json.NewDecoder(io.LimitReader(resp.Body, 1<<16)).Decode(&g) != nil || g.Aud != cid || g.EmailVerified != "true" || !emailRe.MatchString(g.Email) {
-			fail(w, 401, "Google sign-in failed.")
-			return
-		}
-		e := strings.ToLower(g.Email)
 		mu.Lock()
 		defer mu.Unlock()
-		u := byEmail(e)
-		isNew := u == nil
-		if isNew {
-			base := regexp.MustCompile(`[^a-z0-9_.]`).ReplaceAllString(strings.Split(e, "@")[0], "")
-			if len(base) < 3 {
-				base += "user"
-			}
-			if len(base) > 16 {
-				base = base[:16]
-			}
-			name := base
-			for db.Users[name] != nil {
-				name = base + rnd(2)
-			}
-			u = &User{Name: name, Email: e, Salt: rnd(8), Hash: rnd(16), Created: time.Now().Unix()}
-			db.Users[name] = u
+		u := byEmail(email)
+		if u != nil && u.Pending { // an unverified sign-up that someone made with this email: discard it
+			delete(db.Users, u.Name)
+			u = nil
 		}
-		if u.Banned {
-			fail(w, 403, "This account has been suspended.")
+		if u != nil {
+			if u.Banned {
+				fail(w, 403, "This account has been suspended.")
+				return
+			}
+			if !u.EmailOK { // email was never proven before: invalidate any password set by someone else
+				u.Salt, u.Hash = rnd(8), rnd(16)
+			}
+			u.EmailOK = true
+			login(w, u.Name)
+			save()
+			out(w, pubUser(u))
 			return
 		}
-		u.Pending, u.EmailOK = false, true
-		login(w, u.Name)
+		if db.SignupsClosed {
+			fail(w, 403, "New registrations are paused right now. Please try again later.")
+			return
+		}
+		for k, t := range gTickets {
+			if time.Now().After(t.Exp) {
+				delete(gTickets, k)
+			}
+		}
+		tk := rnd(16)
+		gTickets[tk] = &gTicket{email, name, time.Now().Add(30 * time.Minute)}
+		out(w, map[string]any{"needsProfile": true, "ticket": tk, "email": email, "name": name})
+	})
+
+	mux.HandleFunc("GET /api/username", func(w http.ResponseWriter, r *http.Request) {
+		u := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("u")))
+		if !nameRe.MatchString(u) {
+			out(w, map[string]any{"ok": false, "msg": "Use 3 to 20 letters, numbers, dots or underscores."})
+			return
+		}
+		mu.Lock()
+		x := db.Users[u]
+		taken := (x != nil && !x.Pending) || reserved[u]
+		mu.Unlock()
+		if taken {
+			out(w, map[string]any{"ok": false, "msg": "That username is not available."})
+			return
+		}
+		out(w, map[string]any{"ok": true, "msg": "Great, that username is available."})
+	})
+
+	mux.HandleFunc("POST /api/google/complete", func(w http.ResponseWriter, r *http.Request) {
+		var b struct {
+			Ticket, Username, FullName, DOB, Gender string
+			Terms                                   bool
+		}
+		readJSON(r, &b)
+		un := strings.ToLower(strings.TrimSpace(b.Username))
+		fn := []rune(strings.TrimSpace(b.FullName))
+		switch {
+		case !nameRe.MatchString(un) || reserved[un]:
+			fail(w, 400, "Choose another username.")
+			return
+		case len(fn) < 2 || len(fn) > 40:
+			fail(w, 400, "Enter your full name.")
+			return
+		case !okDOB(b.DOB):
+			fail(w, 400, "Enter your real date of birth. You must be 13 or older.")
+			return
+		case b.Gender != "female" && b.Gender != "male" && b.Gender != "other" && b.Gender != "none":
+			fail(w, 400, "Choose a gender option.")
+			return
+		case !b.Terms:
+			fail(w, 400, "Accept the Terms and Privacy Policy to continue.")
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		t := gTickets[b.Ticket]
+		if t == nil || time.Now().After(t.Exp) {
+			fail(w, 400, "Your sign-in expired. Please tap Continue with Google again.")
+			return
+		}
+		if db.SignupsClosed {
+			fail(w, 403, "New registrations are paused right now.")
+			return
+		}
+		if x := byEmail(t.Email); x != nil {
+			if !x.Pending {
+				fail(w, 409, "This email already has an account. Sign in with Google.")
+				return
+			}
+			delete(db.Users, x.Name)
+		}
+		if x := db.Users[un]; x != nil {
+			if !x.Pending {
+				fail(w, 409, "That username is taken.")
+				return
+			}
+			delete(db.Users, un)
+		}
+		u := &User{Name: un, Email: t.Email, Salt: rnd(8), Hash: rnd(16), DOB: b.DOB, Gender: b.Gender, FullName: string(fn), EmailOK: true, Created: time.Now().Unix()}
+		db.Users[un] = u
+		delete(gTickets, b.Ticket)
+		login(w, un)
 		save()
-		pv := pubUser(u)
-		pv["isNew"] = isNew
-		out(w, pv)
+		out(w, pubUser(u))
 	})
 }
