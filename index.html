@@ -79,7 +79,7 @@ dialog textarea{width:100%;min-height:90px;border:0;background:none;resize:none;
 @media(max-width:1100px){#app{grid-template-columns:76px minmax(0,1fr)}#side{display:none}.mobonly{display:block}nav button span,nav small{display:none}nav button{justify-content:center}.logo{width:auto}}
 @media(max-width:760px){
 #auth{grid-template-columns:1fr}.hero{padding:30px 24px;min-height:30vh}
-:root{--top:58px;--bot:calc(64px + env(safe-area-inset-bottom,0px))}
+:root{--top:58px;--bot:calc(82px + env(safe-area-inset-bottom,0px))}
 #app{grid-template-columns:minmax(0,1fr)}.top{padding-top:calc(8px + env(safe-area-inset-top,0px))}.sbox{margin:0}.dsk{display:none}.mob{display:flex}
 nav{position:fixed;top:auto;bottom:0;left:0;right:0;height:auto;flex-direction:row;justify-content:space-around;background:var(--card);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));z-index:30;overflow:visible}
 nav button{width:auto;padding:10px 14px}nav button.on{box-shadow:none;background:none}nav button.mk{margin:0;border-radius:14px;padding:10px 18px}
@@ -113,7 +113,7 @@ dialog.sheet{margin:auto auto 0;width:100%;max-width:520px;border-radius:28px 28
 .sw{display:flex;gap:10px;flex-wrap:wrap}.sw button{width:40px;height:40px;border-radius:14px;border:0}.sw button.on{outline:3px solid var(--ink);outline-offset:2px}
 .devcard{text-align:center;padding:26px 18px}.devcard .av{width:84px;height:84px;margin:0 auto 12px;font-size:34px;border-radius:34%}.devcard h3{font-size:20px}
 @media(min-width:761px){dialog.sheet{margin:auto;border-radius:var(--r)}}
-@media(max-width:760px){nav{margin:0 12px calc(10px + env(safe-area-inset-bottom,0px));border-radius:28px;border:0;box-shadow:var(--sh);top:auto}.dev{display:none}}
+@media(max-width:760px){nav{height:auto;align-items:center;margin:0 10px calc(8px + env(safe-area-inset-bottom,0px));border-radius:26px;border:0;box-shadow:var(--sh);top:auto}nav button.mk{align-self:center}.dev{display:none}}
 
 /* auth + media + black/white polish */
 html[data-theme=dark] body{background:radial-gradient(900px 520px at 88% -8%,#ffffff14,transparent),#000}
@@ -130,6 +130,9 @@ html[data-theme=dark] .card,html[data-theme=dark] .sbox,html[data-theme=dark] .b
 .ainp{width:100%;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);margin:10px 0;font-size:15px}textarea.ainp{min-height:80px;resize:vertical}
 .rsn{display:block;width:100%;text-align:left;padding:14px 8px;border-top:1px solid var(--line);font-weight:600}
 .prog{display:flex;gap:6px;margin-bottom:4px}.prog i{flex:1;height:5px;border-radius:9px;background:var(--line)}.prog i.on{background:var(--acc)}
+html{-webkit-text-size-adjust:100%}body{overflow-x:hidden}img,video{max-width:100%}
+@media(max-width:380px){.logo{font-size:24px}.wrap{padding:8px}nav button{padding:8px 10px}.tiles{gap:8px}.nums{gap:12px}.ph{gap:14px}}
+@media(max-height:480px) and (orientation:landscape){nav button{padding:6px 12px}}
 </style>
 </head>
 <body>
