@@ -32,6 +32,7 @@ type User struct {
 	Badge    bool   `json:"badge"`
 	Banned   bool   `json:"banned"`
 	Created  int64  `json:"created"`
+	NoPass   bool   `json:"noPass"`
 }
 type Comment struct {
 	U string `json:"u"`
@@ -46,6 +47,9 @@ type Post struct {
 	T        int64     `json:"t"`
 	Likes    []string  `json:"likes"`
 	Comments []Comment `json:"comments"`
+	Via      string    `json:"via"`
+	From     string    `json:"from"`
+	Orig     string    `json:"orig"`
 }
 type Msg struct {
 	ID      string            `json:"id"`
@@ -95,7 +99,7 @@ var (
 )
 
 func pubUser(u *User) map[string]any {
-	return map[string]any{"name": u.Name, "email": u.Email, "pic": u.Pic, "bio": u.Bio, "hide": u.Hide, "dob": u.DOB, "gender": u.Gender, "fullName": u.FullName, "badge": u.Badge, "admin": isAdminUser(u)}
+	return map[string]any{"name": u.Name, "email": u.Email, "pic": u.Pic, "bio": u.Bio, "hide": u.Hide, "dob": u.DOB, "gender": u.Gender, "fullName": u.FullName, "badge": u.Badge, "admin": isAdminUser(u), "noPass": u.NoPass}
 }
 // notify must be called with mu held.
 func notify(to, from, typ, post string) {
@@ -341,15 +345,28 @@ func main() {
 			fail(w, 400, "Write something or add a photo.")
 			return
 		}
-		if len(text) > 1000 {
-			text = text[:1000]
+		if rt := []rune(text); len(rt) > 1000 {
+			text = string(rt[:1000])
 		}
 		if kind == "" {
 			kind = "text"
 		}
 		mu.Lock()
 		defer mu.Unlock()
-		p := &Post{ID: rnd(6), User: me, Text: text, Type: kind, Src: src, T: time.Now().UnixMilli(), Likes: []string{}, Comments: []Comment{}}
+		via, from, orig := "", "", ""
+		if d := r.FormValue("duetOf"); d != "" {
+			for _, o := range db.Posts {
+				if ou := db.Users[o.User]; o.ID == d && o.Type == "video" && kind == "video" && ou != nil && !ou.Banned && !blocked(me, o.User) {
+					via, from, orig = "duet", o.User, o.ID
+					notify(o.User, me, "duet", o.ID)
+				}
+			}
+			if via == "" {
+				fail(w, 400, "That video can't be used for a duet.")
+				return
+			}
+		}
+		p := &Post{ID: rnd(6), User: me, Text: text, Type: kind, Src: src, T: time.Now().UnixMilli(), Likes: []string{}, Comments: []Comment{}, Via: via, From: from, Orig: orig}
 		db.Posts = append(db.Posts, p)
 		save()
 		out(w, p)
@@ -521,7 +538,7 @@ func main() {
 		mu.Lock()
 		defer mu.Unlock()
 		u := db.Users[me]
-		if u == nil || u.Hash != hash(b.Old, u.Salt) {
+		if u == nil || (!u.NoPass && u.Hash != hash(b.Old, u.Salt)) {
 			fail(w, 400, "Your current password is wrong.")
 			return
 		}
@@ -531,6 +548,7 @@ func main() {
 		}
 		u.Salt = rnd(8)
 		u.Hash = hash(b.New, u.Salt)
+		u.NoPass = false
 		save()
 		out(w, "ok")
 	})
@@ -602,6 +620,7 @@ func main() {
 
 	registerAuth(mux)
 	registerAdmin(mux)
+	registerSocial(mux)
 	registerDM(mux)
 
 	addr := ":8080"
