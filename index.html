@@ -3,7 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Amlink</title>
+<title>Amlink | Social network created by Nwodili Yaemerie Convenant</title>
+<meta name="description" content="Amlink is a social network to post, watch reels, chat and find your people. Created by Nwodili Yaemerie Convenant from Nigeria.">
+<meta name="author" content="Nwodili Yaemerie Convenant">
+<link rel="canonical" href="{{SITE}}/">
+<meta property="og:type" content="website"><meta property="og:site_name" content="Amlink">
+<meta property="og:title" content="Amlink | Social network by Nwodili Yaemerie Convenant">
+<meta property="og:description" content="Post, watch reels, chat and find your people. Created by Nwodili Yaemerie Convenant, Nigeria.">
+<meta property="og:url" content="{{SITE}}/"><meta property="og:image" content="{{SITE}}/icons/icon-512.png">
+<meta name="twitter:card" content="summary"><meta name="twitter:title" content="Amlink"><meta name="twitter:description" content="Social network created by Nwodili Yaemerie Convenant.">
+{{GSV}}
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"{{SITE}}/#website","url":"{{SITE}}/","name":"Amlink","description":"A social network to post, watch reels, chat and find your people.","publisher":{"@id":"{{SITE}}/#org"}},{"@type":"Organization","@id":"{{SITE}}/#org","name":"Amlink","url":"{{SITE}}/","logo":"{{SITE}}/icons/icon-512.png","founder":{"@id":"{{SITE}}/#owner"},"contactPoint":{"@type":"ContactPoint","contactType":"customer support","telephone":"+2347077187114","email":"whitefrostff@gmail.com"}},{"@type":"Person","@id":"{{SITE}}/#owner","name":"Nwodili Yaemerie Convenant","jobTitle":"Founder and developer of Amlink","nationality":{"@type":"Country","name":"Nigeria"},"affiliation":{"@type":"CollegeOrUniversity","name":"Abia State University (ABSU)"},"url":"{{SITE}}/"}]}</script>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#000000">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Amlink">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#FFFFFF;--card:#F1F8FF;--ink:#0B1B2A;--mute:#5F7487;--line:#DCEBF7;--acc:#4FB8FF;--acc2:#9AD8FF;--on:#06263F;--hero:linear-gradient(160deg,#4FB8FF,#BFE6FF 60%,#fff);--hero-ink:#06263F;--r:16px;--g:linear-gradient(135deg,var(--acc),var(--acc2));--top:60px;--bot:0px}
@@ -162,8 +179,9 @@ body.inreels nav{background:rgba(0,0,0,.55);backdrop-filter:blur(14px);box-shado
 </style>
 </head>
 <body>
+<noscript><p style="padding:20px">Amlink is a social network created by Nwodili Yaemerie Convenant, Nigeria. Please turn on JavaScript to use it.</p></noscript>
 <section id="auth">
- <div class="hero"><h1>Am<br>link</h1><p>Post it. Watch it. Talk about it. Find your people.</p></div>
+ <div class="hero"><h1>Am<br>link</h1><p>Post it. Watch it. Talk about it. Find your people.</p><p style="font-size:14px;opacity:.85;margin-top:22px">Created by <b>Nwodili Yaemerie Convenant</b>, Nigeria. Owner and founder of Amlink.</p></div>
  <div class="form" id="af"></div>
 </section>
 <div id="app">
@@ -401,7 +419,7 @@ function profile(){const u=view||me,d=users[u];if(!d)return '<div class="empty">
 const tgl=(k,l,d=1)=>`<label class="tg"><span>${l}</span><input type="checkbox" ${pref(k,d?'1':'0')==='1'?'checked':''} onchange="setPref('${k}',this.checked?'1':'0')"></label>`;
 function settings(){const t=pref('theme','dark'),a=pref('accent','auto'),u=users[me];
  return `<div class="wrap"><h2>Settings & privacy</h2>
- <div class="card sec"><h3>Account</h3><div class="who">${av(me,48)}<span><b>@${esc(me)}</b><small>${esc(myEmail)} · username can't be changed</small></span></div><div class="row"><label class="btn ghost">Change photo<input type="file" accept="image/*" hidden onchange="newPic(this)"></label><button class="btn ghost" onclick="editName()">Edit name</button><button class="btn ghost" onclick="editBio()">Edit bio</button><button class="btn ghost" onclick="openPw()">${noPass?'Set a password':'Change password'}</button><button class="btn ghost" onclick="openInfo()">Date of birth & gender</button></div></div>
+ ${installCard()}<div class="card sec"><h3>Account</h3><div class="who">${av(me,48)}<span><b>@${esc(me)}</b><small>${esc(myEmail)} · username can't be changed</small></span></div><div class="row"><label class="btn ghost">Change photo<input type="file" accept="image/*" hidden onchange="newPic(this)"></label><button class="btn ghost" onclick="editName()">Edit name</button><button class="btn ghost" onclick="editBio()">Edit bio</button><button class="btn ghost" onclick="openPw()">${noPass?'Set a password':'Change password'}</button><button class="btn ghost" onclick="openInfo()">Date of birth & gender</button></div></div>
  <div class="card sec"><h3>Appearance</h3><div class="seg">${[['dark','🌙 Black and white'],['light','☀️ White and light blue'],['auto','Auto']].map(([k,l])=>`<button class="${t===k?'on':''}" onclick="setTheme('${k}')">${l}</button>`).join('')}</div></div>
  <div class="card sec"><h3>Notifications</h3><label class="tg"><span>Browser notifications (when this tab is in the background)</span><input type="checkbox" ${pref('bn','0')==='1'&&window.Notification&&Notification.permission==='granted'?'checked':''} onchange="setBN(this)"></label>${tgl('n_social','Likes, comments and new followers')}${tgl('n_msg','New messages')}${tgl('n_online','When people you follow come online')}${tgl('snd','Notification sound')}</div>
  <div class="card sec"><h3>Privacy</h3><label class="tg"><span>Show when I'm online</span><input type="checkbox" ${u.hide?'':'checked'} onchange="setHide(!this.checked)"></label><p class="mu">Messages show ✓✓ when they have been read.</p><button class="btn ghost" onclick="openBlocks()">Blocked accounts</button></div>
@@ -409,8 +427,11 @@ function settings(){const t=pref('theme','dark'),a=pref('accent','auto'),u=users
  <div class="card sec"><h3>Data on this device</h3><button class="btn ghost" onclick="setPref('saved','[]');toast('Saved posts cleared')">Clear saved posts</button></div>
  <div class="card sec"><h3>About</h3><a onclick="go('about')">About Amlink and the developer</a><a data-doc="terms">Terms and Conditions</a><a data-doc="privacy">Privacy Policy</a><a data-doc="rules">Community Guidelines</a><a onclick="go('help')">Help & support</a><a onclick="go('contact')">Contact us</a></div>
  <div class="card sec"><div class="row"><button class="btn ghost" onclick="logout()">Log out</button><button class="btn danger" onclick="delAcc()">Delete my account</button></div></div></div>`}
-const about=()=>`<div class="wrap"><h2>About Amlink</h2><div class="card devcard"><div class="av">${esc(DEV[0])}</div><small class="mu">Founder and developer</small><h3>${esc(DEV)}</h3><p class="mu" style="margin-top:10px">Amlink was designed and built by ${esc(DEV)}: one place to post, watch reels, chat and find your people.</p></div>
- <div class="card sec" style="margin-top:12px"><h3>App info</h3><p class="mu">Version 1.0<br>© ${new Date().getFullYear()} Amlink. All rights reserved.<br>Support: whitefrostff@gmail.com</p></div></div>`;
+/* Owner details shown on the About page. Delete a line to hide it. */
+const OWNER=[['Role','Founder and developer of Amlink'],['From','Nigeria'],['Studies at','ABSU'],['Age','18'],['Religion','Judaism']];
+const about=()=>`<div class="wrap"><h2>About Amlink</h2><div class="card devcard"><div class="av">${esc(DEV[0])}</div><small class="mu">Owner and founder</small><h3>${esc(DEV)}</h3><p class="mu" style="margin-top:10px">Amlink was designed and built by ${esc(DEV)}: one place to post, watch reels, chat and find your people.</p></div>
+ <div class="card sec" style="margin-top:12px"><h3>About the owner</h3>${OWNER.map(([k,v])=>`<div class="tg"><span class="mu">${esc(k)}</span><b>${esc(v)}</b></div>`).join('')}</div>
+ <div class="card sec" style="margin-top:12px"><h3>App info</h3><p class="mu">Version 1.0<br>© ${new Date().getFullYear()} Amlink. All rights reserved.<br>Contact: ${MAIL} · ${PHONE}</p></div></div>`;
 async function openInfo(){try{const m=await api('/api/me');show(`<h3>Date of birth & gender</h3><div class="sec" style="padding:0"><label class="fl">Date of birth<input type="date" id="iD" value="${esc(m.dob||'')}" max="${maxDob()}"></label><label class="fl">Gender<select id="iG">${[['','Not set'],['female','Female'],['male','Male'],['other','Non-binary / other'],['none','Prefer not to say']].map(([v,l])=>`<option value="${v}" ${m.gender===v?'selected':''}>${l}</option>`).join('')}</select></label><div class="err" id="ie"></div><button class="btn" onclick="saveInfo()">Save</button></div><p class="mu">Only you can see this.</p>`)}catch(e){toast(e.message)}}
 async function saveInfo(){try{const fd=new FormData();fd.append('dob',$('#iD').value);fd.append('gender',$('#iG').value);await api('/api/me',{method:'POST',body:fd});dlg.close();toast('Saved')}catch(e){$('#ie').textContent=e.message}}
 const REASONS=['Spam or scam','Nudity or sexual content','Harassment or bullying','Hate speech','Violence or threats','Something else'];
@@ -453,6 +474,11 @@ async function cpublish(){const t=$('#ct').value.trim(),b=$('#cb'),e=$('#ce');if
  try{await api('/api/posts',{method:'POST',body:fd});dlg.close();if(tab!=='reels')tab='home';await load();toast('Posted')}catch(x){e.textContent=x.message;b.disabled=false;b.textContent='Post'}}
 function openComments(id){const p=posts.find(x=>x.id===id);if(!p)return toast('That post was deleted');show(`<div id="cmx"><h3>Comments</h3>${p.comments.map(c=>`<p><b>${esc(c.u)}</b> ${esc(c.t)}</p>`).join('')||'<p class="mu">No comments yet.</p>'}<div class="send" style="padding:10px 0 0"><input id="cmi" placeholder="Add a comment" onkeydown="if(event.key==='Enter')addComment('${id}')"><button class="btn sm" onclick="addComment('${id}')">Send</button></div></div>`)}
 async function addComment(id){const i=$('#cmi'),t=i.value.trim();if(!t)return;try{await jpost(`/api/posts/${id}/comment`,{text:t});posts=await api('/api/posts');render();openComments(id)}catch(e){toast(e.message)}}
+if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+let installEv=null;addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEv=e;if(tab==='settings')render()});addEventListener('appinstalled',()=>{installEv=null;toast('Amlink installed')});
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent),isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+async function installApp(){if(installEv){installEv.prompt();await installEv.userChoice;installEv=null;render()}else toast('Use your browser menu and tap Install app or Add to Home screen')}
+const installCard=()=>isStandalone?'':`<div class="card sec"><h3>Install Amlink</h3><p class="mu">Get Amlink as an app on your home screen.</p>${installEv?'<button class="btn" onclick="installApp()">Install app</button>':isIOS?'<p class="mu">On iPhone: tap the Share button in Safari, then <b>Add to Home Screen</b>.</p>':'<p class="mu">In your browser menu (⋮), tap <b>Install app</b> or <b>Add to Home screen</b>.</p>'}</div>`;
 theme();authRender();api('/api/config').then(c=>{cfg=c;if(!document.body.classList.contains('in')&&(A.v==='login'||A.v==='signup'))authRender()}).catch(()=>{});api('/api/me').then(enter).catch(()=>{});
 </script>
 </body>
