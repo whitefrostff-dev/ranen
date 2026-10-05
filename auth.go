@@ -339,7 +339,7 @@ func registerAuth(mux *http.ServeMux) {
 				return
 			}
 			if !u.EmailOK { // email was never proven before: invalidate any password set by someone else
-				u.Salt, u.Hash = rnd(8), rnd(16)
+				u.Salt, u.Hash, u.NoPass = rnd(8), rnd(16), true
 			}
 			u.EmailOK = true
 			login(w, u.Name)
@@ -428,7 +428,7 @@ func registerAuth(mux *http.ServeMux) {
 			}
 			delete(db.Users, un)
 		}
-		u := &User{Name: un, Email: t.Email, Salt: rnd(8), Hash: rnd(16), DOB: b.DOB, Gender: b.Gender, FullName: string(fn), EmailOK: true, Created: time.Now().Unix()}
+		u := &User{Name: un, Email: t.Email, Salt: rnd(8), Hash: rnd(16), DOB: b.DOB, Gender: b.Gender, FullName: string(fn), EmailOK: true, NoPass: true, Created: time.Now().Unix()}
 		db.Users[un] = u
 		delete(gTickets, b.Ticket)
 		login(w, un)
