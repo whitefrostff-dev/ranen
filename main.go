@@ -182,7 +182,7 @@ func main() {
 		}
 	}
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) { http.ServeFile(w, r, "index.html") })
+	mux.HandleFunc("GET /{$}", serveIndex)
 	mux.Handle("GET /uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploadDir))))
 
 	mux.HandleFunc("POST /api/logout", func(w http.ResponseWriter, r *http.Request) {
@@ -621,6 +621,8 @@ func main() {
 	registerAuth(mux)
 	registerAdmin(mux)
 	registerSocial(mux)
+	registerPWA(mux)
+	registerSEO(mux)
 	registerDM(mux)
 
 	addr := ":8080"
