@@ -3,8 +3,11 @@ package main
 import (
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 )
+
+var googleFile = regexp.MustCompile(`^google[a-zA-Z0-9]+\.html$`)
 
 // siteURL is the public address of the site. Set SITE_URL in Render (e.g. https://your-app.onrender.com) to be exact.
 func siteURL(r *http.Request) string {
@@ -51,5 +54,20 @@ func registerSEO(mux *http.ServeMux) {
 	mux.HandleFunc("GET /sitemap.xml", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/xml; charset=utf-8")
 		w.Write([]byte(`<?xml version="1.0" encoding="UTF-8"?>` + "\n" + `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>` + siteURL(r) + `/</loc></url></urlset>` + "\n"))
+	})
+	// Google Search Console "HTML file" verification: serves the googleXXXX.html file you put next to index.html.
+	mux.HandleFunc("GET /{file}", func(w http.ResponseWriter, r *http.Request) {
+		f := r.PathValue("file")
+		if !googleFile.MatchString(f) {
+			http.NotFound(w, r)
+			return
+		}
+		b, err := os.ReadFile(f)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(b)
 	})
 }
