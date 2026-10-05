@@ -1,6 +1,6 @@
 # Amlink
 
-Go server + one `index.html`. Files: `main.go auth.go dm.go admin.go store.go index.html go.mod`.
+Go server + one `index.html`. Files: `main.go auth.go dm.go admin.go store.go social.go pwa.go seo.go index.html go.mod`.
 
 ## First-time setup (once, on your computer)
     go get github.com/jackc/pgx/v5
@@ -17,6 +17,8 @@ If Render complains about the Go version, add an env var `GO_VERSION` matching `
 | `RESEND_FROM` | e.g. `Amlink <noreply@yourdomain.com>` (needs a domain verified in Resend) |
 | `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_BUCKET` | Keeps photos/videos/voice notes in Supabase Storage (bucket must be Public; default name `uploads`) |
 | `GOOGLE_CLIENT_ID` | Turns on "Continue with Google" (the main way to sign up and log in) |
+| `SITE_URL` | Your public address, e.g. `https://your-app.onrender.com` (used for Google: canonical link, sitemap) |
+| `GOOGLE_SITE_VERIFICATION` | The token from Google Search Console's "HTML tag" method |
 | `DATA_DIR`, `PORT` | Local data folder (when not using a database), port (default 8080) |
 
 Set these in Render: your service > Environment. Never put them in your code or on GitHub.
