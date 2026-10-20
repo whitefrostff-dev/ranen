@@ -15,7 +15,7 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font:15px/1.4 system-
 button{font:inherit;cursor:pointer;color:inherit}
 button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 #app{max-width:520px;height:100dvh;margin:auto;display:flex;flex-direction:column;position:relative;overflow:hidden;border-inline:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
-#app.out #main,#app.out nav{display:none}
+#app.out #main,#app.out nav,#app.out #tb{display:none}
 #main{flex:1;overflow-y:auto;position:relative}
 nav{display:flex;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);background:var(--bg)}
 nav button{flex:1;padding:13px 0;background:none;border:0;color:var(--mut);font-weight:700}
@@ -48,7 +48,6 @@ nav button.on{color:var(--acc)}
 .sb{padding:12px}.sb input,.bar input,.box input,.box textarea{width:100%;border:0;background:var(--card);color:var(--fg);padding:11px 16px;border-radius:22px;font:inherit}
 .pr{display:flex;gap:8px;align-items:center;padding:10px 12px}.pr .nm{flex:1}
 .prof{display:grid;justify-items:center;gap:8px;padding:28px 16px}
-.about{margin-top:20px;color:var(--mut);text-align:center}
 .ch{height:100%;display:flex;flex-direction:column}.chh{display:flex;gap:8px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line)}
 .chh button{background:none;border:0;font-size:26px}
 .ms{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:6px}
@@ -72,12 +71,40 @@ nav button.on{color:var(--acc)}
 #ts{position:absolute;z-index:30;top:16px;left:50%;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 16px;border-radius:20px;font-weight:600;font-size:13px}
 #nb{background:#f02849;color:#fff;border-radius:10px;font-size:11px;padding:1px 6px;margin-left:4px}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#31a24c;margin-left:6px}.pr.nw{background:var(--card)}.at{cursor:pointer;font-size:20px}.m img,.m video{max-width:100%;border-radius:12px;display:block}.m audio{max-width:100%}.dl{background:none;border:0;color:var(--mut);font-size:13px}
 .sw{position:relative;width:46px;height:26px;flex:none}.sw input{position:absolute;inset:0;opacity:0;margin:0;padding:0;cursor:pointer;z-index:1;width:100%;height:100%}.sw span{position:absolute;inset:0;border-radius:13px;background:#8a8d91;transition:.2s}.sw span::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}.sw input:checked+span{background:var(--acc)}.sw input:checked+span::after{transform:translateX(20px)}.sw input:focus-visible+span{outline:2px solid var(--acc);outline-offset:2px}.row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0}.row small{display:block}.ch2{display:flex;justify-content:space-between;align-items:center;padding:12px 16px 0;font-size:18px}.ch2 button{background:none;border:0;font-size:24px;padding:0 6px}
+/* top bar and side menu */
+#tb{display:flex;align-items:center;gap:12px;padding:6px 12px;border-bottom:1px solid var(--line)}
+#tb button{background:none;border:0;font-size:22px}#tb b{font-size:20px;color:var(--acc)}
+#dsc{position:absolute;inset:0;z-index:11;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .2s}
+#dr{position:absolute;z-index:12;top:0;bottom:0;left:0;width:80%;background:var(--bg);transform:translateX(-105%);transition:transform .25s;overflow-y:auto;padding:calc(env(safe-area-inset-top,0px) + 16px) 12px 16px}
+#app.dro #dsc{opacity:1;pointer-events:auto}#app.dro #dr{transform:none}
+.dh{display:flex;gap:12px;align-items:center;padding:8px 6px 16px;border-bottom:1px solid var(--line);margin-bottom:8px;cursor:pointer}
+.di{display:flex;gap:14px;align-items:center;width:100%;background:none;border:0;padding:10px 8px;border-radius:14px;text-align:left;font-weight:600}
+.di i{font-style:normal;display:grid;place-items:center;width:38px;height:38px;border-radius:12px;color:#fff;font-size:18px;flex:none}
+.di small{display:block;color:var(--mut);font-weight:400}.di:active{background:var(--card)}
+/* moments */
+.ms2{display:flex;gap:10px;overflow-x:auto;padding:12px;scrollbar-width:none}
+.mo{flex:none;width:76px;text-align:center;font-size:12px;background:none;border:0}
+.mo b.av{width:58px;height:58px;border-radius:18px;font-size:22px;box-shadow:0 0 0 2.5px var(--bg),0 0 0 5px var(--acc)}
+.mo span{display:block;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* dark comment sheet */
+#sh{--bg:#1c1c1e;--fg:#f5f5f5;--mut:#9a9a9f;--card:#2c2c2e;--line:#333;height:72%}
+#sh .top{justify-content:center;position:relative;border:0}#sh .top button{position:absolute;right:12px}
+.c{align-items:flex-start}.c .cb{flex:1}.c .nm{font-size:13px;color:var(--mut)}
+.cl{background:none;border:0;display:grid;justify-items:center;color:var(--mut);font-size:12px}.cl.on{color:#fe2c55}.cl b{font-size:18px}
+/* reels */
+.rt{position:absolute;z-index:3;top:0;left:0;right:0;display:flex;justify-content:center;gap:22px;padding:10px;pointer-events:none}
+.rt button{pointer-events:auto;background:none;border:0;color:#ffffffa6;font-weight:700;font-size:16px;text-shadow:0 1px 4px #000;padding:2px 0}
+.rt button.on{color:#fff;border-bottom:2px solid #fff}
+.ra{position:relative;margin-bottom:10px}.ra .av{width:46px;height:46px;border:2px solid #fff}
+.reel .rail .pl{position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);width:22px;height:22px;border-radius:50%;background:#fe2c55;color:#fff;font-size:16px;line-height:1;padding:0;display:block}
+.row input[type=checkbox]{width:20px;height:20px;padding:0}
 </style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute"><symbol id="vf" viewBox="0 0 24 24"><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5" fill="#1877f2"/><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5" fill="#1877f2" transform="rotate(45 12 12)"/><circle cx="12" cy="12" r="8.6" fill="#1877f2"/><path d="M7.4 12.4l3.1 3.1 6.2-6.6" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></symbol></svg>
 <div id="app" class="out">
   <div id="login"><h1>Amlink</h1><p>Share, chat and connect.</p><div id="gbtn" style="justify-self:center"></div><p class="er" id="le"></p></div>
+  <div id="tb"><button data-a="dr" aria-label="Menu">☰</button><b>Amlink</b></div>
   <div id="main"></div>
   <nav><button data-t="feed">Home</button><button data-t="reels">Reels</button><button data-t="people">People</button><button data-t="alerts">Alerts<b id="nb" hidden></b></button><button data-t="me">Me</button></nav>
   <div id="scrim" data-a="cs"></div>
@@ -86,13 +113,15 @@ nav button.on{color:var(--acc)}
     <div id="sl"></div>
     <div class="bar"><input id="ci" placeholder="Add a comment…" maxlength="300" autocomplete="off"><button data-a="pc">Post</button></div>
   </section>
+  <div id="dsc" data-a="dc"></div>
+  <aside id="dr" aria-label="Menu"></aside>
   <div id="md" hidden></div>
   <div id="ts" hidden></div>
 </div>
 <script>
 const $=s=>document.querySelector(s),E=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const VB='<svg class="vb" aria-label="Verified"><use href="#vf"/></svg>';
-let T=null,ME,tab='feed',posts=[],cur,ppl=[],peer,poll,th='light';
+let T=null,ME,tab='feed',posts=[],cur,ppl=[],peer,poll,th='light',gid,mut=true,rf='y',SG={};
 try{T=localStorage.getItem('tk');th=localStorage.getItem('th')||th}catch(e){}
 document.documentElement.dataset.t=th;
 let CS={snd:1,pop:1,con:1};try{CS=Object.assign(CS,JSON.parse(localStorage.getItem('cs')||'{}'))}catch(e){}
@@ -118,12 +147,19 @@ function askName(first){
   $('#sv').onclick=async()=>{try{ME=await A('username',{u:$('#un').value});closeM();go(first?'feed':tab)}catch(e){$('#er').textContent=e.message}};
 }
 async function go(t){
-  tab=t;clearInterval(poll);$('#app').classList.remove('cs');
+  tab=t;clearInterval(poll);$('#app').classList.remove('cs','dro');
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==t));
   $('#main').innerHTML='';
-  try{if(t=='feed'||t=='reels'){posts=await A('feed');t=='feed'?home():reels()}else if(t=='people')people();else if(t=='alerts')alerts();else profile()}catch(e){toast(e.message)}
+  try{if(t=='feed'||t=='reels'){posts=await A('feed');t=='feed'?home():reels()}else if(t=='people')people();else if(t=='alerts')alerts();else if(t=='circles')await circles();else if(t=='bc')await bcs();else profile()}catch(e){toast(e.message)}
 }
 document.querySelector('nav').onclick=e=>{const b=e.target.closest('button');if(b)go(b.dataset.t)};
+
+function openDr(){
+  $('#dr').innerHTML=`<div class="dh" data-a="nv" data-t="me"><b class="av" style="width:52px;height:52px;font-size:22px">${E(ME.Username[0])}</b><div><div class="nm">${nm(ME)}</div><small>Settings and about</small></div></div>`+
+  [['feed','🏠','Home','#1877f2'],['reels','🎬','Reels','#ec4899'],['people','💬','Messages','#16a34a'],['circles','👥','Circles','#7c5cff'],['bc','📢','Broadcasts','#ff7a1a'],['alerts','🔔','Alerts','#ef4444'],['me','⚙️','Settings','#475569']]
+  .map(x=>`<button class="di" data-a="nv" data-t="${x[0]}"><i style="background:${x[3]}">${x[1]}</i>${x[2]}</button>`).join('');
+  $('#app').classList.add('dro');
+}
 
 const mediaH=p=>p.Media?(p.Kind=='video'?`<video src="${E(p.Media)}" controls playsinline preload="metadata"></video>`:`<img src="${E(p.Media)}" loading="lazy" alt="">`):'';
 const folB=u=>u.ID==ME.ID?'':`<button class="fl" data-a="fol" data-i="${u.ID}"></button>`;
@@ -136,20 +172,48 @@ function paint(){
   document.querySelectorAll('.fl').forEach(b=>{const f=(ME.Following||[]).includes(b.dataset.i);b.textContent=f?'Following':'Follow';b.classList.toggle('on',f)});
 }
 function upd(p){posts=posts.map(x=>x.ID==p.ID?p:x);if(cur&&cur.ID==p.ID)cur=p;paint()}
-function home(){$('#main').innerHTML=`<div class="comp" data-a="new">What’s on your mind, ${E(ME.Username)}?</div>`+(posts.map(postH).join('')||'<p class="empty">No posts yet. Be the first to share something.</p>');paint()}
+function home(){$('#main').innerHTML=`<div class="comp" data-a="new">What’s on your mind, ${E(ME.Username)}?</div>`+(posts.map(postH).join('')||'<p class="empty">No posts yet. Be the first to share something.</p>');paint();strip()}
 
+/* Moments (24h status) */
+async function strip(){
+  try{
+    const l=await A('statuses');SG={};
+    l.forEach(s=>(SG[s.U.ID]=SG[s.U.ID]||{U:s.U,L:[]}).L.push(s));
+    const h='<div class="ms2"><button class="mo" data-a="sa"><b class="av">＋</b><span>Your moment</span></button>'+Object.values(SG).map(x=>`<button class="mo" data-a="sv" data-i="${x.U.ID}"><b class="av">${E((x.U.Username||'?')[0])}</b><span>${E(x.U.Username)}</span></button>`).join('')+'</div>';
+    const c=$('.comp');if(c&&tab=='feed')c.insertAdjacentHTML('beforebegin',h);
+  }catch(e){}
+}
+function sview(id){
+  const L=SG[id].L;let i=0;
+  const show=()=>{if(i>=L.length){closeM();return}const s=L[i];
+    modal(`<div style="display:grid;gap:10px"><b>${nm(s.U)} <small>${ago(s.TS)} · ${i+1}/${L.length}</small></b>${mediaH(s)}${s.Text?`<p style="font-size:18px;white-space:pre-wrap">${E(s.Text)}</p>`:''}<small>Tap to continue</small></div>`);
+    $('#md .box').onclick=()=>{i++;show()}};
+  show();
+}
+function sadd(){
+  modal('<h3>New moment</h3><textarea id="tx" placeholder="What’s happening? It disappears in 24 hours." maxlength="300"></textarea><input id="fi" type="file" accept="image/*,video/*"><p class="er" id="er"></p><button class="pri" id="pub">Share moment</button>');
+  $('#pub').onclick=async()=>{const f=$('#fi').files[0],b=$('#pub');b.disabled=true;
+    try{let m='',k='';if(f){m=await up(f);k=f.type.startsWith('video')?'video':'image'}
+      await A('status',{text:$('#tx').value,media:m,kind:k});closeM();go('feed')}
+    catch(e){$('#er').textContent=e.message;b.disabled=false}};
+}
+
+/* Reels */
 function reels(){
-  const v=posts.filter(p=>p.Kind=='video');
-  $('#main').innerHTML='<div class="rl">'+(v.length?v.map(p=>`<section class="reel"><video data-a="vid" src="${E(p.Media)}" loop muted playsinline preload="metadata"></video><div class="shade"></div><div class="info"><b>${nm(p.U)}</b>${folB(p.U)}<span>${E(p.Text)}</span></div><div class="rail"><button class="lk" data-a="like" data-i="${p.ID}">♥<span></span></button><button class="cm" data-a="cm" data-i="${p.ID}">💬<span></span></button></div></section>`).join(''):'<p class="empty" style="color:#fff">No reels yet. Post a video from Home.</p>')+'</div>';
+  let v=posts.filter(p=>p.Kind=='video');
+  if(rf=='f')v=v.filter(p=>(ME.Following||[]).includes(p.U.ID)||p.U.ID==ME.ID);
+  $('#main').innerHTML=`<div class="rt"><button data-a="rf" data-v="f" class="${rf=='f'?'on':''}">Following</button><button data-a="rf" data-v="y" class="${rf=='y'?'on':''}">For You</button></div><div class="rl">`+(v.length?v.map(p=>`<section class="reel"><video data-a="pp" src="${E(p.Media)}" loop ${mut?'muted ':''}playsinline preload="metadata"></video><div class="shade"></div><div class="info"><b>@${E(p.U.Username)}${p.U.Verified?VB:''}</b><span>${E(p.Text)}</span></div><div class="rail"><div class="ra"><b class="av">${E((p.U.Username||'?')[0])}</b>${p.U.ID==ME.ID||(ME.Following||[]).includes(p.U.ID)?'':`<button class="pl" data-a="rfol" data-i="${p.U.ID}" aria-label="Follow">＋</button>`}</div><button class="lk" data-a="like" data-i="${p.ID}">♥<span></span></button><button class="cm" data-a="cm" data-i="${p.ID}">💬<span></span></button><button data-a="sh" data-i="${p.ID}">↪<span>Share</span></button><button data-a="mu">${mut?'🔇':'🔊'}</button></div></section>`).join(''):'<p class="empty" style="color:#fff;padding-top:30vh">No reels here yet. Post a video from Home.</p>')+'</div>';
   paint();
   const io=new IntersectionObserver(es=>es.forEach(e=>{const vd=e.target.querySelector('video');e.isIntersecting?vd.play().catch(()=>{}):vd.pause()}),{threshold:.7});
   document.querySelectorAll('.reel').forEach(r=>io.observe(r));
 }
 
+/* Comments */
 function sheet(id){cur=posts.find(p=>p.ID==id);$('#app').classList.add('cs');sl()}
 function sl(){
   $('#sc').textContent=cur.C.length+' comments';
-  $('#sl').innerHTML=cur.C.map(c=>`<div class="c"><b class="av">${E((c.U.Username||'?')[0])}</b><div><div class="nm">${nm(c.U)} <small>${ago(c.TS)}</small></div><div>${E(c.Text)}</div><button class="rp" data-a="rp" data-n="${E(c.U.Username)}">Reply</button></div></div>`).join('')||'<p class="empty">No comments yet. Start the conversation.</p>';
+  $('#sl').innerHTML=cur.C.map((c,i)=>{const n=(c.Likes||[]).length,on=(c.Likes||[]).includes(ME.ID);
+    return `<div class="c"><b class="av">${E((c.U.Username||'?')[0])}</b><div class="cb"><div class="nm">${nm(c.U)}</div><div>${E(c.Text)}</div><small>${ago(c.TS)} </small><button class="rp" data-a="rp" data-n="${E(c.U.Username)}">Reply</button></div><button class="cl${on?' on':''}" data-a="cl" data-i="${i}" aria-label="Like comment"><b>${on?'♥':'♡'}</b>${n||''}</button></div>`}).join('')||'<p class="empty">No comments yet. Start the conversation.</p>';
 }
 
 function people(){
@@ -169,8 +233,54 @@ async function chat(u){
 }
 async function send(){const i=$('#mi'),t=i.value.trim();if(!t)return;i.value='';await A('msg',{to:peer.ID,text:t});await L()}
 
+/* Circles (group chats) */
+async function circles(){
+  const g=await A('groups');
+  $('#main').innerHTML='<div class="ch2"><b>Circles</b><button data-a="gn" aria-label="New circle">＋</button></div>'+(g.map(x=>`<button class="di" style="padding:10px 16px" data-a="go" data-i="${x.ID}" data-n="${E(x.Name)}"><i style="background:#7c5cff">${E(x.Name[0].toUpperCase())}</i><span>${E(x.Name)}<small>${x.N} members${x.Last?' · '+E(x.Last):''}</small></span></button>`).join('')||'<p class="empty">No circles yet. Tap ＋ to start a group chat.</p>');
+}
+function gnew(){
+  const sel=new Set();
+  modal('<h3>New circle</h3><input id="gnm" placeholder="Circle name" maxlength="40" autocomplete="off"><input id="gq" placeholder="Search people to add" autocomplete="off"><div id="gls" style="max-height:200px;overflow:auto"></div><p class="er" id="er"></p><button class="pri" id="gc">Create circle</button>');
+  const draw=async()=>{try{const l=await A('search?q='+encodeURIComponent($('#gq').value));
+    $('#gls').innerHTML=l.map(u=>`<label class="row"><span>${nm(u)}</span><input type="checkbox" data-id="${u.ID}"${sel.has(u.ID)?' checked':''}></label>`).join('')||'<p class="empty">Follow people or search a username.</p>'}catch(e){}};
+  $('#gls').onchange=e=>{e.target.checked?sel.add(e.target.dataset.id):sel.delete(e.target.dataset.id)};
+  let t;$('#gq').oninput=()=>{clearTimeout(t);t=setTimeout(draw,250)};draw();
+  $('#gc').onclick=async()=>{const n=$('#gnm').value;try{const j=await A('gcreate',{name:n,members:[...sel].join(',')});closeM();gopen(j.id,n)}catch(e){$('#er').textContent=e.message}};
+}
+async function gload(){const m=await A('gmsgs?g='+gid),b=$('#ms');if(!b)return;b.innerHTML=m.map(x=>`<div class="m ${x.Me?'me':''}">${x.Me?'':'<small>'+nm(x.U)+'</small><br>'}${E(x.Text)}</div>`).join('');b.scrollTop=b.scrollHeight}
+async function gopen(id,n){
+  gid=id;tab='circles';clearInterval(poll);
+  $('#main').innerHTML=`<div class="ch"><div class="chh"><button data-a="cb" aria-label="Back">‹</button><b>${E(n)}</b></div><div class="ms" id="ms"></div><div class="bar"><input id="mi" placeholder="Message the circle…" autocomplete="off"><button data-a="gs">Send</button></div></div>`;
+  $('#mi').onkeydown=e=>{if(e.key=='Enter')gsend()};
+  try{await gload()}catch(e){toast(e.message)}poll=setInterval(()=>gload().catch(()=>{}),3000);
+}
+async function gsend(){const i=$('#mi'),t=i.value.trim();if(!t)return;i.value='';await A('gmsg',{g:gid,text:t});await gload()}
+
+/* Broadcasts (channels) */
+async function bcs(){
+  const l=await A('channels');
+  $('#main').innerHTML='<div class="ch2"><b>Broadcasts</b><button data-a="bn" aria-label="New broadcast">＋</button></div>'+(l.map(c=>`<div class="pr"><b class="av" style="border-radius:14px;background:#ff7a1a">${E(c.Name[0].toUpperCase())}</b><button class="di" style="flex:1;padding:0" data-a="bo" data-i="${c.ID}"><span>${E(c.Name)}<small>${c.N} following${c.Last?' · '+E(c.Last):''}</small></span></button>${c.Mine?'':`<button class="fl${c.Sub?' on':''}" data-a="bf" data-i="${c.ID}">${c.Sub?'Following':'Follow'}</button>`}</div>`).join('')||'<p class="empty">No broadcasts yet. Tap ＋ to start one.</p>');
+}
+async function bopen(id){
+  const c=await A('channels?id='+id);
+  $('#main').innerHTML=`<div class="chh"><button data-a="bb" aria-label="Back">‹</button><b>${E(c.Name)}</b></div><p class="about" style="margin:12px;text-align:center;color:var(--mut)">${E(c.Desc)}</p>`+(c.Mine?`<div class="sb"><input id="bt" placeholder="Share an update…" maxlength="500" autocomplete="off"><button class="pri" style="width:100%;margin-top:8px" data-a="bp" data-i="${id}">Send update</button></div>`:'')+(c.Posts.map(p=>`<div class="post" style="padding:12px"><p style="padding:0 0 6px">${E(p.Text)}</p><small>${ago(p.TS)}</small></div>`).join('')||'<p class="empty">No updates yet.</p>');
+}
+function bnew(){
+  modal('<h3>New broadcast</h3><input id="bnm" placeholder="Name" maxlength="40" autocomplete="off"><input id="bd" placeholder="What is it about?" maxlength="200" autocomplete="off"><p class="er" id="er"></p><button class="pri" id="bcr">Create broadcast</button>');
+  $('#bcr').onclick=async()=>{try{await A('chcreate',{name:$('#bnm').value,desc:$('#bd').value});closeM();bcs()}catch(e){$('#er').textContent=e.message}};
+}
+
+/* Settings */
 function profile(){
-  $('#main').innerHTML=`<div class="prof"><b class="av big">${E(ME.Username[0])}</b><h2>${nm(ME)}</h2><small>${E(ME.Email)}</small><button data-a="un">Change username</button><button data-a="th">Switch light or dark mode</button>${ME.Admin?'<button data-a="adm">Admin panel</button>':''}<button data-a="out">Log out</button><p class="about">Amlink is developed and owned by Nwodili Yaemerie Convenant.<br>Contact: whitefrostff@gmail.com</p></div>`;
+  const r=(x,i,t,s)=>`<button class="di" data-a="${x}"><i style="background:${i[1]}">${i[0]}</i><span>${t}${s?`<small>${s}</small>`:''}</span></button>`;
+  $('#main').innerHTML=`<div class="prof"><b class="av big">${E(ME.Username[0])}</b><h2>${nm(ME)}</h2><small>${E(ME.Email)}</small></div><div style="padding:0 12px 24px">`+
+  r('un',['✏️','#1877f2'],'Change username','@'+E(ME.Username))+
+  r('gn',['👥','#7c5cff'],'Create group chat','Start a circle with friends')+
+  r('cset',['💬','#16a34a'],'Chat settings','Sounds, pop-ups and active status')+
+  r('th',['🌓','#475569'],'Light or dark mode')+
+  r('ab',['ℹ️','#f59e0b'],'About me','About Amlink and its developer')+
+  (ME.Admin?r('adm',['🛡️','#ef4444'],'Admin panel'):'')+
+  r('out',['🚪','#64748b'],'Log out')+'</div>';
 }
 const msgM=x=>x.Media?(x.Kind=='video'?`<video src="${E(x.Media)}" controls playsinline></video>`:x.Kind=='audio'?`<audio src="${E(x.Media)}" controls></audio>`:`<img src="${E(x.Media)}" alt="">`):'';
 async function up(f,type){const r=await fetch('/api/upload',{method:'POST',headers:{'X-Token':T,'Content-Type':type||f.type},body:f});const j=await r.json();if(j.error)throw new Error(j.error);return j.url}
@@ -208,9 +318,9 @@ $('#app').onclick=async e=>{
     else if(a=='cm')sheet(i);
     else if(a=='cs')$('#app').classList.remove('cs');
     else if(a=='fol'){ME=await A('follow',{id:i});paint()}
-    else if(a=='vid')b.muted=!b.muted;
     else if(a=='rp'){$('#ci').value='@'+b.dataset.n+' ';$('#ci').focus()}
     else if(a=='pc'){const t=$('#ci').value.trim();if(t){upd(await A('comment',{id:cur.ID,text:t}));$('#ci').value='';sl();$('#sl').scrollTop=1e6}}
+    else if(a=='cl'){upd(await A('clike',{id:cur.ID,i:+i}));sl()}
     else if(a=='new')newPost();
     else if(a=='dm')chat(ppl.find(u=>u.ID==i));
     else if(a=='ver'){const x=await A('verify',{id:i});ppl=ppl.map(u=>u.ID==i?x:u);if($('#pl'))drawP();else b.textContent=x.Verified?'Unverify':'Verify'}
@@ -219,6 +329,27 @@ $('#app').onclick=async e=>{
     else if(a=='un')askName(0);
     else if(a=='th'){th=th=='dark'?'light':'dark';document.documentElement.dataset.t=th;try{localStorage.setItem('th',th)}catch(x){}}
     else if(a=='out')out();else if(a=='cset')cset();else if(a=='tg'){const k=b.dataset.k;if(k=='act')ME=await A('active',{});else{CS[k]=b.checked;try{localStorage.setItem('cs',JSON.stringify(CS))}catch(x){}if(k=='con')pl()}}else if(a=='mic')mic();else if(a=='adm')admin();else if(a=='ban'){const x=await A('ban',{id:i});b.textContent=x.Banned?'Unban':'Ban'}else if(a=='delp'){if(confirm('Delete this post?')){await A('delpost',{id:i});go(tab)}}
+    else if(a=='dr')openDr();
+    else if(a=='dc')$('#app').classList.remove('dro');
+    else if(a=='nv')go(b.dataset.t);
+    else if(a=='rf'){rf=b.dataset.v;reels()}
+    else if(a=='pp')b.paused?b.play():b.pause();
+    else if(a=='mu'){mut=!mut;document.querySelectorAll('.reel video').forEach(v=>v.muted=mut);document.querySelectorAll('[data-a=mu]').forEach(m=>m.textContent=mut?'🔇':'🔊')}
+    else if(a=='rfol'){ME=await A('follow',{id:i});b.remove();paint()}
+    else if(a=='sh'){const d={title:'Amlink',text:'Watch this on Amlink',url:location.origin};navigator.share?navigator.share(d).catch(()=>{}):(navigator.clipboard&&navigator.clipboard.writeText(d.url),toast('Link copied'))}
+    else if(a=='sa')sadd();
+    else if(a=='sv')sview(i);
+    else if(a=='gn')gnew();
+    else if(a=='go')gopen(i,b.dataset.n);
+    else if(a=='gs')gsend();
+    else if(a=='cb'){clearInterval(poll);go('circles')}
+    else if(a=='bn')bnew();
+    else if(a=='bo')bopen(i);
+    else if(a=='bf'){await A('chsub',{id:i});bcs()}
+    else if(a=='bb')go('bc');
+    else if(a=='bp'){await A('chpost',{id:i,text:$('#bt').value});bopen(i)}
+    else if(a=='ab')modal('<h3>About me</h3><p>Amlink is where you share, chat and connect.</p><p>Developed and owned by <b>Nwodili Yaemerie Convenant</b>.</p><p>Contact: whitefrostff@gmail.com</p><button class="pri" data-a="mc">Close</button>');
+    else if(a=='mc')closeM();
   }catch(x){toast(x.message)}
 };
 $('#ci').onkeydown=e=>{if(e.key=='Enter')document.querySelector('[data-a=pc]').click()};
