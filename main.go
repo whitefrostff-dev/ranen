@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -20,6 +21,9 @@ type User struct {
 	Verified, Admin, Banned, Hide bool
 	Seen                          int64
 	Following                     []string
+	DOB                           string
+	Agreed                        int64
+	Bio                           string
 }
 type Comment struct {
 	User, Text string
@@ -88,17 +92,61 @@ func sb(method, path string, body io.Reader, ct string) (*http.Response, error) 
 	return http.DefaultClient.Do(r)
 }
 
+// Neon (Postgres) over HTTPS: no driver needed. Set DATABASE_URL to your Neon connection string.
+func neon(q string, p ...any) ([]map[string]json.RawMessage, error) {
+	u, e := url.Parse(env("DATABASE_URL"))
+	if e != nil {
+		return nil, e
+	}
+	if p == nil {
+		p = []any{}
+	}
+	b, _ := json.Marshal(map[string]any{"query": q, "params": p})
+	r, _ := http.NewRequest("POST", "https://"+u.Hostname()+"/sql", bytes.NewReader(b))
+	r.Header.Set("Content-Type", "application/json")
+	r.Header.Set("Neon-Connection-String", env("DATABASE_URL"))
+	resp, e := http.DefaultClient.Do(r)
+	if e != nil {
+		return nil, e
+	}
+	defer resp.Body.Close()
+	var o struct {
+		Rows    []map[string]json.RawMessage
+		Message string
+	}
+	json.NewDecoder(resp.Body).Decode(&o)
+	if resp.StatusCode > 299 {
+		return nil, errors.New(o.Message)
+	}
+	return o.Rows, nil
+}
+
 func load() {
-	if env("SUPABASE_URL") == "" {
+	loaded := false
+	if env("DATABASE_URL") != "" {
+		neon("CREATE TABLE IF NOT EXISTS store(key text PRIMARY KEY, value jsonb NOT NULL)")
+		if rows, e := neon("SELECT value::text AS v FROM store WHERE key='state'"); e == nil && len(rows) > 0 {
+			raw := rows[0]["v"]
+			if len(raw) > 0 && raw[0] == '"' {
+				var t string
+				json.Unmarshal(raw, &t)
+				raw = json.RawMessage(t)
+			}
+			loaded = json.Unmarshal(raw, &S) == nil
+		}
+	}
+	if !loaded && env("SUPABASE_URL") != "" { // one-time move of old data from Supabase
+		if r, e := sb("GET", "/rest/v1/store?key=eq.state&select=value", nil, ""); e == nil {
+			defer r.Body.Close()
+			var a []struct{ Value State }
+			json.NewDecoder(r.Body).Decode(&a)
+			if len(a) > 0 {
+				S = a[0].Value
+			}
+		}
+	} else if !loaded && env("DATABASE_URL") == "" {
 		b, _ := os.ReadFile("state.json")
 		json.Unmarshal(b, &S)
-	} else if r, e := sb("GET", "/rest/v1/store?key=eq.state&select=value", nil, ""); e == nil {
-		defer r.Body.Close()
-		var a []struct{ Value State }
-		json.NewDecoder(r.Body).Decode(&a)
-		if len(a) > 0 {
-			S = a[0].Value
-		}
 	}
 	if S.Users == nil {
 		S.Users = map[string]*User{}
@@ -108,18 +156,28 @@ func load() {
 	}
 }
 
-func save() { // call while holding mu
+var saveCh = make(chan []byte, 1)
+
+func save() { // call while holding mu; only the newest state is written
 	b, _ := json.Marshal(S)
-	go func() {
-		if env("SUPABASE_URL") == "" {
+	select {
+	case <-saveCh:
+	default:
+	}
+	saveCh <- b
+}
+func writer() {
+	for b := range saveCh {
+		if env("DATABASE_URL") != "" {
+			neon("INSERT INTO store(key,value) VALUES('state',$1::jsonb) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", string(b))
+		} else {
 			os.WriteFile("state.json", b, 0644)
-			return
 		}
-		v, _ := json.Marshal([]map[string]any{{"key": "state", "value": json.RawMessage(b)}})
-		if r, e := sb("POST", "/rest/v1/store", bytes.NewReader(v), "application/json"); e == nil {
-			r.Body.Close()
-		}
-	}()
+	}
+}
+func old13(d string) bool {
+	t, e := time.Parse("2006-01-02", d)
+	return e == nil && t.Year() > 1900 && !t.After(time.Now().AddDate(-13, 0, 0))
 }
 
 // ---------- helpers ----------
@@ -174,7 +232,11 @@ func uv(id string) map[string]any {
 	if u == nil {
 		return map[string]any{"ID": id, "Username": "deleted"}
 	}
-	return map[string]any{"ID": u.ID, "Username": u.Username, "Verified": u.Verified, "On": now()-u.Seen < 120 && !u.Hide}
+	seen := u.Seen
+	if u.Hide {
+		seen = 0
+	}
+	return map[string]any{"ID": u.ID, "Username": u.Username, "Verified": u.Verified, "On": now()-u.Seen < 120 && !u.Hide, "Seen": seen}
 }
 func pv(p *Post) map[string]any {
 	cs := []map[string]any{}
@@ -235,13 +297,14 @@ func api(path string, f func(u *User, w http.ResponseWriter, r *http.Request)) {
 
 func main() {
 	load()
+	go writer()
 	admin := env("ADMIN_EMAIL")
 	if admin == "" {
 		admin = "whitefrostff@gmail.com"
 	}
 
 	http.HandleFunc("/api/config", func(w http.ResponseWriter, r *http.Request) {
-		js(w, map[string]string{"Client": env("GOOGLE_CLIENT_ID")})
+		js(w, map[string]any{"Client": env("GOOGLE_CLIENT_ID"), "Fb": map[string]string{"apiKey": env("FIREBASE_API_KEY"), "authDomain": env("FIREBASE_AUTH_DOMAIN"), "projectId": env("FIREBASE_PROJECT_ID"), "appId": env("FIREBASE_APP_ID")}})
 	})
 
 	http.HandleFunc("/api/login", func(w http.ResponseWriter, r *http.Request) {
@@ -269,6 +332,60 @@ func main() {
 		}
 		tok := uid() + uid()
 		S.Sess[tok] = t.Sub
+		save()
+		js(w, map[string]any{"token": tok, "me": u})
+	})
+
+	// Email sign-in: Firebase checks the password, we check the Firebase token.
+	http.HandleFunc("/api/fblogin", func(w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		body, _ := json.Marshal(map[string]string{"idToken": b["token"]})
+		resp, e := http.Post("https://identitytoolkit.googleapis.com/v1/accounts:lookup?key="+url.QueryEscape(env("FIREBASE_API_KEY")), "application/json", bytes.NewReader(body))
+		if e != nil {
+			fail(w, 502, "Firebase check failed")
+			return
+		}
+		defer resp.Body.Close()
+		var t struct {
+			Users []struct {
+				LocalId, Email string
+				EmailVerified  bool
+			}
+		}
+		json.NewDecoder(resp.Body).Decode(&t)
+		if resp.StatusCode != 200 || len(t.Users) == 0 {
+			fail(w, 401, "Sign-in was rejected")
+			return
+		}
+		f := t.Users[0]
+		mu.Lock()
+		defer mu.Unlock()
+		var u *User
+		if f.EmailVerified { // only link to an older account when the email is verified
+			for _, o := range S.Users {
+				if o.Email == f.Email {
+					u = o
+					break
+				}
+			}
+		}
+		if u == nil {
+			u = S.Users[f.LocalId]
+		}
+		if u == nil {
+			n := strings.TrimSpace(b["name"])
+			if n == "" || len(n) > 60 || !old13(b["dob"]) || b["terms"] != "1" {
+				fail(w, 400, "Finish creating your account first")
+				return
+			}
+			u = &User{ID: f.LocalId, Email: f.Email, Name: n, DOB: b["dob"], Agreed: now(), Following: []string{}}
+			S.Users[u.ID] = u
+		}
+		if f.EmailVerified && f.Email == admin {
+			u.Admin, u.Verified = true, true
+		}
+		tok := uid() + uid()
+		S.Sess[tok] = u.ID
 		save()
 		js(w, map[string]any{"token": tok, "me": u})
 	})
@@ -536,6 +653,56 @@ func main() {
 			}
 		}
 		fail(w, 404, "Post not found")
+	})
+
+	// ---------- Profiles, friends and online status ----------
+	api("profile", func(u *User, w http.ResponseWriter, r *http.Request) {
+		id := r.URL.Query().Get("id")
+		if id == "" {
+			id = u.ID
+		}
+		o := S.Users[id]
+		if o == nil {
+			fail(w, 404, "User not found")
+			return
+		}
+		fol, lk, ps := 0, 0, []map[string]any{}
+		for _, x := range S.Users {
+			if has(x.Following, id) {
+				fol++
+			}
+		}
+		for i := len(S.Posts) - 1; i >= 0; i-- {
+			if p := S.Posts[i]; p.User == id {
+				lk += len(p.Likes)
+				if len(ps) < 60 {
+					ps = append(ps, pv(p))
+				}
+			}
+		}
+		js(w, map[string]any{"U": uv(id), "Name": o.Name, "Bio": o.Bio, "Following": len(o.Following), "Followers": fol, "Likes": lk, "Posts": ps, "IsMe": id == u.ID})
+	})
+	api("bio", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := strings.TrimSpace(in(r)["bio"])
+		if len(b) > 120 {
+			fail(w, 400, "Bio is too long (120 characters max)")
+			return
+		}
+		u.Bio = b
+		save()
+		js(w, u)
+	})
+	api("friends", func(u *User, w http.ResponseWriter, r *http.Request) {
+		out := []map[string]any{}
+		for _, o := range S.Users {
+			if o.ID == u.ID || o.Username == "" || o.Banned {
+				continue
+			}
+			if (now()-o.Seen < 120 && !o.Hide) || has(u.Following, o.ID) {
+				out = append(out, uv(o.ID))
+			}
+		}
+		js(w, out)
 	})
 
 	// ---------- Moments (24h status) ----------
