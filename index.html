@@ -71,6 +71,7 @@ nav button.on{color:var(--acc)}
 .er{color:#f02849;min-height:1em}
 #ts{position:absolute;z-index:30;top:16px;left:50%;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 16px;border-radius:20px;font-weight:600;font-size:13px}
 #nb{background:#f02849;color:#fff;border-radius:10px;font-size:11px;padding:1px 6px;margin-left:4px}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#31a24c;margin-left:6px}.pr.nw{background:var(--card)}.at{cursor:pointer;font-size:20px}.m img,.m video{max-width:100%;border-radius:12px;display:block}.m audio{max-width:100%}.dl{background:none;border:0;color:var(--mut);font-size:13px}
+.sw{position:relative;width:46px;height:26px;flex:none}.sw input{position:absolute;inset:0;opacity:0;margin:0;padding:0;cursor:pointer;z-index:1;width:100%;height:100%}.sw span{position:absolute;inset:0;border-radius:13px;background:#8a8d91;transition:.2s}.sw span::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}.sw input:checked+span{background:var(--acc)}.sw input:checked+span::after{transform:translateX(20px)}.sw input:focus-visible+span{outline:2px solid var(--acc);outline-offset:2px}.row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0}.row small{display:block}.ch2{display:flex;justify-content:space-between;align-items:center;padding:12px 16px 0;font-size:18px}.ch2 button{background:none;border:0;font-size:24px;padding:0 6px}
 </style>
 </head>
 <body>
@@ -94,6 +95,7 @@ const VB='<svg class="vb" aria-label="Verified"><use href="#vf"/></svg>';
 let T=null,ME,tab='feed',posts=[],cur,ppl=[],peer,poll,th='light';
 try{T=localStorage.getItem('tk');th=localStorage.getItem('th')||th}catch(e){}
 document.documentElement.dataset.t=th;
+let CS={snd:1,pop:1,con:1};try{CS=Object.assign(CS,JSON.parse(localStorage.getItem('cs')||'{}'))}catch(e){}
 const nm=u=>E(u.Username||'user')+(u.Verified?VB:'');
 const ago=t=>{const m=(Date.now()/1000-t)/60|0;return m<1?'now':m<60?m+'m':m<1440?(m/60|0)+'h':(m/1440|0)+'d'};
 async function A(p,b){const r=await fetch('/api/'+p,{method:b?'POST':'GET',headers:{'X-Token':T||'','Content-Type':'application/json'},body:b?JSON.stringify(b):undefined});const j=await r.json();if(r.status==401&&T)out();if(j&&j.error)throw new Error(j.error);return j}
@@ -151,10 +153,10 @@ function sl(){
 }
 
 function people(){
-  $('#main').innerHTML='<div class="sb"><input id="q" placeholder="Search people by username" autocomplete="off"></div><div id="pl"></div>';
+  $('#main').innerHTML='<div class="ch2"><b>Contacts</b><button data-a="cset" aria-label="Chat settings">⋯</button></div><div class="sb"><input id="q" placeholder="Search people by username" autocomplete="off"></div><div id="pl"></div>';
   let t;$('#q').oninput=()=>{clearTimeout(t);t=setTimeout(pl,250)};pl();
 }
-async function pl(){try{ppl=await A('search?q='+encodeURIComponent($('#q').value));drawP()}catch(e){toast(e.message)}}
+async function pl(){try{ppl=(!CS.con&&!$('#q').value)?[]:await A('search?q='+encodeURIComponent($('#q').value));drawP()}catch(e){toast(e.message)}}
 function drawP(){
   $('#pl').innerHTML=(ppl.length?'':'<p class="empty">Search a username to find people. People you follow appear here.</p>')+ppl.map(u=>`<div class="pr"><b class="av">${E(u.Username[0])}</b><div class="nm">${nm(u)}${u.On?'<i class="dot" title="Online"></i>':''}</div><button class="fl" data-a="fol" data-i="${u.ID}"></button><button data-a="dm" data-i="${u.ID}">Message</button>${ME.Admin?`<button data-a="ver" data-i="${u.ID}">${u.Verified?'Unverify':'Verify'}</button>`:''}</div>`).join('');
   paint();
@@ -183,7 +185,9 @@ async function mic(){
 }
 const TXT={like:'liked your post',comment:'commented on your post',follow:'started following you',msg:'sent you a message'};
 async function alerts(){const j=await A('notifs');$('#nb').hidden=true;$('#main').innerHTML=j.L.length?j.L.map(x=>`<div class="pr${x.New?' nw':''}"><b class="av">${E((x.U.Username||'?')[0])}</b><div class="nm">${nm(x.U)} <small>${TXT[x.Type]||''}, ${ago(x.TS)}</small></div></div>`).join(''):'<p class="empty">No notifications yet.</p>'}
-async function bell(){if(!T||!ME)return;try{const j=await A('notifs?c=1'),b=$('#nb');b.textContent=j.N;b.hidden=!j.N||tab=='alerts'}catch(e){}}
+async function bell(){if(!T||!ME)return;try{const j=await A('notifs?c=1'),b=$('#nb');b.textContent=j.N;b.hidden=!j.N||tab=='alerts';if((j.M||0)>(bell.m||0)){if(CS.snd)beep();if(CS.pop)toast('New message')}bell.m=j.M||0}catch(e){}}
+function beep(){try{const a=new AudioContext(),o=a.createOscillator();o.connect(a.destination);o.frequency.value=880;o.start();o.stop(a.currentTime+.12)}catch(e){}}
+function cset(){const r=(k,t,s,on)=>`<div class="row"><div>${t}<small>${s}</small></div><label class="sw"><input type="checkbox" data-a="tg" data-k="${k}"${on?' checked':''}><span></span></label></div>`;modal('<h3>Chat settings</h3><small>Customise your Amlink experience.</small>'+r('snd','Message sounds','Play a sound for new messages',CS.snd)+r('pop','Pop up new messages','Show a notice when a message arrives',CS.pop)+r('con','Show contacts','List the people you follow',CS.con)+r('act','Active status','Let people see when you are online',!ME.Hide))}
 setInterval(bell,15000);
 async function admin(){const j=await A('admin');$('#main').innerHTML=`<div class="prof"><h2>Admin panel</h2><p>${j.Users} users, ${j.Posts} posts, ${j.Msgs} messages</p></div>`+j.L.map(u=>`<div class="pr"><b class="av">${E((u.Username||'?')[0])}</b><div class="nm">${nm(u)}<br><small>${E(u.Email)}</small></div><button data-a="ver" data-i="${u.ID}">${u.Verified?'Unverify':'Verify'}</button><button data-a="ban" data-i="${u.ID}">${u.Banned?'Unban':'Ban'}</button></div>`).join('')}
 function newPost(){
@@ -214,7 +218,7 @@ $('#app').onclick=async e=>{
     else if(a=='send')send();
     else if(a=='un')askName(0);
     else if(a=='th'){th=th=='dark'?'light':'dark';document.documentElement.dataset.t=th;try{localStorage.setItem('th',th)}catch(x){}}
-    else if(a=='out')out();else if(a=='mic')mic();else if(a=='adm')admin();else if(a=='ban'){const x=await A('ban',{id:i});b.textContent=x.Banned?'Unban':'Ban'}else if(a=='delp'){if(confirm('Delete this post?')){await A('delpost',{id:i});go(tab)}}
+    else if(a=='out')out();else if(a=='cset')cset();else if(a=='tg'){const k=b.dataset.k;if(k=='act')ME=await A('active',{});else{CS[k]=b.checked;try{localStorage.setItem('cs',JSON.stringify(CS))}catch(x){}if(k=='con')pl()}}else if(a=='mic')mic();else if(a=='adm')admin();else if(a=='ban'){const x=await A('ban',{id:i});b.textContent=x.Banned?'Unban':'Ban'}else if(a=='delp'){if(confirm('Delete this post?')){await A('delpost',{id:i});go(tab)}}
   }catch(x){toast(x.message)}
 };
 $('#ci').onkeydown=e=>{if(e.key=='Enter')document.querySelector('[data-a=pc]').click()};
