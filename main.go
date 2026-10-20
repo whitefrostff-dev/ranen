@@ -16,7 +16,7 @@ import (
 
 type User struct {
 	ID, Email, Name, Username string
-	Verified, Admin, Banned bool
+	Verified, Admin, Banned, Hide bool
 	Seen int64
 	Following                 []string
 }
@@ -151,7 +151,7 @@ func uv(id string) map[string]any {
 	if u == nil {
 		return map[string]any{"ID": id, "Username": "deleted"}
 	}
-	return map[string]any{"ID": u.ID, "Username": u.Username, "Verified": u.Verified, "On": now()-u.Seen < 120}
+	return map[string]any{"ID": u.ID, "Username": u.Username, "Verified": u.Verified, "On": now()-u.Seen < 120 && !u.Hide}
 }
 func pv(p *Post) map[string]any {
 	cs := []map[string]any{}
@@ -400,8 +400,14 @@ func main() {
 		js(w, uv(o.ID))
 	})
 
+	api("active", func(u *User, w http.ResponseWriter, r *http.Request) {
+		u.Hide = !u.Hide
+		save()
+		js(w, u)
+	})
+
 	api("notifs", func(u *User, w http.ResponseWriter, r *http.Request) {
-		list, n := r.URL.Query().Get("c") == "", 0
+		list, n, mm := r.URL.Query().Get("c") == "", 0, 0
 		out := []map[string]any{}
 		for i := len(S.Notifs) - 1; i >= 0 && len(out) < 40; i-- {
 			x := &S.Notifs[i]
@@ -410,6 +416,9 @@ func main() {
 			}
 			if !x.Seen {
 				n++
+				if x.Type == "msg" {
+					mm++
+				}
 			}
 			if list {
 				out = append(out, map[string]any{"U": uv(x.From), "Type": x.Type, "TS": x.TS, "New": !x.Seen})
@@ -419,7 +428,7 @@ func main() {
 		if list {
 			save()
 		}
-		js(w, map[string]any{"N": n, "L": out})
+		js(w, map[string]any{"N": n, "M": mm, "L": out})
 	})
 
 	api("admin", func(u *User, w http.ResponseWriter, r *http.Request) {
