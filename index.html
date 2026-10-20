@@ -163,7 +163,38 @@ nav .pl2{color:#000;box-shadow:none}.m.me{background:var(--fg);color:var(--bg)}
 .sb textarea{width:100%;border:0;background:var(--card);color:var(--fg);padding:11px 16px;border-radius:16px;font:inherit;min-height:90px}
 .ht{font-weight:700;text-decoration:underline dotted;cursor:pointer}.bd{background:#f02849;color:#fff;border-radius:10px;font-size:11px;padding:1px 7px;font-weight:700}.pst>div{cursor:pointer}
 </style>
-</head>
+<link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#000000"><style>
+/* v4 */
+#rp{display:none}
+.cw{position:relative}.car{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.car::-webkit-scrollbar{display:none}
+.car img{flex:none;width:100%;scroll-snap-align:center;max-height:70vh;object-fit:cover}
+.cc{position:absolute;top:10px;right:10px;background:#000a;color:#fff;font-size:12px;font-weight:700;padding:3px 9px;border-radius:12px}
+.poll{margin:0 12px 10px;display:grid;gap:6px}
+.po{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:none;text-align:left;font-weight:600;display:flex;justify-content:space-between;gap:8px}
+.po i{position:absolute;inset:0 auto 0 0;background:var(--line);opacity:.9}.po span{position:relative}
+.dv h4{padding:14px 4px 6px;font-size:16px}.dv .pr{padding:8px 4px}.tgb{display:block;background:none;border:0;padding:6px 4px;text-align:left;text-decoration:none}
+.ch .chh{flex:none}
+@media(min-width:900px){
+ #app{max-width:1240px;display:grid;grid-template-columns:250px minmax(0,640px) 330px;grid-template-rows:auto auto minmax(0,1fr);justify-content:center;border:0}
+ #app.out{display:flex;max-width:520px;border-inline:1px solid var(--line)}
+ #tb{grid-column:2;grid-row:1;border-inline:1px solid var(--line)}
+ #ann{grid-column:2;grid-row:2}
+ #main{grid-column:2;grid-row:3;min-height:0;border-inline:1px solid var(--line)}
+ nav{grid-column:1;grid-row:1/-1;flex-direction:column;justify-content:flex-start;align-items:stretch;border-top:0;padding:16px 12px;gap:4px;backdrop-filter:none}
+ nav button{display:flex;flex-direction:row;justify-content:flex-start;align-items:center;gap:16px;flex:none;font-size:17px;padding:12px 16px;border-radius:14px}
+ nav button:hover{background:var(--card)}
+ nav .pl2{width:auto;height:46px;margin:10px 0;justify-content:center}
+ #nb{position:static;margin-left:auto}
+ #rp{display:block;grid-column:3;grid-row:1/-1;overflow-y:auto;padding:12px 16px}
+ #app.out #rp{display:none}
+ #main .dv{display:none}
+ #sh{left:calc(50% - 610px + 250px);right:auto;width:640px}
+ #dr{width:380px}
+ #st{width:100%;max-width:480px;margin:0 auto}
+ .post img,.post video{max-height:620px}
+}
+@media(min-width:900px) and (max-width:1240px){#app{grid-template-columns:230px minmax(0,1fr) 0}#rp{display:none!important}#sh{left:230px;width:calc(100% - 230px)}}
+</style></head>
 <body>
 <svg width="0" height="0" style="position:absolute"><symbol id="vf" viewBox="0 0 24 24"><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5" fill="#1877f2"/><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5" fill="#1877f2" transform="rotate(45 12 12)"/><circle cx="12" cy="12" r="8.6" fill="#1877f2"/><path d="M7.4 12.4l3.1 3.1 6.2-6.6" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></symbol></svg>
 <div id="app" class="out">
@@ -232,9 +263,9 @@ function openDr(){
   $('#app').classList.add('dro');
 }
 
-const mediaH=p=>p.Media?(p.Kind=='video'?`<video src="${E(p.Media)}" controls playsinline preload="metadata"></video>`:`<img src="${E(p.Media)}" loading="lazy" alt="">`):'';
+var mediaH=p=>p.Media?(p.Kind=='video'?`<video src="${E(p.Media)}" controls playsinline preload="metadata"></video>`:`<img src="${E(p.Media)}" loading="lazy" alt="">`):'';
 const folB=u=>u.ID==ME.ID?'':`<button class="fl" data-a="fol" data-i="${u.ID}"></button>`;
-const postH=p=>`<article class="post"><header>${AV(p.U)}<div><div class="nm">${nm(p.U)}</div><small>${ago(p.TS)}</small></div>${folB(p.U)}${p.U.ID==ME.ID||ME.Admin?`<button class="dl" data-a="delp" data-i="${p.ID}">Delete</button>`:''}</header>${p.Text?`<p>${tg(p.Text)}</p>`:''}${mediaH(p)}<footer><button class="lk" data-a="like" data-i="${p.ID}">♥ <span></span></button><button class="cm" data-a="cm" data-i="${p.ID}">💬 <span></span></button></footer></article>`;
+var postH=p=>`<article class="post"><header>${AV(p.U)}<div><div class="nm">${nm(p.U)}</div><small>${ago(p.TS)}</small></div>${folB(p.U)}${p.U.ID==ME.ID||ME.Admin?`<button class="dl" data-a="delp" data-i="${p.ID}">Delete</button>`:''}</header>${p.Text?`<p>${tg(p.Text)}</p>`:''}${mediaH(p)}<footer><button class="lk" data-a="like" data-i="${p.ID}">♥ <span></span></button><button class="cm" data-a="cm" data-i="${p.ID}">💬 <span></span></button></footer></article>`;
 function paint(){
   posts.forEach(p=>{
     document.querySelectorAll(`.lk[data-i="${p.ID}"]`).forEach(b=>{b.classList.toggle('on',(p.Likes||[]).includes(ME.ID));b.querySelector('span').textContent=(p.Likes||[]).length||''});
@@ -578,7 +609,7 @@ setTimeout(nt,2500);setInterval(nt,60000);
 
 /* v3: profile photos, inbox, post links, lists, explore, block, edit and more */
 const AV=(u,c)=>u.Av?`<b class="av ${c||''}" style="background:url('${E(u.Av)}') center/cover"></b>`:`<b class="av ${c||''}">${E((u.Username||'?')[0])}</b>`;
-const tg=t=>E(t).replace(/#(\w+)/g,'<a class="ht" data-a="tag" data-q="#$1">#$1</a>');
+var tg=t=>E(t).replace(/#(\w+)/g,'<a class="ht" data-a="tag" data-q="#$1">#$1</a>');
 async function upf(id,old){const f=$(id).files[0];return f?await up(f):(old||'')}
 async function L(){const m=await A('msgs?w='+peer.ID),b=$('#ms');if(!b)return;b.innerHTML=m.map(x=>`<div class="m ${x.From==ME.ID?'me':''}">${msgM(x)}${E(x.Text)}${x.From==ME.ID?`<small> ${x.Read?'✓✓':'✓'}</small>`:''}</div>`).join('');b.scrollTop=b.scrollHeight}
 function sl(){$('#sc').textContent=cur.C.length+' comments';$('#sl').innerHTML=cur.C.map((c,i)=>{const n=(c.Likes||[]).length,on=(c.Likes||[]).includes(ME.ID);return `<div class="c">${AV(c.U)}<div class="cb"><div class="nm">${nm(c.U)}</div><div>${tg(c.Text)}</div><small>${ago(c.TS)} </small><button class="rp" data-a="rp" data-n="${E(c.U.Username)}">Reply</button>${c.U.ID==ME.ID||cur.U.ID==ME.ID||ME.Admin?`<button class="rp" data-a="dcm" data-i="${i}">Delete</button>`:''}</div><button class="cl${on?' on':''}" data-a="cl" data-i="${i}" aria-label="Like comment"><b>${on?'♥':'♡'}</b>${n||''}</button></div>`}).join('')||'<p class="empty">No comments yet. Start the conversation.</p>'}
@@ -600,6 +631,141 @@ $('#app').addEventListener('click',async e=>{const b=e.target.closest('[data-a]'
  else if(a=='cpw'){if(!FB||!ME.Email)toast('Not available for this account');else{await FB.sendPasswordResetEmail(ME.Email);toast('Reset link sent to your email')}}
 }catch(x){toast(x.message)}});
 const pw=setInterval(async()=>{if(!ME)return;clearInterval(pw);const id=new URLSearchParams(location.search).get('p');if(!id)return;try{const p=await A('onep?id='+id);posts=[p];modal(postH(p)+'<button class="pri" data-a="mc">Close</button>');paint();history.replaceState(null,'','/')}catch(e){}},500);
+</script>
+<script>
+/* v4 */
+/* Amlink v4: loaded after the old scripts; overrides and extends them */
+Object.assign(TXT,{mention:'mentioned you',freq:'requested to follow you',facc:'accepted your follow request',mreact:'reacted to your moment'});
+let XM={Req:[],Sent:[],Priv:false},RQ=new Set,NL=[],xdp,es,tt=0;
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();xdp=e});
+if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
+
+/* API: map follow/comment to new endpoints, and send every value as a string (fixes comment like/delete) */
+const A0=A;
+A=async(p,b)=>{if(b)for(const k in b)b[k]=String(b[k]);const r=await A0({follow:'follow2',comment:'comment2'}[p]||p,b);if(p=='follow')xm().then(()=>paint());return r};
+async function xm(){try{XM=await A('xme');RQ=new Set(XM.Sent)}catch(e){}}
+
+/* mentions and hashtags */
+tg=t=>E(t).replace(/(^|\s)([#@])(\w+)/g,(m,s,c,w)=>s+(c=='#'?`<a class="ht" data-a="tag" data-q="#${w}">#${w}</a>`:`<a class="ht" data-a="atp" data-u="${w}">@${w}</a>`));
+
+/* carousel + polls */
+const m0=mediaH;
+mediaH=p=>{if(p.More&&p.More.length){const a=[p.Media,...p.More];return `<div class="cw"><div class="car">${a.map(u=>`<img src="${E(u)}" loading="lazy" alt="">`).join('')}</div><span class="cc">1/${a.length}</span></div>`}return m0(p)};
+document.addEventListener('scroll',e=>{const c=e.target;if(c.classList&&c.classList.contains('car')){const n=c.children.length;c.nextElementSibling.textContent=(Math.round(c.scrollLeft/c.clientWidth)+1)+'/'+n}},true);
+const xpoll=p=>{if(!p.Poll)return '';const v=p.Poll.Votes||{},my=v[ME.ID],n=Object.keys(v).length,s=my!==undefined;return `<div class="poll" data-p="${p.ID}">${p.Poll.Opts.map((o,i)=>{const c=Object.values(v).filter(z=>z==i).length,pc=n?Math.round(c*100/n):0;return `<button class="po" data-a="vote" data-i="${p.ID}" data-o="${i}">${s?`<i style="width:${pc}%"></i>`:''}<span>${E(o)}${my==i?' ✓':''}</span>${s?`<span>${pc}%</span>`:''}</button>`}).join('')}<small>${n} vote${n==1?'':'s'}</small></div>`};
+const ph0=postH;postH=p=>ph0(p).replace('<footer>',xpoll(p)+'<footer>');
+newPost=function(){
+  modal(`<h3>Create post</h3><textarea id="tx" placeholder="Share something… use @name or #tag" maxlength="2000"></textarea><input id="fi" type="file" accept="image/*,video/*" multiple><textarea id="po" style="min-height:60px" placeholder="Add a poll: one option per line (2 to 4)"></textarea><p class="er" id="er"></p><button class="pri" id="pub">Post</button>`);
+  $('#pub').onclick=async()=>{const fs=[...$('#fi').files],b=$('#pub');b.disabled=true;b.textContent='Posting…';
+    try{if(fs.length>10)throw new Error('Max 10 files');if(fs.length>1&&fs.some(f=>!f.type.startsWith('image')))throw new Error('Several files must all be photos');
+      const urls=[];for(const f of fs)urls.push(await up(f));
+      await A('post2',{text:$('#tx').value,media:urls.join(','),kind:fs[0]?(fs[0].type.startsWith('video')?'video':'image'):'',poll:$('#po').value.split('\n').map(s=>s.trim()).filter(Boolean).join('|')});
+      closeM();go(tab=='reels'?'reels':'feed')}
+    catch(e){$('#er').textContent=e.message;b.disabled=false;b.textContent='Post'}}
+};
+
+/* paint: requested state, pin button */
+const pt0=paint;
+paint=function(){pt0();
+  document.querySelectorAll('.fl').forEach(b=>{if(RQ.has(b.dataset.i)){b.textContent='Requested';b.classList.add('on')}});
+  document.querySelectorAll('.post footer').forEach(f=>{const l=f.querySelector('.lk');if(l&&f.querySelector('[data-a=epost]')&&!f.querySelector('.pn'))f.insertAdjacentHTML('beforeend',`<button class="pn" data-a="pin" data-i="${l.dataset.i}" aria-label="Pin">📌</button>`)})};
+
+/* notifications: every row opens the profile, post, chat or request list */
+alerts=async function(){
+  const[j,cv]=await Promise.all([A('notifs2'),A('inbox')]);NL=j;$('#nb').hidden=true;
+  ppl=[...ppl.filter(p=>!cv.some(c=>c.U.ID==p.ID)),...cv.map(c=>c.U)];
+  $('#main').innerHTML='<div class="ch2"><b>Inbox</b></div><div style="padding:8px 12px"><button class="di" data-a="nv" data-t="circles"><i style="background:#7c5cff">👥</i><span>Circles<small>Group chats</small></span></button><button class="di" data-a="nv" data-t="bc"><i style="background:#ff7a1a">📢</i><span>Broadcasts<small>Channels you follow</small></span></button></div><p class="sg" style="padding:6px 16px">Messages</p>'+
+  (cv.map(c=>`<div class="pr" data-a="dm" data-i="${c.U.ID}">${AV(c.U)}<div class="nm">${nm(c.U)}<br><small>${c.Mine?'You: ':''}${E(c.Last)} · ${ago(c.TS)}</small></div>${c.Un?`<b class="bd">${c.Un}</b>`:''}</div>`).join('')||'<p class="empty">No chats yet. Find people in Friends.</p>')+
+  `<div class="ch2" style="font-size:14px"><span class="sg" style="padding:0">Activity</span>${j.length?'<button data-a="ncl" style="font-size:13px;color:var(--mut)">Clear all</button>':''}</div>`+
+  (j.length?j.map((x,n)=>`<div class="pr${x.New?' nw':''}" data-a="nrow" data-n="${n}" style="cursor:pointer">${AV(x.U)}<div class="nm">${nm(x.U)} <small>${TXT[x.Type]||''}, ${ago(x.TS)}</small></div></div>`).join(''):'<p class="empty">No notifications yet.</p>')
+};
+
+/* chat: unsend + typing + instant delivery */
+L=async function(){const m=await A('msgs?w='+peer.ID),b=$('#ms');if(!b)return;b.innerHTML=m.map(x=>`<div class="m ${x.From==ME.ID?'me':''}"${x.From==ME.ID?` data-a="uns" data-ts="${x.TS}"`:''}>${msgM(x)}${E(x.Text)}${x.From==ME.ID?`<small> ${x.Read?'✓✓':'✓'}</small>`:''}</div>`).join('');b.scrollTop=b.scrollHeight};
+document.addEventListener('input',e=>{if(e.target.id=='mi'&&$('#mic')&&peer&&Date.now()-tt>2500){tt=Date.now();A('typing',{to:peer.ID}).catch(()=>{})}});
+function live(){
+  if(es||!window.EventSource)return;
+  es=new EventSource('/api/stream?t='+encodeURIComponent(T));
+  es.onmessage=e=>{const d=e.data;
+    if(d.startsWith('typing:')){if(peer&&d.slice(7)==peer.ID&&$('#mic')){const s=$('.chh small');if(s){s.textContent='typing…';clearTimeout(live.t);live.t=setTimeout(()=>s.textContent=stat(peer),3000)}}return}
+    bell();if(d=='msg'){if($('#mic'))L().catch(()=>{});else if($('#ms'))gload().catch(()=>{})}
+    if(document.hidden&&window.Notification&&Notification.permission=='granted'&&TXT[d]&&navigator.serviceWorker)navigator.serviceWorker.ready.then(r=>r.showNotification('Amlink',{body:TXT[d],icon:'/icon.svg'}))}
+}
+
+/* moments: viewers, reactions, replies */
+sview=function(id){
+  const L2=SG[id].L;let i=0;
+  const show=()=>{if(i>=L2.length){closeM();return}const s=L2[i],mine=s.U.ID==ME.ID;A('mview',{id:s.ID}).catch(()=>{});
+    modal(`<div style="display:grid;gap:10px"><b>${nm(s.U)} <small>${ago(s.TS)} · ${i+1}/${L2.length}</small></b>${mediaH(s)}${s.Text?`<p style="font-size:18px;white-space:pre-wrap">${E(s.Text)}</p>`:''}`+
+    (mine?`<button class="ed" data-a="mst" data-i="${s.ID}">👁 Viewers and reactions</button>`:`<div class="act">${['❤️','😂','😮','😢','🔥','👏'].map(e=>`<button class="ed" style="padding:8px 10px" data-a="mrx" data-i="${s.ID}" data-e="${e}">${e}</button>`).join('')}</div><div class="bar" style="padding:0"><input id="mrp" placeholder="Reply…" autocomplete="off"><button data-a="mrp" data-i="${s.ID}">Send</button></div>`)+
+    `<button class="pri" id="mnx">${i+1<L2.length?'Next':'Close'}</button></div>`);$('#mnx').onclick=()=>{i++;show()}};
+  show()
+};
+async function xms(id){const j=await A('mstats',{id});modal(`<h3>Moment activity</h3><b>👁 ${j.V.length} views</b><div style="max-height:30vh;overflow:auto">${j.V.map(u=>`<div class="pr">${AV(u)}<div class="nm">${nm(u)}</div></div>`).join('')||'<small>No views yet</small>'}</div><b>Reactions</b><div style="max-height:25vh;overflow:auto">${j.R.map(r=>`<div class="pr">${AV(r.U)}<div class="nm">${nm(r.U)}</div><span>${r.E}</span></div>`).join('')||'<small>None yet</small>'}</div><button class="pri" data-a="mc">Close</button>`)}
+
+/* circle management */
+const go1=gopen;
+gopen=async function(id,n){await go1(id,n);const h=$('.chh');if(h)h.insertAdjacentHTML('beforeend','<button data-a="gset" style="margin-left:auto" aria-label="Circle settings">⚙</button>')};
+async function xg(){
+  const j=await A('ginfo?g='+gid);
+  modal(`<h3>${E(j.Name)}</h3><input id="gnn" value="${E(j.Name)}" maxlength="40"${j.CanEdit?'':' disabled'}>`+(j.CanEdit?'<button class="pri sec" data-a="gop" data-o="rename">Rename</button>':'')+
+  '<div style="max-height:30vh;overflow:auto">'+j.M.map(m=>`<div class="pr">${AV(m.U)}<div class="nm">${nm(m.U)}<br><small>${m.Role}</small></div>`+(j.CanEdit&&m.U.ID!=ME.ID&&m.Role!='owner'&&(j.Owner||m.Role=='member')?`<button data-a="gop" data-o="remove" data-i="${m.U.ID}">Remove</button>`:'')+(j.Owner&&m.Role!='owner'?`<button data-a="gop" data-o="admin" data-i="${m.U.ID}">${m.Role=='admin'?'Demote':'Make admin'}</button>`:'')+'</div>').join('')+'</div>'+
+  (j.CanEdit?'<input id="gaq" placeholder="Search people to add" autocomplete="off"><div id="gar"></div>':'')+'<button class="pri sec" data-a="gop" data-o="leave">Leave circle</button><button class="pri" data-a="mc">Close</button>');
+  if(j.CanEdit){let t;$('#gaq').oninput=()=>{clearTimeout(t);t=setTimeout(async()=>{const l=await A('search?q='+encodeURIComponent($('#gaq').value));$('#gar').innerHTML=l.filter(u=>!j.M.some(m=>m.U.ID==u.ID)).map(u=>`<div class="pr">${AV(u)}<div class="nm">${nm(u)}</div><button data-a="gop" data-o="add" data-i="${u.ID}">Add</button></div>`).join('')},250)}}
+}
+
+/* private accounts, reports, discovery, profile extras */
+async function reqs(){await xm();modal('<h3>Follow requests</h3><div style="max-height:50vh;overflow:auto">'+(XM.Req.map(u=>`<div class="pr">${AV(u)}<div class="nm">${nm(u)}</div><button data-a="ra" data-i="${u.ID}" data-v="1">Accept</button><button data-a="ra" data-i="${u.ID}" data-v="0">Decline</button></div>`).join('')||'<p class="empty">No pending requests.</p>')+'</div><button class="pri" data-a="mc">Close</button>')}
+async function xur(){const l=await A('ureports');modal('<h3>Reports</h3><div style="max-height:55vh;overflow:auto">'+(l.map(r=>`<div class="pr"><div class="nm">${nm(r.By)} reported ${r.Kind} by ${nm(r.To)}<br><small>${E(r.Text||'')} ${E(r.Reason||'')}</small></div><button data-a="uca" data-i="${r.ID}" data-v="dismiss">Dismiss</button><button data-a="uca" data-i="${r.ID}" data-v="ban">Ban user</button>${r.Kind=='comment'?`<button data-a="uca" data-i="${r.ID}" data-v="delc">Delete comment</button>`:''}</div>`).join('')||'<p class="empty">No reports.</p>')+'</div><button class="pri" data-a="mc">Close</button>')}
+const sl0=sl;
+sl=function(){sl0();document.querySelectorAll('#sl .c').forEach((el,i)=>{if(cur.C[i]&&cur.C[i].U.ID!=ME.ID)el.querySelector('.cb').insertAdjacentHTML('beforeend',`<button class="rp" data-a="rcm" data-i="${i}">Report</button>`)})};
+const pf0=pfDraw;
+pfDraw=function(){pf0();const u=PF.U,me=PF.IsMe,a=$('#main .act');
+  if(a)a.insertAdjacentHTML('beforeend',(me?'':`<button class="ed" data-a="rus" data-i="${u.ID}">Report</button><button class="ed" data-a="mut" data-i="${u.ID}">Mute</button>`)+'<button class="ed" data-a="plink">Copy link</button>');
+  if(u.Pin){const l=document.querySelector(`#main .post .lk[data-i="${u.Pin}"]`);if(l){const p=l.closest('.post'),f=$('#main .post');if(f&&f!==p)f.before(p);p.insertAdjacentHTML('afterbegin','<small style="padding:8px 12px 0;display:block">📌 Pinned</small>')}}
+  if(!me&&u.Priv&&!(ME.Following||[]).includes(u.ID)){const e=$('#main .empty');if(e)e.textContent='🔒 This account is private. Follow to see their posts.'}};
+async function disc(){try{const j=await A('discover');
+  const h='<h4>Who to follow</h4>'+(j.People.map(u=>`<div class="pr"><span data-a="pf" data-i="${u.ID}">${AV(u)}</span><div class="nm" data-a="pf" data-i="${u.ID}">${nm(u)}</div><button class="fl" data-a="fol" data-i="${u.ID}"></button></div>`).join('')||'<small>No suggestions yet.</small>')+'<h4>Trending</h4>'+(j.Tags.map(t=>`<button class="ht tgb" data-a="tag" data-q="${E(t.T)}">${E(t.T)} <small>${t.N} post${t.N==1?'':'s'}</small></button>`).join('')||'<small>No hashtags yet.</small>');
+  document.querySelectorAll('.dv').forEach(e=>e.innerHTML=h);paint()}catch(e){}}
+const pe0=people;
+people=function(){pe0();$('#pl').insertAdjacentHTML('beforebegin','<div class="dv"></div>');disc()};
+const go0=go;
+go=async function(t){await go0(t);if(innerWidth>=900)disc()};
+const od0=openDr;
+openDr=function(){od0();const r=(a,i,t)=>`<button class="sr" data-a="${a}"><i>${i}</i>${t}<em>›</em></button>`;
+  $('#dr').insertAdjacentHTML('beforeend','<p class="sg">Privacy and app</p><div class="cd"><div class="row" style="padding:12px 16px"><div>Private account<small>Approve who can follow you</small></div><label class="sw"><input type="checkbox" data-a="xpriv"'+(XM.Priv?' checked':'')+'><span></span></label></div>'+r('reqs','👋','Follow requests'+(XM.Req.length?' ('+XM.Req.length+')':''))+r('ntf','🔔','Enable alerts')+(xdp?r('inst','📲','Install app'):'')+(ME.Admin?r('urep','🚩','User and comment reports'):'')+'</div>')};
+const ap0=app;
+app=function(){ap0();live();xm().then(()=>paint());if(!$('#rp'))$('#app').insertAdjacentHTML('beforeend','<aside id="rp" class="dv" aria-label="Suggestions"></aside>');disc()};
+
+/* click handlers for the new actions */
+$('#app').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,i=b.dataset.i,d=b.dataset;
+  try{
+    if(a=='vote'){const p=await A('vote',{id:i,i:d.o});upd(p);document.querySelectorAll(`.poll[data-p="${i}"]`).forEach(el=>el.outerHTML=xpoll(p))}
+    else if(a=='nrow'){const x=NL[+d.n];if(x.Type=='freq')reqs();else if(x.Type=='msg')chat(x.U);else if(x.Post){const p=await A('onep?id='+x.Post);posts=[p];modal(postH(p)+'<button class="pri" data-a="mc">Close</button>');paint()}else opf(x.U.ID)}
+    else if(a=='ncl'){await A('nclear',{});alerts()}
+    else if(a=='atp'){const j=await A('byname',{u:d.u});closeM();opf(j.id)}
+    else if(a=='uns'){if(confirm('Unsend this message?')){await A('unsend',{to:peer.ID,ts:d.ts});L()}}
+    else if(a=='mrx'){await A('mreact',{id:i,e:d.e});toast('Reaction sent '+d.e)}
+    else if(a=='mrp'){const t=$('#mrp').value.trim();if(t){await A('mreply',{id:i,text:t});$('#mrp').value='';toast('Reply sent')}}
+    else if(a=='mst')xms(i);
+    else if(a=='gset')xg();
+    else if(a=='gop'){await A('gmanage',{g:gid,op:d.o,id:i||'',name:($('#gnn')||{}).value||''});if(d.o=='leave'){closeM();go('circles')}else{xg();if(d.o=='rename')toast('Renamed')}}
+    else if(a=='xpriv'){await A('setpriv',{});await xm();toast(XM.Priv?'Account is now private':'Account is now public')}
+    else if(a=='reqs')reqs();
+    else if(a=='ra'){await A('reqact',{id:i,v:d.v});reqs()}
+    else if(a=='inst'&&xdp){xdp.prompt();xdp=null}
+    else if(a=='ntf'){if(!window.Notification)toast('Not supported on this browser');else Notification.requestPermission().then(r=>toast(r=='granted'?'Alerts on':'Alerts blocked'))}
+    else if(a=='rcm'){const r=prompt('Why are you reporting this comment?');if(r!==null){await A('report2',{kind:'comment',id:cur.ID,i:i,reason:r});toast('Thanks, we will review it')}}
+    else if(a=='rus'){const r=prompt('Why are you reporting this user?');if(r!==null){await A('report2',{kind:'user',id:i,reason:r});toast('Thanks, we will review it')}}
+    else if(a=='urep')xur();
+    else if(a=='uca'){await A('ucact',{id:i,op:d.v});xur()}
+    else if(a=='mut'){const j=await A('mute',{id:i});toast(j.Muted?'Notifications muted':'Unmuted')}
+    else if(a=='pin'){const j=await A('pin',{id:i});toast(j.Pin?'Pinned to your profile':'Unpinned')}
+    else if(a=='plink'){const l=location.origin+'/?u='+PF.U.Username;navigator.clipboard?navigator.clipboard.writeText(l).then(()=>toast('Link copied')):prompt('Copy link',l)}
+  }catch(x){toast(x.message)}
+});
+const dl=setInterval(async()=>{if(!ME)return;clearInterval(dl);const u=new URLSearchParams(location.search).get('u');if(!u)return;try{const j=await A('byname',{u});history.replaceState(null,'','/');opf(j.id)}catch(e){}},600);
 </script>
 </body>
 </html>
