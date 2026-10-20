@@ -9,20 +9,22 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 )
 
 type User struct {
-	ID, Email, Name, Username string
+	ID, Email, Name, Username     string
 	Verified, Admin, Banned, Hide bool
-	Seen int64
-	Following                 []string
+	Seen                          int64
+	Following                     []string
 }
 type Comment struct {
 	User, Text string
 	TS         int64
+	Likes      []string
 }
 type Post struct {
 	ID, User, Text, Media, Kind string
@@ -32,19 +34,40 @@ type Post struct {
 }
 type Msg struct {
 	From, To, Text, Kind, Media string
-	TS             int64
+	TS                          int64
 }
 type Notif struct {
 	To, From, Type, Post string
-	TS int64
-	Seen bool
+	TS                   int64
+	Seen                 bool
+}
+type Group struct {
+	ID, Name, Owner string
+	Members         []string
+	Msgs            []Msg
+}
+type Status struct {
+	ID, User, Text, Media, Kind string
+	TS                          int64
+}
+type ChPost struct {
+	Text string
+	TS   int64
+}
+type Channel struct {
+	ID, Name, Desc, Owner string
+	Subs                  []string
+	Posts                 []ChPost
 }
 type State struct {
-	Users map[string]*User
-	Posts []*Post
-	Msgs  []Msg
-	Notifs []Notif
-	Sess  map[string]string
+	Users    map[string]*User
+	Posts    []*Post
+	Msgs     []Msg
+	Notifs   []Notif
+	Sess     map[string]string
+	Groups   []*Group
+	Statuses []*Status
+	Channels []*Channel
 }
 
 var (
@@ -156,7 +179,7 @@ func uv(id string) map[string]any {
 func pv(p *Post) map[string]any {
 	cs := []map[string]any{}
 	for _, c := range p.Comments {
-		cs = append(cs, map[string]any{"U": uv(c.User), "Text": c.Text, "TS": c.TS})
+		cs = append(cs, map[string]any{"U": uv(c.User), "Text": c.Text, "TS": c.TS, "Likes": c.Likes})
 	}
 	return map[string]any{"ID": p.ID, "U": uv(p.User), "Text": p.Text, "Media": p.Media, "Kind": p.Kind, "TS": p.TS, "Likes": p.Likes, "C": cs}
 }
@@ -167,6 +190,30 @@ func fp(id string) *Post {
 		}
 	}
 	return nil
+}
+func fg(id string) *Group {
+	for _, g := range S.Groups {
+		if g.ID == id {
+			return g
+		}
+	}
+	return nil
+}
+func fc(id string) *Channel {
+	for _, c := range S.Channels {
+		if c.ID == id {
+			return c
+		}
+	}
+	return nil
+}
+func okMedia(m string) bool { return m == "" || strings.HasPrefix(m, env("SUPABASE_URL")+"/storage/") }
+func cut(s string) string {
+	r := []rune(s)
+	if len(r) > 30 {
+		return string(r[:30])
+	}
+	return s
 }
 func api(path string, f func(u *User, w http.ResponseWriter, r *http.Request)) {
 	http.HandleFunc("/api/"+path, func(w http.ResponseWriter, r *http.Request) {
@@ -331,6 +378,24 @@ func main() {
 		js(w, pv(p))
 	})
 
+	api("clike", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		p := fp(b["id"])
+		i, e := strconv.Atoi(b["i"])
+		if p == nil || e != nil || i < 0 || i >= len(p.Comments) {
+			fail(w, 400, "Invalid comment")
+			return
+		}
+		c := &p.Comments[i]
+		if has(c.Likes, u.ID) {
+			c.Likes = del(c.Likes, u.ID)
+		} else {
+			c.Likes = append(c.Likes, u.ID)
+		}
+		save()
+		js(w, pv(p))
+	})
+
 	api("follow", func(u *User, w http.ResponseWriter, r *http.Request) {
 		id := in(r)["id"]
 		if id == u.ID || S.Users[id] == nil {
@@ -471,6 +536,162 @@ func main() {
 			}
 		}
 		fail(w, 404, "Post not found")
+	})
+
+	// ---------- Moments (24h status) ----------
+	api("status", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		k := b["kind"]
+		if k != "image" && k != "video" {
+			k = ""
+		}
+		if (strings.TrimSpace(b["text"]) == "" && b["media"] == "") || len(b["text"]) > 300 || !okMedia(b["media"]) {
+			fail(w, 400, "Add text, a photo or a video")
+			return
+		}
+		S.Statuses = append(S.Statuses, &Status{uid(), u.ID, b["text"], b["media"], k, now()})
+		save()
+		js(w, map[string]bool{"ok": true})
+	})
+	api("statuses", func(u *User, w http.ResponseWriter, r *http.Request) {
+		keep, out := S.Statuses[:0], []map[string]any{}
+		for _, s := range S.Statuses {
+			if now()-s.TS > 86400 {
+				continue
+			}
+			keep = append(keep, s)
+			if s.User == u.ID || has(u.Following, s.User) {
+				out = append(out, map[string]any{"ID": s.ID, "U": uv(s.User), "Text": s.Text, "Media": s.Media, "Kind": s.Kind, "TS": s.TS})
+			}
+		}
+		S.Statuses = keep
+		js(w, out)
+	})
+
+	// ---------- Circles (group chats) ----------
+	api("gcreate", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		n, m := strings.TrimSpace(b["name"]), []string{u.ID}
+		for _, id := range strings.Split(b["members"], ",") {
+			if S.Users[id] != nil && !has(m, id) {
+				m = append(m, id)
+			}
+		}
+		if n == "" || len(n) > 40 || len(m) < 2 {
+			fail(w, 400, "Name the circle and add at least one person")
+			return
+		}
+		g := &Group{ID: uid(), Name: n, Owner: u.ID, Members: m}
+		S.Groups = append(S.Groups, g)
+		save()
+		js(w, map[string]string{"id": g.ID})
+	})
+	api("groups", func(u *User, w http.ResponseWriter, r *http.Request) {
+		out := []map[string]any{}
+		for _, g := range S.Groups {
+			if has(g.Members, u.ID) {
+				l := ""
+				if n := len(g.Msgs); n > 0 {
+					l = cut(g.Msgs[n-1].Text)
+				}
+				out = append(out, map[string]any{"ID": g.ID, "Name": g.Name, "N": len(g.Members), "Last": l})
+			}
+		}
+		js(w, out)
+	})
+	api("gmsgs", func(u *User, w http.ResponseWriter, r *http.Request) {
+		g := fg(r.URL.Query().Get("g"))
+		if g == nil || !has(g.Members, u.ID) {
+			fail(w, 403, "Not in this circle")
+			return
+		}
+		out, st := []map[string]any{}, len(g.Msgs)-200
+		if st < 0 {
+			st = 0
+		}
+		for _, m := range g.Msgs[st:] {
+			out = append(out, map[string]any{"U": uv(m.From), "Me": m.From == u.ID, "Text": m.Text, "TS": m.TS})
+		}
+		js(w, out)
+	})
+	api("gmsg", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		g, t := fg(b["g"]), strings.TrimSpace(b["text"])
+		if g == nil || !has(g.Members, u.ID) || t == "" || len(t) > 1000 {
+			fail(w, 400, "Invalid message")
+			return
+		}
+		g.Msgs = append(g.Msgs, Msg{From: u.ID, To: g.ID, Text: t, TS: now()})
+		for _, m := range g.Members {
+			note(m, u.ID, "msg", "")
+		}
+		save()
+		js(w, map[string]bool{"ok": true})
+	})
+
+	// ---------- Broadcasts (channels) ----------
+	api("chcreate", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		n := strings.TrimSpace(b["name"])
+		if n == "" || len(n) > 40 || len(b["desc"]) > 200 {
+			fail(w, 400, "Give your broadcast a name")
+			return
+		}
+		S.Channels = append(S.Channels, &Channel{ID: uid(), Name: n, Desc: b["desc"], Owner: u.ID, Subs: []string{u.ID}})
+		save()
+		js(w, map[string]bool{"ok": true})
+	})
+	api("channels", func(u *User, w http.ResponseWriter, r *http.Request) {
+		if id := r.URL.Query().Get("id"); id != "" {
+			c := fc(id)
+			if c == nil {
+				fail(w, 404, "Not found")
+				return
+			}
+			ps := []ChPost{}
+			for i := len(c.Posts) - 1; i >= 0; i-- {
+				ps = append(ps, c.Posts[i])
+			}
+			js(w, map[string]any{"Name": c.Name, "Desc": c.Desc, "Mine": c.Owner == u.ID, "Posts": ps})
+			return
+		}
+		out := []map[string]any{}
+		for _, c := range S.Channels {
+			l := ""
+			if n := len(c.Posts); n > 0 {
+				l = cut(c.Posts[n-1].Text)
+			}
+			out = append(out, map[string]any{"ID": c.ID, "Name": c.Name, "N": len(c.Subs), "Sub": has(c.Subs, u.ID), "Mine": c.Owner == u.ID, "Last": l})
+		}
+		js(w, out)
+	})
+	api("chsub", func(u *User, w http.ResponseWriter, r *http.Request) {
+		c := fc(in(r)["id"])
+		if c == nil || c.Owner == u.ID {
+			fail(w, 400, "Invalid broadcast")
+			return
+		}
+		if has(c.Subs, u.ID) {
+			c.Subs = del(c.Subs, u.ID)
+		} else {
+			c.Subs = append(c.Subs, u.ID)
+		}
+		save()
+		js(w, map[string]bool{"ok": true})
+	})
+	api("chpost", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		c, t := fc(b["id"]), strings.TrimSpace(b["text"])
+		if c == nil || c.Owner != u.ID || t == "" || len(t) > 500 {
+			fail(w, 400, "Only the owner can post an update")
+			return
+		}
+		c.Posts = append(c.Posts, ChPost{t, now()})
+		for _, s := range c.Subs {
+			note(s, u.ID, "msg", "")
+		}
+		save()
+		js(w, map[string]bool{"ok": true})
 	})
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
