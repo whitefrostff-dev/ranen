@@ -137,6 +137,30 @@ nav .pl2{flex:none;width:50px;height:34px;margin:6px 12px;border-radius:11px;bac
 .st{display:flex;gap:30px;text-align:center}.st b{display:block;font-size:18px}.bio{text-align:center;max-width:300px}
 .pt{display:flex;border-bottom:1px solid var(--line);margin-top:8px}.pt button{flex:1;background:none;border:0;padding:12px;color:var(--mut);border-bottom:2px solid transparent;display:grid;place-items:center}.pt button.on{color:var(--fg);border-color:var(--fg)}.pt svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
 .gr{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}.tl{position:relative;aspect-ratio:3/4;background:var(--card);border:0;padding:0;overflow:hidden}.tl img,.tl video{width:100%;height:100%;object-fit:cover;display:block}.tt{display:block;padding:8px;font-size:13px;text-align:left}.tp{position:absolute;left:6px;bottom:6px;color:#fff;font-size:12px;text-shadow:0 1px 3px #000}
+/* v2 black and white shine theme */
+:root{--bg:#fff;--fg:#0a0a0a;--mut:#6b6b74;--card:#f3f3f5;--line:#e3e3e8;--acc:#0a0a0a;--sh:linear-gradient(110deg,#ffd978,#fff 28%,#8fe3ff 52%,#e3a6ff 76%,#ffd978)}
+[data-t=dark]{--bg:#050505;--fg:#fafafa;--mut:#9b9ba4;--card:#121214;--line:#242428;--acc:#fff}
+@keyframes shine{to{background-position:200% 0}}
+.av{background:var(--sh);color:#000}
+.pri,nav .pl2,.sw input:checked+span,.atb .on,.rng{background:var(--sh) 0 0/200% 100%;animation:shine 6s linear infinite}
+.pri{color:#000}.pri.sec,#login .sec{background:none;animation:none;border:1.5px solid var(--line);color:var(--fg)}
+nav .pl2{color:#000;box-shadow:none}.m.me{background:var(--fg);color:var(--bg)}
+.fl{border-color:var(--fg);color:var(--fg)}.fl.on{background:var(--fg);color:var(--bg)}.bar button{color:var(--fg)}
+#tb b,.lg span{background:var(--sh) 0 0/200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent}
+#tb b{animation:shine 6s linear infinite}
+.post{margin:10px 12px;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--card)}
+.comp{border:1px solid var(--line)}nav{backdrop-filter:blur(12px)}
+.bm{opacity:.45}.bm.on{opacity:1}.pr{flex-wrap:wrap}
+#ann{padding:8px 14px;background:var(--sh);color:#000;font-weight:600;font-size:13px;text-align:center}#app.out #ann{display:none}
+.cov{height:130px;background:radial-gradient(circle at 20% 30%,#ffd97866,transparent 50%),radial-gradient(circle at 80% 60%,#8fe3ff55,transparent 55%),linear-gradient(135deg,#000,#2a2a30)}
+.pfc{margin:-48px 12px 0;position:relative;display:grid;gap:10px;justify-items:center;text-align:center}
+.rng{padding:3px;border-radius:50%}.rng .av{border:3px solid var(--bg)}
+.pfn h2{display:flex;justify-content:center;align-items:center}
+.pst{display:grid;grid-template-columns:repeat(4,1fr);width:100%;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px 0}.pst b{display:block;font-size:18px}.pst small{font-size:12px}
+.pt button{font-weight:700;font-size:13px}.gr{gap:6px;padding:8px}.tl{aspect-ratio:1;border-radius:14px}
+.atb{display:flex;gap:6px;overflow-x:auto;padding:8px 12px;scrollbar-width:none}.atb button{flex:none;border:1px solid var(--line);background:none;border-radius:16px;padding:6px 14px;font-weight:700}.atb .on{color:#000;border-color:transparent}
+.stg{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:12px}.stc{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}.stc b{display:block;font-size:26px}
+.sb textarea{width:100%;border:0;background:var(--card);color:var(--fg);padding:11px 16px;border-radius:16px;font:inherit;min-height:90px}
 </style>
 </head>
 <body>
@@ -161,7 +185,7 @@ nav .pl2{flex:none;width:50px;height:34px;margin:6px 12px;border-radius:11px;bac
 <script>
 const $=s=>document.querySelector(s),E=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const VB='<svg class="vb" aria-label="Verified"><use href="#vf"/></svg>';
-let T=null,ME,tab='feed',posts=[],cur,ppl=[],peer,poll,th='light',gid,mut=true,rf='y',SG={};
+let T=null,ME,tab='feed',posts=[],cur,ppl=[],peer,poll,th='dark',gid,mut=true,rf='y',SG={};
 try{T=localStorage.getItem('tk');th=localStorage.getItem('th')||th}catch(e){}
 document.documentElement.dataset.t=th;
 let CS={snd:1,pop:1,con:1};try{CS=Object.assign(CS,JSON.parse(localStorage.getItem('cs')||'{}'))}catch(e){}
@@ -484,6 +508,71 @@ $('#app').onclick=async e=>{
 };
 $('#ci').onkeydown=e=>{if(e.key=='Enter')document.querySelector('[data-a=pc]').click()};
 window.addEventListener('load',boot);
+</script>
+<script>
+/* v2 additions: saved posts, report, new profile, settings and admin panel (these replace the older versions above) */
+let adt='o',AD;const SV=()=>ME.Saved||[];
+function paint(){
+ posts.forEach(p=>{document.querySelectorAll(`.lk[data-i="${p.ID}"]`).forEach(b=>{b.classList.toggle('on',(p.Likes||[]).includes(ME.ID));b.querySelector('span').textContent=(p.Likes||[]).length||''});document.querySelectorAll(`.cm[data-i="${p.ID}"] span`).forEach(s=>s.textContent=p.C.length||'')});
+ document.querySelectorAll('.fl').forEach(b=>{const f=(ME.Following||[]).includes(b.dataset.i);b.textContent=f?'Following':'Follow';b.classList.toggle('on',f)});
+ document.querySelectorAll('.post footer').forEach(f=>{const l=f.querySelector('.lk');if(!l)return;const i=l.dataset.i;let b=f.querySelector('.bm');if(!b){f.insertAdjacentHTML('beforeend',`<button class="bm" data-a="bm" data-i="${i}" aria-label="Save">🔖</button><button data-a="spost" aria-label="Share">↪</button><button data-a="rpt" data-i="${i}" aria-label="Report">⚑</button>`);b=f.querySelector('.bm')}b.classList.toggle('on',SV().includes(i))})}
+function openDr(){
+ const r=(a,i,t,x)=>`<button class="sr" data-a="${a}"${x||''}><i>${i}</i>${t}<em>›</em></button>`,nv=(t,i,l)=>r('nv',i,l,` data-t="${t}"`);
+ $('#dr').innerHTML='<div class="dt"><button data-a="dc" aria-label="Close">←</button><span>Settings and privacy</span></div>'+
+ '<p class="sg">Account</p><div class="cd">'+r('ep','👤','Edit profile')+r('un','✏️','Change username')+nv('me','🪪','View my profile')+'</div>'+
+ '<p class="sg">Privacy</p><div class="cd"><div class="row" style="padding:12px 16px"><div>Active status<small>Let people see when you are online</small></div><label class="sw"><input type="checkbox" data-a="tg" data-k="act"'+(ME.Hide?'':' checked')+'><span></span></label></div>'+r('svd','🔖','Saved posts')+'</div>'+
+ '<p class="sg">Display and chat</p><div class="cd">'+r('th','🌓','Theme: '+(th=='dark'?'Dark':'Light'))+r('cset','🔔','Chat settings')+'</div>'+
+ '<p class="sg">Explore</p><div class="cd">'+nv('circles','👥','Circles')+r('gn','➕','Create group chat')+nv('bc','📢','Broadcasts')+nv('reels','🎬','Reels')+'</div>'+
+ '<p class="sg">Support and about</p><div class="cd">'+r('ab','ℹ️','About')+r('lt','📄','Terms and Conditions')+r('lp','🔒','Privacy Policy')+'</div>'+
+ (ME.Admin?'<p class="sg">Admin</p><div class="cd">'+r('adm','🛡️','Admin panel')+'</div>':'')+
+ '<p class="sg">Login</p><div class="cd">'+r('out','🚪','Log out')+r('dme','🗑️','Delete my account')+'</div>';
+ $('#app').classList.add('dro')}
+function pfDraw(){
+ const j=PF,u=j.U,me=j.IsMe,ps=j.Posts;
+ if(ptab=='s'&&me&&!j.S)A('saved').then(r=>{j.S=r;pfDraw()}).catch(e=>toast(e.message));
+ const L=ptab=='p'?ps:ptab=='m'?ps.filter(p=>p.Media&&p.Kind!='video'):ptab=='r'?ps.filter(p=>p.Kind=='video'):(j.S||[]);
+ posts=[...ps,...(j.S||[])];
+ const tb=(v,t)=>`<button class="${ptab==v?'on':''}" data-a="pt" data-v="${v}">${t}</button>`;
+ const tile=p=>`<button class="tl" data-a="pv" data-i="${p.ID}">${p.Kind=='video'?`<video src="${E(p.Media)}#t=0.1" muted playsinline preload="metadata"></video><span class="tp">▶</span>`:`<img src="${E(p.Media)}" loading="lazy" alt="">`}</button>`;
+ $('#main').innerHTML=`<div class="cov"></div><div class="pfc"><span class="rng avw"><b class="av big">${E(u.Username[0])}</b>${u.On?'<i class="od big"></i>':''}</span><div class="pfn"><h2>${E(j.Name||u.Username)}${u.Verified?VB:''}</h2><small>@${E(u.Username)}${me?'':stat(u)?' · '+stat(u):''}</small></div>`+
+ (j.Bio?`<p class="bio">${E(j.Bio)}</p>`:me?'<button class="lnk" data-a="ep">Add a bio</button>':'')+
+ `<div class="act">${me?'<button class="ed" data-a="ep">Edit profile</button>':`<button class="fl" data-a="fol" data-i="${u.ID}"></button><button class="ed" data-a="dm" data-i="${u.ID}">Message</button>`}<button class="ed" data-a="psh">Share</button></div>`+
+ `<div class="pst"><div><b>${ps.length}</b><small>Posts</small></div><div><b>${j.Followers}</b><small>Followers</small></div><div><b>${j.Following}</b><small>Following</small></div><div><b>${j.Likes}</b><small>Likes</small></div></div></div>`+
+ `<div class="pt">${tb('p','Posts')}${tb('m','Photos')}${tb('r','Reels')}${me?tb('s','Saved'):''}</div>`+
+ (L.length?(ptab=='p'||ptab=='s'?L.map(postH).join(''):'<div class="gr">'+L.map(tile).join('')+'</div>'):'<p class="empty">Nothing here yet.</p>');
+ paint()}
+function editP(){modal(`<h3>Edit profile</h3><input id="enm" maxlength="60" placeholder="Display name" value="${E(ME.Name||'')}"><textarea id="bio" maxlength="120" placeholder="Write a short bio">${E(ME.Bio||'')}</textarea><p class="er" id="er"></p><button class="pri" id="sbio">Save</button><button class="lnk" data-a="un">Change username</button>`);
+ $('#sbio').onclick=async()=>{try{ME=await A('bio',{bio:$('#bio').value,name:$('#enm').value});closeM();go('me')}catch(e){$('#er').textContent=e.message}}}
+async function admin(keep){
+ clearInterval(poll);if(!keep||!AD)AD=await A('admin');const j=AD,q=(($('#aq')||{}).value||'').toLowerCase();
+ const t=(k,l)=>`<button class="${adt==k?'on':''}" data-a="adt" data-v="${k}">${l}</button>`,sn=p=>E((p.Text||'').slice(0,80))||(p.Kind=='video'?'🎬 video':'🖼 photo');let h='';
+ if(adt=='o')h='<div class="stg">'+[['Users',j.Users],['Online now',j.Online],['Verified',j.Verified],['Banned',j.Banned],['Posts',j.Posts],['Reels',j.Reels],['Messages',j.Msgs],['Circles',j.Groups],['Broadcasts',j.Channels],['Moments',j.Moments]].map(x=>`<div class="stc"><b>${x[1]}</b><small>${x[0]}</small></div>`).join('')+'</div>';
+ else if(adt=='u')h='<div class="sb"><input id="aq" placeholder="Search users or emails" value="'+E(q)+'" autocomplete="off"></div>'+j.L.filter(u=>!q||(u.Username||'').includes(q)||(u.Email||'').toLowerCase().includes(q)).map(u=>`<div class="pr"><b class="av">${E((u.Username||'?')[0])}</b><div class="nm">${nm(u)}${u.Admin?' <small>admin</small>':''}${u.Banned?' <small>banned</small>':''}<br><small>${E(u.Email)}</small></div><button data-a="ver" data-i="${u.ID}">${u.Verified?'Unverify':'Verify'}</button><button data-a="ban" data-i="${u.ID}">${u.Banned?'Unban':'Ban'}</button><button data-a="arole" data-i="${u.ID}">${u.Admin?'Demote':'Admin'}</button><button data-a="udel" data-i="${u.ID}">Delete</button></div>`).join('');
+ else if(adt=='c')h=j.PL.map(p=>`<div class="pr"><div class="nm">${nm(p.U)}<br><small>${sn(p)} · ${ago(p.TS)}</small></div><button data-a="pdel" data-i="${p.ID}">Delete</button></div>`).join('');
+ else if(adt=='r')h=j.R.map(x=>`<div class="pr"><div class="nm">${nm(x.By)} reported ${x.P?nm(x.P.U)+': '+sn(x.P):'a deleted post'}<br><small>${E(x.Reason||'No reason')} · ${ago(x.TS)}</small></div><button data-a="rdis" data-i="${x.ID}">Dismiss</button>${x.P?`<button data-a="pdel" data-i="${x.P.ID}">Delete post</button>`:''}</div>`).join('');
+ else h=`<div class="sb"><textarea id="an" maxlength="200" placeholder="Announcement for everyone">${E(j.Notice)}</textarea><button class="pri" style="width:100%;margin-top:8px" data-a="ann">Publish notice</button><small>Shown as a banner to all users. Leave empty to remove it.</small></div>`;
+ $('#main').innerHTML='<div class="ch2"><b>Admin panel</b></div><div class="atb">'+t('o','Overview')+t('u','Users')+t('c','Content')+t('r','Reports'+(j.R.length?' ('+j.R.length+')':''))+t('n','Notice')+'</div>'+(h||'<p class="empty">Nothing here.</p>');
+ const a=$('#aq');if(a&&keep){a.focus();a.setSelectionRange(a.value.length,a.value.length)}}
+const shr=(x)=>{const d={title:'Amlink',text:x,url:location.origin};navigator.share?navigator.share(d).catch(()=>{}):(navigator.clipboard&&navigator.clipboard.writeText(d.url),toast('Link copied'))};
+$('#app').addEventListener('click',async e=>{
+ const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,i=b.dataset.i;
+ try{
+  if(a=='bm'){ME=await A('save',{id:i});paint();toast(SV().includes(i)?'Saved':'Removed from saved')}
+  else if(a=='rpt'){const r=prompt('Why are you reporting this post?');if(r!==null){await A('report',{id:i,reason:r});toast('Thanks, we will review it')}}
+  else if(a=='spost')shr('Check this out on Amlink');
+  else if(a=='psh')shr('@'+PF.U.Username+' on Amlink');
+  else if(a=='svd'){await go('me');ptab='s';pfDraw()}
+  else if(a=='dme'){if(confirm('Delete your account and all your data? This cannot be undone.')){await A('delme',{});out()}}
+  else if(a=='adt'){adt=b.dataset.v;admin()}
+  else if(a=='arole'){await A('adminrole',{id:i});admin()}
+  else if(a=='udel'){if(confirm('Delete this user and all their posts?')){await A('deluser',{id:i});admin()}}
+  else if(a=='pdel'){if(confirm('Delete this post?')){await A('delpost',{id:i});admin()}}
+  else if(a=='rdis'){await A('repclr',{id:i});admin()}
+  else if(a=='ann'){await A('notice',{text:$('#an').value});toast('Notice updated');nt()}
+ }catch(x){toast(x.message)}});
+document.addEventListener('input',e=>{if(e.target.id=='aq')admin(1)});
+async function nt(){if(!T)return;try{const c=await A('config');let b=$('#ann');if(!c.Notice){if(b)b.remove();return}if(!b){b=document.createElement('div');b.id='ann';$('#app').insertBefore(b,$('#main'))}b.textContent='📢 '+c.Notice}catch(e){}}
+setTimeout(nt,2500);setInterval(nt,60000);
 </script>
 </body>
 </html>
