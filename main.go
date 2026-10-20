@@ -6,10 +6,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -35,6 +37,8 @@ type Comment struct {
 	Likes      []string
 }
 type Post struct {
+	More []string
+	Poll *Poll
 	ID, User, Text, Media, Kind string
 	TS                          int64
 	Likes                       []string
@@ -73,6 +77,7 @@ type Report struct {
 	TS                   int64
 }
 type State struct {
+	X Extra
 	Users    map[string]*User
 	Posts    []*Post
 	Msgs     []Msg
@@ -238,7 +243,11 @@ func note(to, from, typ, post string) {
 	if to == "" || to == from {
 		return
 	}
+	if has(x().Mute[to], from) {
+		return
+	}
 	S.Notifs = append(S.Notifs, Notif{to, from, typ, post, now(), false})
+	push(to, typ)
 	if len(S.Notifs) > 2000 {
 		S.Notifs = S.Notifs[1000:]
 	}
@@ -252,14 +261,14 @@ func uv(id string) map[string]any {
 	if u.Hide {
 		seen = 0
 	}
-	return map[string]any{"ID": u.ID, "Username": u.Username, "Verified": u.Verified, "On": now()-u.Seen < 120 && !u.Hide, "Seen": seen, "Av": u.Avatar}
+	return map[string]any{"ID": u.ID, "Username": u.Username, "Verified": u.Verified, "On": now()-u.Seen < 120 && !u.Hide, "Seen": seen, "Av": u.Avatar, "Priv": x().Priv[u.ID], "Pin": x().Pin[u.ID]}
 }
 func pv(p *Post) map[string]any {
 	cs := []map[string]any{}
 	for _, c := range p.Comments {
 		cs = append(cs, map[string]any{"U": uv(c.User), "Text": c.Text, "TS": c.TS, "Likes": c.Likes})
 	}
-	return map[string]any{"ID": p.ID, "U": uv(p.User), "Text": p.Text, "Media": p.Media, "Kind": p.Kind, "TS": p.TS, "Likes": p.Likes, "C": cs}
+	return map[string]any{"ID": p.ID, "U": uv(p.User), "Text": p.Text, "Media": p.Media, "Kind": p.Kind, "TS": p.TS, "Likes": p.Likes, "C": cs, "More": p.More, "Poll": p.Poll}
 }
 func fp(id string) *Post {
 	for _, p := range S.Posts {
@@ -351,6 +360,7 @@ func main() {
 		admin = "whitefrostff@gmail.com"
 	}
 	ok := map[string]bool{"ok": true}
+	extra(ok)
 
 	// removes a user and everything that points at them
 	purge := func(id string) {
@@ -520,7 +530,7 @@ func main() {
 			n = 60
 		}
 		for i := len(S.Posts) - 1; i >= 0 && len(out) < n; i-- {
-			if o := S.Users[S.Posts[i].User]; o != nil && blk(u, o) {
+			if o := S.Users[S.Posts[i].User]; o != nil && (blk(u, o) || priv(u, o)) {
 				continue
 			}
 			out = append(out, pv(S.Posts[i]))
@@ -594,7 +604,7 @@ func main() {
 		js(w, pv(p))
 	})
 
-	api("follow", func(u *User, w http.ResponseWriter, r *http.Request) {
+	_ = (func(u *User, w http.ResponseWriter, r *http.Request) {
 		id := in(r)["id"]
 		if id == u.ID || S.Users[id] == nil {
 			fail(w, 400, "Invalid user")
@@ -902,7 +912,7 @@ func main() {
 			}
 		}
 		for i := len(S.Posts) - 1; i >= 0; i-- {
-			if p := S.Posts[i]; p.User == id {
+			if p := S.Posts[i]; p.User == id && !priv(u, o) {
 				lk += len(p.Likes)
 				if len(ps) < 60 {
 					ps = append(ps, pv(p))
@@ -1102,6 +1112,9 @@ func main() {
 
 		api("onep", func(u *User, w http.ResponseWriter, r *http.Request) {
 		p := fp(r.URL.Query().Get("id"))
+		if p != nil && priv(u, S.Users[p.User]) {
+			p = nil
+		}
 		if p == nil {
 			fail(w, 404, "Post not found")
 			return
@@ -1140,7 +1153,7 @@ func main() {
 		out := []map[string]any{}
 		for i := len(S.Posts) - 1; i >= 0 && len(out) < 40; i-- {
 			p := S.Posts[i]
-			if o := S.Users[p.User]; o != nil && blk(u, o) {
+			if o := S.Users[p.User]; o != nil && (blk(u, o) || priv(u, o)) {
 				continue
 			}
 			if q == "" || strings.Contains(strings.ToLower(p.Text), q) {
@@ -1240,6 +1253,9 @@ func main() {
 			http.ServeFile(w, r, p[1:])
 			return
 		}
+		if xstatic(w, r) {
+			return
+		}
 		if p != "/" {
 			http.NotFound(w, r)
 			return
@@ -1252,4 +1268,658 @@ func main() {
 		port = "8080"
 	}
 	http.ListenAndServe(":"+port, nil)
+}
+
+// ---------- v4 additions ----------
+
+type Poll struct {
+	Opts  []string
+	Votes map[string]int
+}
+type URep struct {
+	ID, Kind, Target, Post, By, Reason, Text string
+	Idx                                      int
+	TS                                       int64
+}
+type Extra struct {
+	Priv   map[string]bool
+	Req    map[string][]string
+	Pin    map[string]string
+	Mute   map[string][]string
+	GAdm   map[string][]string
+	MView  map[string][]string
+	MReact map[string]map[string]string
+	URep   []*URep
+}
+
+var hub = map[string][]chan string{}
+var atRe = regexp.MustCompile(`@(\w{3,20})`)
+var tagRe = regexp.MustCompile(`#\w+`)
+
+func x() *Extra {
+	e := &S.X
+	if e.Priv == nil {
+		e.Priv = map[string]bool{}
+	}
+	if e.Req == nil {
+		e.Req = map[string][]string{}
+	}
+	if e.Pin == nil {
+		e.Pin = map[string]string{}
+	}
+	if e.Mute == nil {
+		e.Mute = map[string][]string{}
+	}
+	if e.GAdm == nil {
+		e.GAdm = map[string][]string{}
+	}
+	if e.MView == nil {
+		e.MView = map[string][]string{}
+	}
+	if e.MReact == nil {
+		e.MReact = map[string]map[string]string{}
+	}
+	return e
+}
+func push(to, ev string) {
+	for _, c := range hub[to] {
+		select {
+		case c <- ev:
+		default:
+		}
+	}
+}
+func priv(v, o *User) bool {
+	return o != nil && v.ID != o.ID && x().Priv[o.ID] && !has(v.Following, o.ID)
+}
+var xfiles = map[string][2]string{
+	"/sw.js":         {"text/javascript", `const C='amlink-v4';
+self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(C).then(c=>c.add('/')).catch(()=>{}))});
+self.addEventListener('activate',e=>e.waitUntil(clients.claim()));
+self.addEventListener('fetch',e=>{if(e.request.mode=='navigate')e.respondWith(fetch(e.request).catch(()=>caches.match('/')))});
+self.addEventListener('push',e=>{const d=e.data?e.data.json():{};e.waitUntil(self.registration.showNotification(d.title||'Amlink',{body:d.body||'',icon:'/icon.svg'}))});
+self.addEventListener('notificationclick',e=>{e.notification.close();e.waitUntil(clients.openWindow('/'))});
+`},
+	"/manifest.json": {"application/manifest+json", `{"name":"Amlink","short_name":"Amlink","start_url":"/","scope":"/","display":"standalone","background_color":"#000000","theme_color":"#000000","icons":[{"src":"/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}`},
+	"/icon.svg":      {"image/svg+xml", `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd978"/><stop offset=".35" stop-color="#8fe3ff"/><stop offset=".7" stop-color="#e3a6ff"/><stop offset="1" stop-color="#ffd978"/></linearGradient></defs><rect width="512" height="512" fill="#000"/><text x="256" y="350" font-family="Arial,sans-serif" font-size="300" font-weight="700" text-anchor="middle" fill="url(#g)">A</text></svg>`},
+}
+
+func xstatic(w http.ResponseWriter, r *http.Request) bool {
+	f, k := xfiles[r.URL.Path]
+	if !k {
+		return false
+	}
+	w.Header().Set("Content-Type", f[0])
+	w.Write([]byte(f[1]))
+	return true
+}
+func mentions(u *User, text, post string) {
+	seen := map[string]bool{}
+	for _, m := range atRe.FindAllStringSubmatch(strings.ToLower(text), 8) {
+		for _, o := range S.Users {
+			if o.Username == m[1] && !seen[o.ID] && !blk(u, o) {
+				seen[o.ID] = true
+				note(o.ID, u.ID, "mention", post)
+			}
+		}
+	}
+}
+func fst(id string) *Status {
+	for _, s := range S.Statuses {
+		if s.ID == id {
+			return s
+		}
+	}
+	return nil
+}
+
+func extra(ok map[string]bool) {
+	// ---- posts: polls, multiple photos, mentions ----
+	api("post2", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		t := strings.TrimSpace(b["text"])
+		var media []string
+		for _, m := range strings.Split(b["media"], ",") {
+			if m != "" {
+				if !okMedia(m) {
+					fail(w, 400, "Invalid post")
+					return
+				}
+				media = append(media, m)
+			}
+		}
+		var pl *Poll
+		if b["poll"] != "" {
+			var o []string
+			for _, s := range strings.Split(b["poll"], "|") {
+				if s = strings.TrimSpace(s); s != "" && len(s) <= 40 {
+					o = append(o, s)
+				}
+			}
+			if len(o) < 2 || len(o) > 4 {
+				fail(w, 400, "A poll needs 2 to 4 options")
+				return
+			}
+			pl = &Poll{o, map[string]int{}}
+		}
+		if (t == "" && len(media) == 0 && pl == nil) || len(t) > 2000 || len(media) > 10 {
+			fail(w, 400, "Invalid post")
+			return
+		}
+		k := b["kind"]
+		if k != "image" && k != "video" {
+			k = ""
+		}
+		p := &Post{ID: uid(), User: u.ID, Text: t, Kind: k, TS: now(), Likes: []string{}, Poll: pl}
+		if len(media) > 0 {
+			p.Media, p.More = media[0], media[1:]
+		}
+		S.Posts = append(S.Posts, p)
+		mentions(u, t, p.ID)
+		save()
+		js(w, ok)
+	})
+	api("vote", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		p := fp(b["id"])
+		i, e := strconv.Atoi(b["i"])
+		if p == nil || p.Poll == nil || e != nil || i < 0 || i >= len(p.Poll.Opts) {
+			fail(w, 400, "Invalid vote")
+			return
+		}
+		if p.Poll.Votes == nil {
+			p.Poll.Votes = map[string]int{}
+		}
+		if _, v := p.Poll.Votes[u.ID]; !v {
+			p.Poll.Votes[u.ID] = i
+			save()
+		}
+		js(w, pv(p))
+	})
+	api("comment2", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		p, t := fp(b["id"]), strings.TrimSpace(b["text"])
+		if p == nil || t == "" || len(t) > 300 || priv(u, S.Users[p.User]) {
+			fail(w, 400, "Invalid comment")
+			return
+		}
+		p.Comments = append(p.Comments, Comment{User: u.ID, Text: t, TS: now()})
+		note(p.User, u.ID, "comment", p.ID)
+		mentions(u, t, p.ID)
+		save()
+		js(w, pv(p))
+	})
+	api("byname", func(u *User, w http.ResponseWriter, r *http.Request) {
+		n := strings.ToLower(in(r)["u"])
+		for _, o := range S.Users {
+			if o.Username == n && n != "" {
+				js(w, map[string]string{"id": o.ID})
+				return
+			}
+		}
+		fail(w, 404, "User not found")
+	})
+
+	// ---- notifications that know who/what to open ----
+	api("notifs2", func(u *User, w http.ResponseWriter, r *http.Request) {
+		out := []map[string]any{}
+		for i := len(S.Notifs) - 1; i >= 0 && len(out) < 40; i-- {
+			n := &S.Notifs[i]
+			if n.To != u.ID {
+				continue
+			}
+			out = append(out, map[string]any{"U": uv(n.From), "Type": n.Type, "Post": n.Post, "TS": n.TS, "New": !n.Seen})
+			n.Seen = true
+		}
+		save()
+		js(w, out)
+	})
+	api("nclear", func(u *User, w http.ResponseWriter, r *http.Request) {
+		keep := S.Notifs[:0]
+		for _, n := range S.Notifs {
+			if n.To != u.ID {
+				keep = append(keep, n)
+			}
+		}
+		S.Notifs = keep
+		save()
+		js(w, ok)
+	})
+
+	// ---- real-time: server-sent events + typing ----
+	http.HandleFunc("/api/stream", func(w http.ResponseWriter, r *http.Request) {
+		fl, can := w.(http.Flusher)
+		mu.Lock()
+		id := S.Sess[r.URL.Query().Get("t")]
+		mu.Unlock()
+		if id == "" || !can {
+			http.Error(w, "no", 401)
+			return
+		}
+		ch := make(chan string, 16)
+		mu.Lock()
+		hub[id] = append(hub[id], ch)
+		mu.Unlock()
+		defer func() {
+			mu.Lock()
+			l := hub[id]
+			for i, c := range l {
+				if c == ch {
+					hub[id] = append(l[:i:i], l[i+1:]...)
+					break
+				}
+			}
+			mu.Unlock()
+		}()
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("X-Accel-Buffering", "no")
+		fmt.Fprint(w, ": hi\n\n")
+		fl.Flush()
+		tk := time.NewTicker(25 * time.Second)
+		defer tk.Stop()
+		for {
+			select {
+			case m := <-ch:
+				fmt.Fprintf(w, "data: %s\n\n", m)
+				fl.Flush()
+			case <-tk.C:
+				mu.Lock()
+				if o := S.Users[id]; o != nil {
+					o.Seen = now()
+				}
+				mu.Unlock()
+				fmt.Fprint(w, ": p\n\n")
+				fl.Flush()
+			case <-r.Context().Done():
+				return
+			}
+		}
+	})
+	api("typing", func(u *User, w http.ResponseWriter, r *http.Request) {
+		if o := S.Users[in(r)["to"]]; o != nil && !blk(u, o) {
+			push(o.ID, "typing:"+u.ID)
+		}
+		js(w, ok)
+	})
+	api("unsend", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		ts, _ := strconv.ParseInt(b["ts"], 10, 64)
+		for i, m := range S.Msgs {
+			if m.From == u.ID && m.To == b["to"] && m.TS == ts {
+				S.Msgs = append(S.Msgs[:i], S.Msgs[i+1:]...)
+				break
+			}
+		}
+		save()
+		js(w, ok)
+	})
+
+	// ---- moments: views, reactions, replies ----
+	api("mview", func(u *User, w http.ResponseWriter, r *http.Request) {
+		id := in(r)["id"]
+		if s := fst(id); s != nil && s.User != u.ID && !has(x().MView[id], u.ID) {
+			x().MView[id] = append(x().MView[id], u.ID)
+			save()
+		}
+		js(w, ok)
+	})
+	api("mreact", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		s := fst(b["id"])
+		if s == nil || s.User == u.ID || !strings.Contains("❤️😂😮😢🔥👏", b["e"]) || b["e"] == "" {
+			fail(w, 400, "Invalid reaction")
+			return
+		}
+		if x().MReact[s.ID] == nil {
+			x().MReact[s.ID] = map[string]string{}
+		}
+		x().MReact[s.ID][u.ID] = b["e"]
+		note(s.User, u.ID, "mreact", "")
+		save()
+		js(w, ok)
+	})
+	api("mreply", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		s, t := fst(b["id"]), strings.TrimSpace(b["text"])
+		if s == nil || t == "" || len(t) > 500 || blk(u, S.Users[s.User]) {
+			fail(w, 400, "Invalid reply")
+			return
+		}
+		S.Msgs = append(S.Msgs, Msg{From: u.ID, To: s.User, Text: "↩ Moment reply: " + t, TS: now()})
+		note(s.User, u.ID, "msg", "")
+		save()
+		js(w, ok)
+	})
+	api("mstats", func(u *User, w http.ResponseWriter, r *http.Request) {
+		s := fst(in(r)["id"])
+		if s == nil || s.User != u.ID {
+			fail(w, 403, "Not allowed")
+			return
+		}
+		v, rc := []map[string]any{}, []map[string]any{}
+		for _, id := range x().MView[s.ID] {
+			v = append(v, uv(id))
+		}
+		for id, e := range x().MReact[s.ID] {
+			rc = append(rc, map[string]any{"U": uv(id), "E": e})
+		}
+		js(w, map[string]any{"V": v, "R": rc})
+	})
+
+	// ---- circle management ----
+	api("ginfo", func(u *User, w http.ResponseWriter, r *http.Request) {
+		g := fg(r.URL.Query().Get("g"))
+		if g == nil || !has(g.Members, u.ID) {
+			fail(w, 403, "Not in this circle")
+			return
+		}
+		m := []map[string]any{}
+		for _, id := range g.Members {
+			role := "member"
+			if id == g.Owner {
+				role = "owner"
+			} else if has(x().GAdm[g.ID], id) {
+				role = "admin"
+			}
+			m = append(m, map[string]any{"U": uv(id), "Role": role})
+		}
+		js(w, map[string]any{"Name": g.Name, "Owner": u.ID == g.Owner, "CanEdit": u.ID == g.Owner || has(x().GAdm[g.ID], u.ID), "M": m})
+	})
+	api("gmanage", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		g := fg(b["g"])
+		if g == nil || !has(g.Members, u.ID) {
+			fail(w, 403, "Not in this circle")
+			return
+		}
+		e, id := x(), b["id"]
+		adm := u.ID == g.Owner || has(e.GAdm[g.ID], u.ID)
+		switch b["op"] {
+		case "rename":
+			n := strings.TrimSpace(b["name"])
+			if !adm || n == "" || len(n) > 40 {
+				fail(w, 403, "Not allowed")
+				return
+			}
+			g.Name = n
+		case "add":
+			o := S.Users[id]
+			if !adm || o == nil || has(g.Members, id) || blk(u, o) {
+				fail(w, 403, "Not allowed")
+				return
+			}
+			g.Members = append(g.Members, id)
+			note(id, u.ID, "msg", "")
+		case "remove":
+			if !adm || id == g.Owner || id == u.ID || (has(e.GAdm[g.ID], id) && u.ID != g.Owner) {
+				fail(w, 403, "Not allowed")
+				return
+			}
+			g.Members = del(g.Members, id)
+			e.GAdm[g.ID] = del(e.GAdm[g.ID], id)
+		case "admin":
+			if u.ID != g.Owner || id == u.ID || !has(g.Members, id) {
+				fail(w, 403, "Not allowed")
+				return
+			}
+			if has(e.GAdm[g.ID], id) {
+				e.GAdm[g.ID] = del(e.GAdm[g.ID], id)
+			} else {
+				e.GAdm[g.ID] = append(e.GAdm[g.ID], id)
+			}
+		case "leave":
+			g.Members = del(g.Members, u.ID)
+			e.GAdm[g.ID] = del(e.GAdm[g.ID], u.ID)
+			if len(g.Members) == 0 {
+				keep := S.Groups[:0]
+				for _, h := range S.Groups {
+					if h != g {
+						keep = append(keep, h)
+					}
+				}
+				S.Groups = keep
+			} else if g.Owner == u.ID {
+				g.Owner = g.Members[0]
+			}
+		default:
+			fail(w, 400, "Unknown action")
+			return
+		}
+		save()
+		js(w, ok)
+	})
+
+	// ---- private accounts and follow requests ----
+	api("follow2", func(u *User, w http.ResponseWriter, r *http.Request) {
+		id := in(r)["id"]
+		o, e := S.Users[id], x()
+		if o == nil || id == u.ID || blk(u, o) {
+			fail(w, 400, "Invalid user")
+			return
+		}
+		if has(u.Following, id) {
+			u.Following = del(u.Following, id)
+		} else if has(e.Req[id], u.ID) {
+			e.Req[id] = del(e.Req[id], u.ID)
+		} else if e.Priv[id] {
+			e.Req[id] = append(e.Req[id], u.ID)
+			note(id, u.ID, "freq", "")
+		} else {
+			u.Following = append(u.Following, id)
+			note(id, u.ID, "follow", "")
+		}
+		save()
+		js(w, u)
+	})
+	api("xme", func(u *User, w http.ResponseWriter, r *http.Request) {
+		e := x()
+		req, sent := []map[string]any{}, []string{}
+		for _, id := range e.Req[u.ID] {
+			req = append(req, uv(id))
+		}
+		for t, l := range e.Req {
+			if has(l, u.ID) {
+				sent = append(sent, t)
+			}
+		}
+		js(w, map[string]any{"Priv": e.Priv[u.ID], "Req": req, "Sent": sent, "Muted": e.Mute[u.ID]})
+	})
+	api("setpriv", func(u *User, w http.ResponseWriter, r *http.Request) {
+		e := x()
+		e.Priv[u.ID] = !e.Priv[u.ID]
+		if !e.Priv[u.ID] {
+			for _, id := range e.Req[u.ID] {
+				if o := S.Users[id]; o != nil && !has(o.Following, u.ID) {
+					o.Following = append(o.Following, u.ID)
+				}
+			}
+			delete(e.Req, u.ID)
+		}
+		save()
+		js(w, map[string]bool{"Priv": e.Priv[u.ID]})
+	})
+	api("reqact", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		e, id := x(), b["id"]
+		if !has(e.Req[u.ID], id) {
+			fail(w, 404, "No such request")
+			return
+		}
+		e.Req[u.ID] = del(e.Req[u.ID], id)
+		if o := S.Users[id]; o != nil && b["v"] == "1" && !has(o.Following, u.ID) {
+			o.Following = append(o.Following, u.ID)
+			note(id, u.ID, "facc", "")
+		}
+		save()
+		js(w, ok)
+	})
+
+	// ---- reporting users and comments ----
+	api("report2", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		k, why := b["kind"], strings.TrimSpace(b["reason"])
+		if len(why) > 200 {
+			why = why[:200]
+		}
+		rp := &URep{ID: uid(), Kind: k, By: u.ID, Reason: why, TS: now()}
+		if k == "user" {
+			if S.Users[b["id"]] == nil || b["id"] == u.ID {
+				fail(w, 400, "Invalid report")
+				return
+			}
+			rp.Target = b["id"]
+		} else if k == "comment" {
+			p := fp(b["id"])
+			i, e := strconv.Atoi(b["i"])
+			if p == nil || e != nil || i < 0 || i >= len(p.Comments) || p.Comments[i].User == u.ID {
+				fail(w, 400, "Invalid report")
+				return
+			}
+			c := []rune(p.Comments[i].Text)
+			if len(c) > 100 {
+				c = c[:100]
+			}
+			rp.Target, rp.Post, rp.Idx, rp.Text = p.Comments[i].User, p.ID, i, string(c)
+		} else {
+			fail(w, 400, "Invalid report")
+			return
+		}
+		for _, o := range x().URep {
+			if o.By == u.ID && o.Kind == k && o.Target == rp.Target && o.Post == rp.Post && o.Idx == rp.Idx {
+				js(w, ok)
+				return
+			}
+		}
+		x().URep = append(x().URep, rp)
+		save()
+		js(w, ok)
+	})
+	api("ureports", func(u *User, w http.ResponseWriter, r *http.Request) {
+		if !u.Admin {
+			fail(w, 403, "Admins only")
+			return
+		}
+		out := []map[string]any{}
+		for _, o := range x().URep {
+			out = append(out, map[string]any{"ID": o.ID, "Kind": o.Kind, "By": uv(o.By), "To": uv(o.Target), "Text": o.Text, "Reason": o.Reason, "TS": o.TS})
+		}
+		js(w, out)
+	})
+	api("ucact", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		if !u.Admin {
+			fail(w, 403, "Admins only")
+			return
+		}
+		keep := []*URep{}
+		for _, o := range x().URep {
+			if o.ID != b["id"] {
+				keep = append(keep, o)
+				continue
+			}
+			switch b["op"] {
+			case "ban":
+				if t := S.Users[o.Target]; t != nil && !t.Admin {
+					t.Banned = true
+					alog(u, "banned @"+t.Username+" from a report")
+				}
+			case "delc":
+				if p := fp(o.Post); p != nil && o.Idx < len(p.Comments) && p.Comments[o.Idx].Text != "" && strings.HasPrefix(p.Comments[o.Idx].Text, o.Text) {
+					p.Comments = append(p.Comments[:o.Idx], p.Comments[o.Idx+1:]...)
+				}
+			}
+		}
+		S.X.URep = keep
+		save()
+		js(w, ok)
+	})
+
+	// ---- discovery, pin, mute ----
+	api("discover", func(u *User, w http.ResponseWriter, r *http.Request) {
+		cnt := map[string]int{}
+		for _, o := range S.Users {
+			for _, f := range o.Following {
+				cnt[f]++
+			}
+		}
+		type sc struct {
+			id string
+			s  int
+		}
+		l := []sc{}
+		for _, o := range S.Users {
+			if o.ID == u.ID || o.Username == "" || o.Banned || has(u.Following, o.ID) || blk(u, o) {
+				continue
+			}
+			s := cnt[o.ID]
+			for _, f := range u.Following {
+				if fo := S.Users[f]; fo != nil && has(fo.Following, o.ID) {
+					s += 5
+				}
+			}
+			l = append(l, sc{o.ID, s})
+		}
+		sort.Slice(l, func(a, b int) bool { return l[a].s > l[b].s })
+		ppl := []map[string]any{}
+		for i := 0; i < len(l) && i < 8; i++ {
+			ppl = append(ppl, uv(l[i].id))
+		}
+		tags, cut7 := map[string]int{}, now()-7*86400
+		for _, p := range S.Posts {
+			if p.TS < cut7 || x().Priv[p.User] {
+				continue
+			}
+			seen := map[string]bool{}
+			for _, t := range tagRe.FindAllString(strings.ToLower(p.Text), -1) {
+				if !seen[t] {
+					seen[t] = true
+					tags[t]++
+				}
+			}
+		}
+		type tc struct {
+			T string
+			N int
+		}
+		tl := []tc{}
+		for t, n := range tags {
+			tl = append(tl, tc{t, n})
+		}
+		sort.Slice(tl, func(a, b int) bool { return tl[a].N > tl[b].N || (tl[a].N == tl[b].N && tl[a].T < tl[b].T) })
+		if len(tl) > 8 {
+			tl = tl[:8]
+		}
+		js(w, map[string]any{"People": ppl, "Tags": tl})
+	})
+	api("pin", func(u *User, w http.ResponseWriter, r *http.Request) {
+		id := in(r)["id"]
+		p := fp(id)
+		if p == nil || p.User != u.ID {
+			fail(w, 400, "Cannot pin this post")
+			return
+		}
+		if x().Pin[u.ID] == id {
+			delete(x().Pin, u.ID)
+		} else {
+			x().Pin[u.ID] = id
+		}
+		save()
+		js(w, map[string]string{"Pin": x().Pin[u.ID]})
+	})
+	api("mute", func(u *User, w http.ResponseWriter, r *http.Request) {
+		id, e := in(r)["id"], x()
+		if id == u.ID || S.Users[id] == nil {
+			fail(w, 400, "Invalid user")
+			return
+		}
+		m := !has(e.Mute[u.ID], id)
+		if m {
+			e.Mute[u.ID] = append(e.Mute[u.ID], id)
+		} else {
+			e.Mute[u.ID] = del(e.Mute[u.ID], id)
+		}
+		save()
+		js(w, map[string]bool{"Muted": m})
+	})
 }
