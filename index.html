@@ -161,6 +161,7 @@ nav .pl2{color:#000;box-shadow:none}.m.me{background:var(--fg);color:var(--bg)}
 .atb{display:flex;gap:6px;overflow-x:auto;padding:8px 12px;scrollbar-width:none}.atb button{flex:none;border:1px solid var(--line);background:none;border-radius:16px;padding:6px 14px;font-weight:700}.atb .on{color:#000;border-color:transparent}
 .stg{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:12px}.stc{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}.stc b{display:block;font-size:26px}
 .sb textarea{width:100%;border:0;background:var(--card);color:var(--fg);padding:11px 16px;border-radius:16px;font:inherit;min-height:90px}
+.ht{font-weight:700;text-decoration:underline dotted;cursor:pointer}.bd{background:#f02849;color:#fff;border-radius:10px;font-size:11px;padding:1px 7px;font-weight:700}.pst>div{cursor:pointer}
 </style>
 </head>
 <body>
@@ -233,7 +234,7 @@ function openDr(){
 
 const mediaH=p=>p.Media?(p.Kind=='video'?`<video src="${E(p.Media)}" controls playsinline preload="metadata"></video>`:`<img src="${E(p.Media)}" loading="lazy" alt="">`):'';
 const folB=u=>u.ID==ME.ID?'':`<button class="fl" data-a="fol" data-i="${u.ID}"></button>`;
-const postH=p=>`<article class="post"><header><b class="av">${E((p.U.Username||'?')[0])}</b><div><div class="nm">${nm(p.U)}</div><small>${ago(p.TS)}</small></div>${folB(p.U)}${p.U.ID==ME.ID||ME.Admin?`<button class="dl" data-a="delp" data-i="${p.ID}">Delete</button>`:''}</header>${p.Text?`<p>${E(p.Text)}</p>`:''}${mediaH(p)}<footer><button class="lk" data-a="like" data-i="${p.ID}">♥ <span></span></button><button class="cm" data-a="cm" data-i="${p.ID}">💬 <span></span></button></footer></article>`;
+const postH=p=>`<article class="post"><header>${AV(p.U)}<div><div class="nm">${nm(p.U)}</div><small>${ago(p.TS)}</small></div>${folB(p.U)}${p.U.ID==ME.ID||ME.Admin?`<button class="dl" data-a="delp" data-i="${p.ID}">Delete</button>`:''}</header>${p.Text?`<p>${tg(p.Text)}</p>`:''}${mediaH(p)}<footer><button class="lk" data-a="like" data-i="${p.ID}">♥ <span></span></button><button class="cm" data-a="cm" data-i="${p.ID}">💬 <span></span></button></footer></article>`;
 function paint(){
   posts.forEach(p=>{
     document.querySelectorAll(`.lk[data-i="${p.ID}"]`).forEach(b=>{b.classList.toggle('on',(p.Likes||[]).includes(ME.ID));b.querySelector('span').textContent=(p.Likes||[]).length||''});
@@ -272,7 +273,7 @@ function sadd(){
 function reels(){
   let v=posts.filter(p=>p.Kind=='video');
   if(rf=='f')v=v.filter(p=>(ME.Following||[]).includes(p.U.ID)||p.U.ID==ME.ID);
-  $('#main').innerHTML=`<div class="rt"><button data-a="rf" data-v="f" class="${rf=='f'?'on':''}">Following</button><button data-a="rf" data-v="y" class="${rf=='y'?'on':''}">For You</button></div><div class="rl">`+(v.length?v.map(p=>`<section class="reel"><video data-a="pp" src="${E(p.Media)}" loop ${mut?'muted ':''}playsinline preload="metadata"></video><div class="shade"></div><div class="info"><b>@${E(p.U.Username)}${p.U.Verified?VB:''}</b><span>${E(p.Text)}</span></div><div class="rail"><div class="ra"><b class="av">${E((p.U.Username||'?')[0])}</b>${p.U.ID==ME.ID||(ME.Following||[]).includes(p.U.ID)?'':`<button class="pl" data-a="rfol" data-i="${p.U.ID}" aria-label="Follow">＋</button>`}</div><button class="lk" data-a="like" data-i="${p.ID}">♥<span></span></button><button class="cm" data-a="cm" data-i="${p.ID}">💬<span></span></button><button data-a="sh" data-i="${p.ID}">↪<span>Share</span></button><button data-a="mu">${mut?'🔇':'🔊'}</button></div></section>`).join(''):'<p class="empty" style="color:#fff;padding-top:30vh">No reels here yet. Post a video from Home.</p>')+'</div>';
+  $('#main').innerHTML=`<div class="rt"><button data-a="rf" data-v="f" class="${rf=='f'?'on':''}">Following</button><button data-a="rf" data-v="y" class="${rf=='y'?'on':''}">For You</button></div><div class="rl">`+(v.length?v.map(p=>`<section class="reel"><video data-a="pp" src="${E(p.Media)}" loop ${mut?'muted ':''}playsinline preload="metadata"></video><div class="shade"></div><div class="info"><b>@${E(p.U.Username)}${p.U.Verified?VB:''}</b><span>${E(p.Text)}</span></div><div class="rail"><div class="ra">${AV(p.U)}${p.U.ID==ME.ID||(ME.Following||[]).includes(p.U.ID)?'':`<button class="pl" data-a="rfol" data-i="${p.U.ID}" aria-label="Follow">＋</button>`}</div><button class="lk" data-a="like" data-i="${p.ID}">♥<span></span></button><button class="cm" data-a="cm" data-i="${p.ID}">💬<span></span></button><button data-a="sh" data-i="${p.ID}">↪<span>Share</span></button><button data-a="mu">${mut?'🔇':'🔊'}</button></div></section>`).join(''):'<p class="empty" style="color:#fff;padding-top:30vh">No reels here yet. Post a video from Home.</p>')+'</div>';
   paint();
   const io=new IntersectionObserver(es=>es.forEach(e=>{const vd=e.target.querySelector('video');e.isIntersecting?vd.play().catch(()=>{}):vd.pause()}),{threshold:.7});
   document.querySelectorAll('.reel').forEach(r=>io.observe(r));
@@ -294,7 +295,7 @@ function people(){
 async function pl(){try{const q=$('#q').value;ppl=(!CS.con&&!q)?[]:await A(q?'search?q='+encodeURIComponent(q):'friends');drawP()}catch(e){toast(e.message)}}
 function drawP(){
   const on=ppl.filter(u=>u.On),off=ppl.filter(u=>!u.On).sort((a,b)=>(b.Seen||0)-(a.Seen||0)),q=$('#q')&&$('#q').value;
-  const row=u=>`<div class="pr"><span class="avw" data-a="pf" data-i="${u.ID}"><b class="av">${E(u.Username[0])}</b>${u.On?'<i class="od"></i>':''}</span><div class="nm" data-a="pf" data-i="${u.ID}">${nm(u)}<br><small>${stat(u)}</small></div><button class="fl" data-a="fol" data-i="${u.ID}"></button><button data-a="dm" data-i="${u.ID}">Message</button>${ME.Admin?`<button data-a="ver" data-i="${u.ID}">${u.Verified?'Unverify':'Verify'}</button>`:''}</div>`;
+  const row=u=>`<div class="pr"><span class="avw" data-a="pf" data-i="${u.ID}">${AV(u)}${u.On?'<i class="od"></i>':''}</span><div class="nm" data-a="pf" data-i="${u.ID}">${nm(u)}<br><small>${stat(u)}</small></div><button class="fl" data-a="fol" data-i="${u.ID}"></button><button data-a="dm" data-i="${u.ID}">Message</button>${ME.Admin?`<button data-a="ver" data-i="${u.ID}">${u.Verified?'Unverify':'Verify'}</button>`:''}</div>`;
   const h=(t,n)=>n?`<p class="sg" style="padding:14px 16px 4px">${t} (${n})</p>`:'';
   $('#pl').innerHTML=(ppl.length?'':'<p class="empty">Search a username to find people. People you follow and anyone online show up here.</p>')+(q?ppl.map(row).join(''):h('Online now',on.length)+on.map(row).join('')+h('Offline',off.length)+off.map(row).join(''));
   paint();
@@ -356,7 +357,7 @@ function pfDraw(){
   const j=PF,u=j.U,me=j.IsMe,L=j.Posts.filter(p=>ptab=='p'||p.Kind=='video');
   const tb=(v,svg)=>`<button class="${ptab==v?'on':''}" data-a="pt" data-v="${v}" aria-label="${v=='p'?'Posts':'Reels'}">${svg}</button>`;
   const tile=p=>`<button class="tl" data-a="pv" data-i="${p.ID}">${p.Media?(p.Kind=='video'?`<video src="${E(p.Media)}#t=0.1" muted playsinline preload="metadata"></video><span class="tp">▶</span>`:`<img src="${E(p.Media)}" loading="lazy" alt="">`):`<span class="tt">${E((p.Text||'').slice(0,90))}</span>`}</button>`;
-  $('#main').innerHTML=`<div class="pfh"><span class="avw"><b class="av big">${E(u.Username[0])}</b>${u.On?'<i class="od big"></i>':''}</span><h2>${E(j.Name||u.Username)}${u.Verified?VB:''}</h2><small>@${E(u.Username)}${me?'':stat(u)?' · '+stat(u):''}</small>`+
+  $('#main').innerHTML=`<div class="pfh"><span class="avw">${AV(u,'big')}${u.On?'<i class="od big"></i>':''}</span><h2>${E(j.Name||u.Username)}${u.Verified?VB:''}</h2><small>@${E(u.Username)}${me?'':stat(u)?' · '+stat(u):''}</small>`+
   `<div class="act">${me?'<button class="ed" data-a="ep">Edit</button>':`<button class="fl" data-a="fol" data-i="${u.ID}"></button><button class="ed" data-a="dm" data-i="${u.ID}">Message</button>`}</div>`+
   `<div class="st"><div><b>${j.Following}</b><small>Following</small></div><div><b>${j.Followers}</b><small>Followers</small></div><div><b>${j.Likes}</b><small>Likes</small></div></div>`+
   (j.Bio?`<p class="bio">${E(j.Bio)}</p>`:me?'<button class="lnk" data-a="ep">Add a bio</button>':'')+`</div>`+
@@ -515,12 +516,12 @@ let adt='o',AD;const SV=()=>ME.Saved||[];
 function paint(){
  posts.forEach(p=>{document.querySelectorAll(`.lk[data-i="${p.ID}"]`).forEach(b=>{b.classList.toggle('on',(p.Likes||[]).includes(ME.ID));b.querySelector('span').textContent=(p.Likes||[]).length||''});document.querySelectorAll(`.cm[data-i="${p.ID}"] span`).forEach(s=>s.textContent=p.C.length||'')});
  document.querySelectorAll('.fl').forEach(b=>{const f=(ME.Following||[]).includes(b.dataset.i);b.textContent=f?'Following':'Follow';b.classList.toggle('on',f)});
- document.querySelectorAll('.post footer').forEach(f=>{const l=f.querySelector('.lk');if(!l)return;const i=l.dataset.i;let b=f.querySelector('.bm');if(!b){f.insertAdjacentHTML('beforeend',`<button class="bm" data-a="bm" data-i="${i}" aria-label="Save">🔖</button><button data-a="spost" aria-label="Share">↪</button><button data-a="rpt" data-i="${i}" aria-label="Report">⚑</button>`);b=f.querySelector('.bm')}b.classList.toggle('on',SV().includes(i))})}
+ document.querySelectorAll('.post footer').forEach(f=>{const l=f.querySelector('.lk');if(!l)return;const i=l.dataset.i;let b=f.querySelector('.bm');if(!b){f.insertAdjacentHTML('beforeend',`<button class="bm" data-a="bm" data-i="${i}" aria-label="Save">🔖</button>${(posts.find(x=>x.ID==i)||{U:{}}).U.ID==ME.ID?`<button data-a="epost" data-i="${i}" aria-label="Edit">✎</button>`:''}<button data-a="spost" data-i="${i}" aria-label="Share">↪</button><button data-a="rpt" data-i="${i}" aria-label="Report">⚑</button>`);b=f.querySelector('.bm')}b.classList.toggle('on',SV().includes(i))});const mn=$('#main');if(tab=='feed'&&mn&&$('.comp')&&!$('#lm')&&posts.length>=60)mn.insertAdjacentHTML('beforeend','<button id="lm" class="pri" style="margin:12px;width:calc(100% - 24px)" data-a="lm">Load more</button>')}
 function openDr(){
  const r=(a,i,t,x)=>`<button class="sr" data-a="${a}"${x||''}><i>${i}</i>${t}<em>›</em></button>`,nv=(t,i,l)=>r('nv',i,l,` data-t="${t}"`);
  $('#dr').innerHTML='<div class="dt"><button data-a="dc" aria-label="Close">←</button><span>Settings and privacy</span></div>'+
  '<p class="sg">Account</p><div class="cd">'+r('ep','👤','Edit profile')+r('un','✏️','Change username')+nv('me','🪪','View my profile')+'</div>'+
- '<p class="sg">Privacy</p><div class="cd"><div class="row" style="padding:12px 16px"><div>Active status<small>Let people see when you are online</small></div><label class="sw"><input type="checkbox" data-a="tg" data-k="act"'+(ME.Hide?'':' checked')+'><span></span></label></div>'+r('svd','🔖','Saved posts')+'</div>'+
+ '<p class="sg">Privacy</p><div class="cd"><div class="row" style="padding:12px 16px"><div>Active status<small>Let people see when you are online</small></div><label class="sw"><input type="checkbox" data-a="tg" data-k="act"'+(ME.Hide?'':' checked')+'><span></span></label></div>'+r('svd','🔖','Saved posts')+r('xp','🔎','Explore posts')+r('dl','⬇️','Download my data')+r('cpw','🔑','Reset password')+'</div>'+
  '<p class="sg">Display and chat</p><div class="cd">'+r('th','🌓','Theme: '+(th=='dark'?'Dark':'Light'))+r('cset','🔔','Chat settings')+'</div>'+
  '<p class="sg">Explore</p><div class="cd">'+nv('circles','👥','Circles')+r('gn','➕','Create group chat')+nv('bc','📢','Broadcasts')+nv('reels','🎬','Reels')+'</div>'+
  '<p class="sg">Support and about</p><div class="cd">'+r('ab','ℹ️','About')+r('lt','📄','Terms and Conditions')+r('lp','🔒','Privacy Policy')+'</div>'+
@@ -534,15 +535,15 @@ function pfDraw(){
  posts=[...ps,...(j.S||[])];
  const tb=(v,t)=>`<button class="${ptab==v?'on':''}" data-a="pt" data-v="${v}">${t}</button>`;
  const tile=p=>`<button class="tl" data-a="pv" data-i="${p.ID}">${p.Kind=='video'?`<video src="${E(p.Media)}#t=0.1" muted playsinline preload="metadata"></video><span class="tp">▶</span>`:`<img src="${E(p.Media)}" loading="lazy" alt="">`}</button>`;
- $('#main').innerHTML=`<div class="cov"></div><div class="pfc"><span class="rng avw"><b class="av big">${E(u.Username[0])}</b>${u.On?'<i class="od big"></i>':''}</span><div class="pfn"><h2>${E(j.Name||u.Username)}${u.Verified?VB:''}</h2><small>@${E(u.Username)}${me?'':stat(u)?' · '+stat(u):''}</small></div>`+
+ $('#main').innerHTML=`<div class="cov"${j.Cover?` style="background:url('${E(j.Cover)}') center/cover"`:''}></div><div class="pfc"><span class="rng avw">${AV(u,'big')}${u.On?'<i class="od big"></i>':''}</span><div class="pfn"><h2>${E(j.Name||u.Username)}${u.Verified?VB:''}</h2><small>@${E(u.Username)}${me?'':stat(u)?' · '+stat(u):''}</small></div>`+
  (j.Bio?`<p class="bio">${E(j.Bio)}</p>`:me?'<button class="lnk" data-a="ep">Add a bio</button>':'')+
- `<div class="act">${me?'<button class="ed" data-a="ep">Edit profile</button>':`<button class="fl" data-a="fol" data-i="${u.ID}"></button><button class="ed" data-a="dm" data-i="${u.ID}">Message</button>`}<button class="ed" data-a="psh">Share</button></div>`+
- `<div class="pst"><div><b>${ps.length}</b><small>Posts</small></div><div><b>${j.Followers}</b><small>Followers</small></div><div><b>${j.Following}</b><small>Following</small></div><div><b>${j.Likes}</b><small>Likes</small></div></div></div>`+
+ `<div class="act">${me?'<button class="ed" data-a="ep">Edit profile</button>':`<button class="fl" data-a="fol" data-i="${u.ID}"></button><button class="ed" data-a="dm" data-i="${u.ID}">Message</button>`}<button class="ed" data-a="psh">Share</button>${me?'':`<button class="ed" data-a="blk" data-i="${u.ID}">${j.Blocked?'Unblock':'Block'}</button>`}</div>`+
+ `<div class="pst"><div><b>${ps.length}</b><small>Posts</small></div><div data-a="fls" data-t="followers" data-i="${u.ID}"><b>${j.Followers}</b><small>Followers</small></div><div data-a="fls" data-t="following" data-i="${u.ID}"><b>${j.Following}</b><small>Following</small></div><div><b>${j.Likes}</b><small>Likes</small></div></div></div>`+
  `<div class="pt">${tb('p','Posts')}${tb('m','Photos')}${tb('r','Reels')}${me?tb('s','Saved'):''}</div>`+
  (L.length?(ptab=='p'||ptab=='s'?L.map(postH).join(''):'<div class="gr">'+L.map(tile).join('')+'</div>'):'<p class="empty">Nothing here yet.</p>');
  paint()}
-function editP(){modal(`<h3>Edit profile</h3><input id="enm" maxlength="60" placeholder="Display name" value="${E(ME.Name||'')}"><textarea id="bio" maxlength="120" placeholder="Write a short bio">${E(ME.Bio||'')}</textarea><p class="er" id="er"></p><button class="pri" id="sbio">Save</button><button class="lnk" data-a="un">Change username</button>`);
- $('#sbio').onclick=async()=>{try{ME=await A('bio',{bio:$('#bio').value,name:$('#enm').value});closeM();go('me')}catch(e){$('#er').textContent=e.message}}}
+function editP(){modal(`<h3>Edit profile</h3><input id="enm" maxlength="60" placeholder="Display name" value="${E(ME.Name||'')}"><small>Profile photo</small><input id="avf" type="file" accept="image/*"><small>Cover photo</small><input id="cvf" type="file" accept="image/*"><textarea id="bio" maxlength="120" placeholder="Write a short bio">${E(ME.Bio||'')}</textarea><p class="er" id="er"></p><button class="pri" id="sbio">Save</button><button class="lnk" data-a="un">Change username</button>`);
+ $('#sbio').onclick=async()=>{try{ME=await A('bio',{bio:$('#bio').value,name:$('#enm').value,avatar:await upf('#avf',ME.Avatar),cover:await upf('#cvf',ME.Cover)});closeM();go('me')}catch(e){$('#er').textContent=e.message}}}
 async function admin(keep){
  clearInterval(poll);if(!keep||!AD)AD=await A('admin');const j=AD,q=(($('#aq')||{}).value||'').toLowerCase();
  const t=(k,l)=>`<button class="${adt==k?'on':''}" data-a="adt" data-v="${k}">${l}</button>`,sn=p=>E((p.Text||'').slice(0,80))||(p.Kind=='video'?'🎬 video':'🖼 photo');let h='';
@@ -550,16 +551,17 @@ async function admin(keep){
  else if(adt=='u')h='<div class="sb"><input id="aq" placeholder="Search users or emails" value="'+E(q)+'" autocomplete="off"></div>'+j.L.filter(u=>!q||(u.Username||'').includes(q)||(u.Email||'').toLowerCase().includes(q)).map(u=>`<div class="pr"><b class="av">${E((u.Username||'?')[0])}</b><div class="nm">${nm(u)}${u.Admin?' <small>admin</small>':''}${u.Banned?' <small>banned</small>':''}<br><small>${E(u.Email)}</small></div><button data-a="ver" data-i="${u.ID}">${u.Verified?'Unverify':'Verify'}</button><button data-a="ban" data-i="${u.ID}">${u.Banned?'Unban':'Ban'}</button><button data-a="arole" data-i="${u.ID}">${u.Admin?'Demote':'Admin'}</button><button data-a="udel" data-i="${u.ID}">Delete</button></div>`).join('');
  else if(adt=='c')h=j.PL.map(p=>`<div class="pr"><div class="nm">${nm(p.U)}<br><small>${sn(p)} · ${ago(p.TS)}</small></div><button data-a="pdel" data-i="${p.ID}">Delete</button></div>`).join('');
  else if(adt=='r')h=j.R.map(x=>`<div class="pr"><div class="nm">${nm(x.By)} reported ${x.P?nm(x.P.U)+': '+sn(x.P):'a deleted post'}<br><small>${E(x.Reason||'No reason')} · ${ago(x.TS)}</small></div><button data-a="rdis" data-i="${x.ID}">Dismiss</button>${x.P?`<button data-a="pdel" data-i="${x.P.ID}">Delete post</button>`:''}</div>`).join('');
+ else if(adt=='l')h=(j.Log||[]).slice().reverse().map(x=>`<div class="pr"><small>${E(x)}</small></div>`).join('');
  else h=`<div class="sb"><textarea id="an" maxlength="200" placeholder="Announcement for everyone">${E(j.Notice)}</textarea><button class="pri" style="width:100%;margin-top:8px" data-a="ann">Publish notice</button><small>Shown as a banner to all users. Leave empty to remove it.</small></div>`;
- $('#main').innerHTML='<div class="ch2"><b>Admin panel</b></div><div class="atb">'+t('o','Overview')+t('u','Users')+t('c','Content')+t('r','Reports'+(j.R.length?' ('+j.R.length+')':''))+t('n','Notice')+'</div>'+(h||'<p class="empty">Nothing here.</p>');
+ $('#main').innerHTML='<div class="ch2"><b>Admin panel</b></div><div class="atb">'+t('o','Overview')+t('u','Users')+t('c','Content')+t('r','Reports'+(j.R.length?' ('+j.R.length+')':''))+t('n','Notice')+t('l','Log')+'</div>'+(h||'<p class="empty">Nothing here.</p>');
  const a=$('#aq');if(a&&keep){a.focus();a.setSelectionRange(a.value.length,a.value.length)}}
-const shr=(x)=>{const d={title:'Amlink',text:x,url:location.origin};navigator.share?navigator.share(d).catch(()=>{}):(navigator.clipboard&&navigator.clipboard.writeText(d.url),toast('Link copied'))};
+const shr=(x,pth)=>{const d={title:'Amlink',text:x,url:location.origin+(pth||'')};navigator.share?navigator.share(d).catch(()=>{}):(navigator.clipboard&&navigator.clipboard.writeText(d.url),toast('Link copied'))};
 $('#app').addEventListener('click',async e=>{
  const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,i=b.dataset.i;
  try{
   if(a=='bm'){ME=await A('save',{id:i});paint();toast(SV().includes(i)?'Saved':'Removed from saved')}
   else if(a=='rpt'){const r=prompt('Why are you reporting this post?');if(r!==null){await A('report',{id:i,reason:r});toast('Thanks, we will review it')}}
-  else if(a=='spost')shr('Check this out on Amlink');
+  else if(a=='spost')shr('Check this out on Amlink','/?p='+i);
   else if(a=='psh')shr('@'+PF.U.Username+' on Amlink');
   else if(a=='svd'){await go('me');ptab='s';pfDraw()}
   else if(a=='dme'){if(confirm('Delete your account and all your data? This cannot be undone.')){await A('delme',{});out()}}
@@ -573,6 +575,31 @@ $('#app').addEventListener('click',async e=>{
 document.addEventListener('input',e=>{if(e.target.id=='aq')admin(1)});
 async function nt(){if(!T)return;try{const c=await A('config');let b=$('#ann');if(!c.Notice){if(b)b.remove();return}if(!b){b=document.createElement('div');b.id='ann';$('#app').insertBefore(b,$('#main'))}b.textContent='📢 '+c.Notice}catch(e){}}
 setTimeout(nt,2500);setInterval(nt,60000);
+
+/* v3: profile photos, inbox, post links, lists, explore, block, edit and more */
+const AV=(u,c)=>u.Av?`<b class="av ${c||''}" style="background:url('${E(u.Av)}') center/cover"></b>`:`<b class="av ${c||''}">${E((u.Username||'?')[0])}</b>`;
+const tg=t=>E(t).replace(/#(\w+)/g,'<a class="ht" data-a="tag" data-q="#$1">#$1</a>');
+async function upf(id,old){const f=$(id).files[0];return f?await up(f):(old||'')}
+async function L(){const m=await A('msgs?w='+peer.ID),b=$('#ms');if(!b)return;b.innerHTML=m.map(x=>`<div class="m ${x.From==ME.ID?'me':''}">${msgM(x)}${E(x.Text)}${x.From==ME.ID?`<small> ${x.Read?'✓✓':'✓'}</small>`:''}</div>`).join('');b.scrollTop=b.scrollHeight}
+function sl(){$('#sc').textContent=cur.C.length+' comments';$('#sl').innerHTML=cur.C.map((c,i)=>{const n=(c.Likes||[]).length,on=(c.Likes||[]).includes(ME.ID);return `<div class="c">${AV(c.U)}<div class="cb"><div class="nm">${nm(c.U)}</div><div>${tg(c.Text)}</div><small>${ago(c.TS)} </small><button class="rp" data-a="rp" data-n="${E(c.U.Username)}">Reply</button>${c.U.ID==ME.ID||cur.U.ID==ME.ID||ME.Admin?`<button class="rp" data-a="dcm" data-i="${i}">Delete</button>`:''}</div><button class="cl${on?' on':''}" data-a="cl" data-i="${i}" aria-label="Like comment"><b>${on?'♥':'♡'}</b>${n||''}</button></div>`}).join('')||'<p class="empty">No comments yet. Start the conversation.</p>'}
+async function alerts(){const[j,cv]=await Promise.all([A('notifs'),A('inbox')]);$('#nb').hidden=true;ppl=[...ppl.filter(p=>!cv.some(c=>c.U.ID==p.ID)),...cv.map(c=>c.U)];
+ $('#main').innerHTML='<div class="ch2"><b>Inbox</b></div><div style="padding:8px 12px"><button class="di" data-a="nv" data-t="circles"><i style="background:#7c5cff">👥</i><span>Circles<small>Group chats</small></span></button><button class="di" data-a="nv" data-t="bc"><i style="background:#ff7a1a">📢</i><span>Broadcasts<small>Channels you follow</small></span></button></div><p class="sg" style="padding:6px 16px">Messages</p>'+
+ (cv.map(c=>`<div class="pr" data-a="dm" data-i="${c.U.ID}">${AV(c.U)}<div class="nm">${nm(c.U)}<br><small>${c.Mine?'You: ':''}${E(c.Last)} · ${ago(c.TS)}</small></div>${c.Un?`<b class="bd">${c.Un}</b>`:''}</div>`).join('')||'<p class="empty">No chats yet. Find people in Friends.</p>')+
+ '<p class="sg" style="padding:6px 16px">Activity</p>'+(j.L.length?j.L.map(x=>`<div class="pr${x.New?' nw':''}">${AV(x.U)}<div class="nm">${nm(x.U)} <small>${TXT[x.Type]||''}, ${ago(x.TS)}</small></div></div>`).join(''):'<p class="empty">No notifications yet.</p>')}
+async function explore(q){clearInterval(poll);closeM();$('#app').classList.remove('cs');tab='xp';const r=await A('explore?q='+encodeURIComponent(q||''));posts=r;
+ $('#main').innerHTML='<div class="ch2"><b>Explore</b></div><div class="sb"><input id="xq" placeholder="Search posts or #hashtags" value="'+E(q||'')+'" autocomplete="off"></div>'+(r.map(postH).join('')||'<p class="empty">No posts found.</p>');paint();$('#xq').onkeydown=e=>{if(e.key=='Enter')explore($('#xq').value)}}
+$('#app').addEventListener('click',async e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,i=b.dataset.i;try{
+ if(a=='dcm'){upd(await A('delcomment',{id:cur.ID,i:+i}));sl()}
+ else if(a=='epost'){const p=posts.find(x=>x.ID==i),t=prompt('Edit your post',p.Text);if(t!==null){upd(await A('editpost',{id:i,text:t}));const q=document.querySelector(`.post .lk[data-i="${i}"]`);const pp=q&&q.closest('.post').querySelector(':scope>p');if(pp)pp.innerHTML=tg(t);toast('Post updated')}}
+ else if(a=='blk'){ME=await A('block',{id:i});PF.Blocked=(ME.Blocked||[]).includes(i);pfDraw();toast(PF.Blocked?'Blocked':'Unblocked')}
+ else if(a=='fls'){const l=await A(`flist?id=${i}&t=${b.dataset.t}`);modal(`<h3>${b.dataset.t=='following'?'Following':'Followers'}</h3><div style="max-height:50vh;overflow:auto">`+(l.map(u=>`<div class="pr" data-a="fli" data-i="${u.ID}">${AV(u)}<div class="nm">${nm(u)}</div></div>`).join('')||'<p class="empty">No one yet.</p>')+'</div><button class="pri" data-a="mc">Close</button>')}
+ else if(a=='fli'){closeM();opf(i)}
+ else if(a=='tag')explore(b.dataset.q);else if(a=='xp')explore('');
+ else if(a=='lm'){posts=await A('feed?n='+(posts.length+30));home()}
+ else if(a=='dl'){const j=await A('export'),u=URL.createObjectURL(new Blob([JSON.stringify(j,null,2)],{type:'application/json'})),l=document.createElement('a');l.href=u;l.download='amlink-data.json';l.click();URL.revokeObjectURL(u)}
+ else if(a=='cpw'){if(!FB||!ME.Email)toast('Not available for this account');else{await FB.sendPasswordResetEmail(ME.Email);toast('Reset link sent to your email')}}
+}catch(x){toast(x.message)}});
+const pw=setInterval(async()=>{if(!ME)return;clearInterval(pw);const id=new URLSearchParams(location.search).get('p');if(!id)return;try{const p=await A('onep?id='+id);posts=[p];modal(postH(p)+'<button class="pri" data-a="mc">Close</button>');paint();history.replaceState(null,'','/')}catch(e){}},500);
 </script>
 </body>
 </html>
