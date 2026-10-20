@@ -24,6 +24,7 @@ type User struct {
 	DOB                           string
 	Agreed                        int64
 	Bio                           string
+	Saved                         []string
 }
 type Comment struct {
 	User, Text string
@@ -63,6 +64,10 @@ type Channel struct {
 	Subs                  []string
 	Posts                 []ChPost
 }
+type Report struct {
+	ID, Post, By, Reason string
+	TS                   int64
+}
 type State struct {
 	Users    map[string]*User
 	Posts    []*Post
@@ -72,6 +77,8 @@ type State struct {
 	Groups   []*Group
 	Statuses []*Status
 	Channels []*Channel
+	Reports  []*Report
+	Notice   string
 }
 
 var (
@@ -80,7 +87,7 @@ var (
 	env = os.Getenv
 )
 
-// ---------- storage: Supabase (table "store", bucket "media") or local state.json ----------
+// ---------- storage: Neon (state), Supabase (media), or local state.json ----------
 func sb(method, path string, body io.Reader, ct string) (*http.Response, error) {
 	r, _ := http.NewRequest(method, env("SUPABASE_URL")+path, body)
 	r.Header.Set("apikey", env("SUPABASE_KEY"))
@@ -302,9 +309,33 @@ func main() {
 	if admin == "" {
 		admin = "whitefrostff@gmail.com"
 	}
+	ok := map[string]bool{"ok": true}
+
+	// removes a user and everything that points at them
+	purge := func(id string) {
+		delete(S.Users, id)
+		ps := S.Posts[:0]
+		for _, p := range S.Posts {
+			if p.User != id {
+				ps = append(ps, p)
+			}
+		}
+		S.Posts = ps
+		for t, v := range S.Sess {
+			if v == id {
+				delete(S.Sess, t)
+			}
+		}
+		for _, o := range S.Users {
+			o.Following = del(o.Following, id)
+		}
+	}
 
 	http.HandleFunc("/api/config", func(w http.ResponseWriter, r *http.Request) {
-		js(w, map[string]any{"Client": env("GOOGLE_CLIENT_ID"), "Fb": map[string]string{"apiKey": env("FIREBASE_API_KEY"), "authDomain": env("FIREBASE_AUTH_DOMAIN"), "projectId": env("FIREBASE_PROJECT_ID"), "appId": env("FIREBASE_APP_ID")}})
+		mu.Lock()
+		nt := S.Notice
+		mu.Unlock()
+		js(w, map[string]any{"Notice": nt, "Client": env("GOOGLE_CLIENT_ID"), "Fb": map[string]string{"apiKey": env("FIREBASE_API_KEY"), "authDomain": env("FIREBASE_AUTH_DOMAIN"), "projectId": env("FIREBASE_PROJECT_ID"), "appId": env("FIREBASE_APP_ID")}})
 	})
 
 	http.HandleFunc("/api/login", func(w http.ResponseWriter, r *http.Request) {
@@ -453,7 +484,7 @@ func main() {
 			fail(w, 400, "Write something or add a photo or video")
 			return
 		}
-		if len(b["text"]) > 2000 || (b["media"] != "" && !strings.HasPrefix(b["media"], env("SUPABASE_URL")+"/storage/")) {
+		if len(b["text"]) > 2000 || !okMedia(b["media"]) {
 			fail(w, 400, "Invalid post")
 			return
 		}
@@ -463,7 +494,7 @@ func main() {
 		}
 		S.Posts = append(S.Posts, &Post{ID: uid(), User: u.ID, Text: b["text"], Media: b["media"], Kind: k, TS: now(), Likes: []string{}})
 		save()
-		js(w, map[string]bool{"ok": true})
+		js(w, ok)
 	})
 
 	api("like", func(u *User, w http.ResponseWriter, r *http.Request) {
@@ -557,7 +588,7 @@ func main() {
 	api("msg", func(u *User, w http.ResponseWriter, r *http.Request) {
 		b := in(r)
 		t := strings.TrimSpace(b["text"])
-		if S.Users[b["to"]] == nil || (t == "" && b["media"] == "") || len(t) > 1000 || (b["media"] != "" && !strings.HasPrefix(b["media"], env("SUPABASE_URL")+"/storage/")) {
+		if S.Users[b["to"]] == nil || (t == "" && b["media"] == "") || len(t) > 1000 || !okMedia(b["media"]) {
 			fail(w, 400, "Invalid message")
 			return
 		}
@@ -568,7 +599,7 @@ func main() {
 		S.Msgs = append(S.Msgs, Msg{From: u.ID, To: b["to"], Text: t, Kind: k, Media: b["media"], TS: now()})
 		note(b["to"], u.ID, "msg", "")
 		save()
-		js(w, map[string]bool{"ok": true})
+		js(w, ok)
 	})
 
 	api("verify", func(u *User, w http.ResponseWriter, r *http.Request) {
@@ -613,18 +644,46 @@ func main() {
 		js(w, map[string]any{"N": n, "M": mm, "L": out})
 	})
 
+	// ---------- Admin ----------
 	api("admin", func(u *User, w http.ResponseWriter, r *http.Request) {
 		if !u.Admin {
 			fail(w, 403, "Admins only")
 			return
 		}
 		us := []map[string]any{}
+		on, bn, vr, rv := 0, 0, 0, 0
 		for _, o := range S.Users {
 			m := uv(o.ID)
-			m["Banned"], m["Email"] = o.Banned, o.Email
+			m["Banned"], m["Email"], m["Admin"] = o.Banned, o.Email, o.Admin
 			us = append(us, m)
+			if now()-o.Seen < 120 && !o.Hide {
+				on++
+			}
+			if o.Banned {
+				bn++
+			}
+			if o.Verified {
+				vr++
+			}
 		}
-		js(w, map[string]any{"Users": len(S.Users), "Posts": len(S.Posts), "Msgs": len(S.Msgs), "L": us})
+		pl := []map[string]any{}
+		for i := len(S.Posts) - 1; i >= 0; i-- {
+			if S.Posts[i].Kind == "video" {
+				rv++
+			}
+			if len(pl) < 40 {
+				pl = append(pl, pv(S.Posts[i]))
+			}
+		}
+		rp := []map[string]any{}
+		for _, x := range S.Reports {
+			m := map[string]any{"ID": x.ID, "By": uv(x.By), "Reason": x.Reason, "TS": x.TS}
+			if p := fp(x.Post); p != nil {
+				m["P"] = pv(p)
+			}
+			rp = append(rp, m)
+		}
+		js(w, map[string]any{"Users": len(S.Users), "Posts": len(S.Posts), "Msgs": len(S.Msgs), "L": us, "Online": on, "Banned": bn, "Verified": vr, "Reels": rv, "Groups": len(S.Groups), "Channels": len(S.Channels), "Moments": len(S.Statuses), "PL": pl, "R": rp, "Notice": S.Notice})
 	})
 
 	api("ban", func(u *User, w http.ResponseWriter, r *http.Request) {
@@ -638,6 +697,59 @@ func main() {
 		js(w, map[string]bool{"Banned": o.Banned})
 	})
 
+	api("adminrole", func(u *User, w http.ResponseWriter, r *http.Request) {
+		o := S.Users[in(r)["id"]]
+		if !u.Admin || o == nil || o.ID == u.ID || o.Email == admin {
+			fail(w, 403, "Not allowed")
+			return
+		}
+		o.Admin = !o.Admin
+		if o.Admin {
+			o.Verified = true
+		}
+		save()
+		js(w, map[string]bool{"Admin": o.Admin})
+	})
+
+	api("deluser", func(u *User, w http.ResponseWriter, r *http.Request) {
+		o := S.Users[in(r)["id"]]
+		if !u.Admin || o == nil || o.Admin {
+			fail(w, 403, "Not allowed")
+			return
+		}
+		purge(o.ID)
+		save()
+		js(w, ok)
+	})
+
+	api("notice", func(u *User, w http.ResponseWriter, r *http.Request) {
+		t := strings.TrimSpace(in(r)["text"])
+		if !u.Admin || len(t) > 200 {
+			fail(w, 403, "Not allowed")
+			return
+		}
+		S.Notice = t
+		save()
+		js(w, ok)
+	})
+
+	api("repclr", func(u *User, w http.ResponseWriter, r *http.Request) {
+		if !u.Admin {
+			fail(w, 403, "Admins only")
+			return
+		}
+		id := in(r)["id"]
+		keep := S.Reports[:0]
+		for _, x := range S.Reports {
+			if x.ID != id {
+				keep = append(keep, x)
+			}
+		}
+		S.Reports = keep
+		save()
+		js(w, ok)
+	})
+
 	api("delpost", func(u *User, w http.ResponseWriter, r *http.Request) {
 		id := in(r)["id"]
 		for i, p := range S.Posts {
@@ -648,11 +760,66 @@ func main() {
 				}
 				S.Posts = append(S.Posts[:i], S.Posts[i+1:]...)
 				save()
-				js(w, map[string]bool{"ok": true})
+				js(w, ok)
 				return
 			}
 		}
 		fail(w, 404, "Post not found")
+	})
+
+	// ---------- Saved posts, reports, account deletion ----------
+	api("save", func(u *User, w http.ResponseWriter, r *http.Request) {
+		id := in(r)["id"]
+		if fp(id) == nil {
+			fail(w, 404, "Post not found")
+			return
+		}
+		if has(u.Saved, id) {
+			u.Saved = del(u.Saved, id)
+		} else {
+			u.Saved = append(u.Saved, id)
+		}
+		save()
+		js(w, u)
+	})
+	api("saved", func(u *User, w http.ResponseWriter, r *http.Request) {
+		out := []map[string]any{}
+		for _, id := range u.Saved {
+			if p := fp(id); p != nil {
+				out = append(out, pv(p))
+			}
+		}
+		js(w, out)
+	})
+	api("report", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		p := fp(b["id"])
+		if p == nil || p.User == u.ID {
+			fail(w, 400, "You cannot report this post")
+			return
+		}
+		for _, x := range S.Reports {
+			if x.Post == p.ID && x.By == u.ID {
+				js(w, ok)
+				return
+			}
+		}
+		why := strings.TrimSpace(b["reason"])
+		if len(why) > 200 {
+			why = why[:200]
+		}
+		S.Reports = append(S.Reports, &Report{uid(), p.ID, u.ID, why, now()})
+		save()
+		js(w, ok)
+	})
+	api("delme", func(u *User, w http.ResponseWriter, r *http.Request) {
+		if u.Admin {
+			fail(w, 403, "Admins cannot delete their own account here")
+			return
+		}
+		purge(u.ID)
+		save()
+		js(w, ok)
 	})
 
 	// ---------- Profiles, friends and online status ----------
@@ -683,10 +850,14 @@ func main() {
 		js(w, map[string]any{"U": uv(id), "Name": o.Name, "Bio": o.Bio, "Following": len(o.Following), "Followers": fol, "Likes": lk, "Posts": ps, "IsMe": id == u.ID})
 	})
 	api("bio", func(u *User, w http.ResponseWriter, r *http.Request) {
-		b := strings.TrimSpace(in(r)["bio"])
+		bd := in(r)
+		b := strings.TrimSpace(bd["bio"])
 		if len(b) > 120 {
 			fail(w, 400, "Bio is too long (120 characters max)")
 			return
+		}
+		if n := strings.TrimSpace(bd["name"]); n != "" && len(n) <= 60 {
+			u.Name = n
 		}
 		u.Bio = b
 		save()
@@ -718,7 +889,7 @@ func main() {
 		}
 		S.Statuses = append(S.Statuses, &Status{uid(), u.ID, b["text"], b["media"], k, now()})
 		save()
-		js(w, map[string]bool{"ok": true})
+		js(w, ok)
 	})
 	api("statuses", func(u *User, w http.ResponseWriter, r *http.Request) {
 		keep, out := S.Statuses[:0], []map[string]any{}
@@ -793,7 +964,7 @@ func main() {
 			note(m, u.ID, "msg", "")
 		}
 		save()
-		js(w, map[string]bool{"ok": true})
+		js(w, ok)
 	})
 
 	// ---------- Broadcasts (channels) ----------
@@ -806,7 +977,7 @@ func main() {
 		}
 		S.Channels = append(S.Channels, &Channel{ID: uid(), Name: n, Desc: b["desc"], Owner: u.ID, Subs: []string{u.ID}})
 		save()
-		js(w, map[string]bool{"ok": true})
+		js(w, ok)
 	})
 	api("channels", func(u *User, w http.ResponseWriter, r *http.Request) {
 		if id := r.URL.Query().Get("id"); id != "" {
@@ -844,7 +1015,7 @@ func main() {
 			c.Subs = append(c.Subs, u.ID)
 		}
 		save()
-		js(w, map[string]bool{"ok": true})
+		js(w, ok)
 	})
 	api("chpost", func(u *User, w http.ResponseWriter, r *http.Request) {
 		b := in(r)
@@ -858,7 +1029,7 @@ func main() {
 			note(s, u.ID, "msg", "")
 		}
 		save()
-		js(w, map[string]bool{"ok": true})
+		js(w, ok)
 	})
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
