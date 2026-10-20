@@ -6,6 +6,8 @@
 <title>Amlink</title>
 <meta name="description" content="Amlink: share, chat and connect. Developed by Nwodili Yaemerie Convenant.">
 <script src="https://accounts.google.com/gsi/client" async></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <style>
 :root{--bg:#fff;--fg:#0b0b0b;--mut:#65676b;--card:#eaf3ff;--line:#dbe7f5;--acc:#1877f2}
 [data-t=dark]{--bg:#000;--fg:#f5f5f5;--mut:#a8abb0;--card:#14181e;--line:#262b33}
@@ -98,15 +100,52 @@ nav button.on{color:var(--acc)}
 .ra{position:relative;margin-bottom:10px}.ra .av{width:46px;height:46px;border:2px solid #fff}
 .reel .rail .pl{position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);width:22px;height:22px;border-radius:50%;background:#fe2c55;color:#fff;font-size:16px;line-height:1;padding:0;display:block}
 .row input[type=checkbox]{width:20px;height:20px;padding:0}
+/* login and sign-up flow */
+.lg{display:flex;justify-content:center}.lg span{display:inline-block;opacity:0;transform:translateY(26px);animation:rise .7s cubic-bezier(.2,.8,.2,1) forwards;animation-delay:calc(var(--i)*80ms)}
+@keyframes rise{to{opacity:1;transform:none}}@keyframes fade{to{opacity:1}}
+#login p,#login .pri,#login #gbtn{opacity:0;animation:fade .6s .6s forwards}
+#login .pri{justify-self:center;padding:11px 30px}#login .sec,.pri.sec{background:none;border:1.5px solid var(--line);color:var(--fg)}
+#au{position:absolute;inset:0;z-index:15;background:var(--bg);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+.ah{display:flex;align-items:center;gap:12px;padding:10px 12px}.ah button{background:none;border:0;font-size:30px;line-height:1;width:36px}
+.dots{display:flex;gap:6px;flex:1;justify-content:center;margin-right:36px}.dots i{width:30px;height:4px;border-radius:2px;background:var(--line);transition:background .3s}.dots i.on{background:var(--acc)}
+#st{flex:1;overflow-y:auto;padding:16px 24px}
+.sl{display:grid;gap:14px;align-content:start;animation:sin .4s cubic-bezier(.2,.8,.2,1)}.sl.bk{animation-name:sbk}
+@keyframes sin{from{opacity:0;transform:translateX(56px)}}@keyframes sbk{from{opacity:0;transform:translateX(-56px)}}
+.sl h2{font-size:30px;letter-spacing:-.5px;line-height:1.15}.sub{color:var(--mut)}
+.sl input:not([type=checkbox]){width:100%;border:0;background:var(--card);color:var(--fg);padding:15px 16px;border-radius:14px;font:inherit}
+.sl .pri{padding:14px}.lnk{background:none;border:0;color:var(--acc);font-weight:700;text-align:left;padding:0}
+.sl .row input{width:22px;height:22px;flex:none}.leg{max-height:55vh;overflow:auto;display:grid;gap:10px;font-size:14px}
+@media (prefers-reduced-motion:reduce){.lg span,.sl,#login p,#login .pri,#login #gbtn{animation:none;opacity:1;transform:none}}
+/* bottom bar, right settings drawer, profile */
+nav{align-items:center;background:var(--bg)}
+nav button{display:grid;justify-items:center;gap:2px;font-size:11px;padding:8px 0;position:relative}
+nav button svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav button.on{color:var(--fg)}nav button.on svg{fill:currentColor}
+nav .pl2{flex:none;width:50px;height:34px;margin:6px 12px;border-radius:11px;background:var(--fg);color:var(--bg);font-size:26px;font-weight:700;line-height:1;padding:0;box-shadow:-4px 0 0 #7c5cff,4px 0 0 #ff7a1a;place-items:center}
+#nb{position:absolute;top:2px;left:54%;margin:0}
+.seg{display:flex;gap:4px;margin:0 auto;background:var(--card);border-radius:18px;padding:3px}
+.seg button{font-size:14px!important;font-weight:700;padding:5px 14px;border-radius:15px;color:var(--mut)}.seg button.on{background:var(--bg);color:var(--fg)}
+#dr{left:auto;right:0;width:90%;transform:translateX(105%);padding-inline:14px}
+.dt{display:flex;align-items:center;gap:12px;font-weight:700;font-size:17px;padding:4px 0 6px}.dt button{background:none;border:0;font-size:26px;line-height:1}.dt span{flex:1;text-align:center;margin-right:26px}
+.sg{color:var(--mut);font-weight:600;font-size:14px;padding:18px 4px 8px}
+.cd{background:var(--card);border-radius:14px;overflow:hidden}
+.sr{display:flex;align-items:center;gap:14px;width:100%;padding:16px;background:none;border:0;text-align:left;font-weight:600;font-size:16px}
+.sr i{font-style:normal;width:24px;text-align:center;filter:grayscale(1);opacity:.75}.sr em{margin-left:auto;color:var(--mut);font-style:normal;font-size:22px;line-height:1}.sr:active{background:var(--line)}
+.avw{position:relative;display:inline-block;flex:none}.od{position:absolute;right:0;bottom:0;width:12px;height:12px;border-radius:50%;background:#31a24c;border:2px solid var(--bg)}.od.big{width:20px;height:20px;right:4px;bottom:4px;border-width:3px}
+.pfh{display:grid;justify-items:center;gap:8px;padding:20px 16px 8px}.pfh h2{display:flex;align-items:center}
+.act{display:flex;gap:8px}.ed{background:var(--card);border:0;border-radius:10px;padding:8px 22px;font-weight:700}
+.st{display:flex;gap:30px;text-align:center}.st b{display:block;font-size:18px}.bio{text-align:center;max-width:300px}
+.pt{display:flex;border-bottom:1px solid var(--line);margin-top:8px}.pt button{flex:1;background:none;border:0;padding:12px;color:var(--mut);border-bottom:2px solid transparent;display:grid;place-items:center}.pt button.on{color:var(--fg);border-color:var(--fg)}.pt svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
+.gr{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}.tl{position:relative;aspect-ratio:3/4;background:var(--card);border:0;padding:0;overflow:hidden}.tl img,.tl video{width:100%;height:100%;object-fit:cover;display:block}.tt{display:block;padding:8px;font-size:13px;text-align:left}.tp{position:absolute;left:6px;bottom:6px;color:#fff;font-size:12px;text-shadow:0 1px 3px #000}
 </style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute"><symbol id="vf" viewBox="0 0 24 24"><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5" fill="#1877f2"/><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5" fill="#1877f2" transform="rotate(45 12 12)"/><circle cx="12" cy="12" r="8.6" fill="#1877f2"/><path d="M7.4 12.4l3.1 3.1 6.2-6.6" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></symbol></svg>
 <div id="app" class="out">
-  <div id="login"><h1>Amlink</h1><p>Share, chat and connect.</p><div id="gbtn" style="justify-self:center"></div><p class="er" id="le"></p></div>
-  <div id="tb"><button data-a="dr" aria-label="Menu">☰</button><b>Amlink</b></div>
+  <div id="login"><h1 class="lg" aria-label="Amlink"><span style="--i:0">A</span><span style="--i:1">m</span><span style="--i:2">l</span><span style="--i:3">i</span><span style="--i:4">n</span><span style="--i:5">k</span></h1><p>Share, chat and connect.</p><div id="gbtn" style="justify-self:center"></div><button class="pri" data-a="su">Create account with email</button><button class="pri sec" data-a="li">Log in with email</button><p class="er" id="le"></p></div>
+  <div id="tb"><b>Amlink</b><div class="seg"><button data-a="nv" data-t="feed">Feed</button><button data-a="nv" data-t="reels">Reels</button></div><button data-a="dr" aria-label="Settings and privacy">☰</button></div>
   <div id="main"></div>
-  <nav><button data-t="feed">Home</button><button data-t="reels">Reels</button><button data-t="people">People</button><button data-t="alerts">Alerts<b id="nb" hidden></b></button><button data-t="me">Me</button></nav>
+  <nav><button data-t="feed"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1z"/></svg>Home</button><button data-t="people"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c2.8 0 4.5 1.8 4.5 4.5"/></svg>Friends</button><button class="pl2" data-a="plus" aria-label="Create">+</button><button data-t="alerts"><svg viewBox="0 0 24 24"><path d="M4 4h16v12H9l-5 4z"/></svg>Inbox<b id="nb" hidden></b></button><button data-t="me"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>Profile</button></nav>
   <div id="scrim" data-a="cs"></div>
   <section id="sh" aria-label="Comments">
     <div class="top"><span id="sc">Comments</span><button data-a="cs" aria-label="Close comments">×</button></div>
@@ -115,6 +154,7 @@ nav button.on{color:var(--acc)}
   </section>
   <div id="dsc" data-a="dc"></div>
   <aside id="dr" aria-label="Menu"></aside>
+  <div id="au" hidden><div class="ah"><button data-a="ab2" aria-label="Back">‹</button><div class="dots" id="dots"></div></div><div id="st"></div></div>
   <div id="md" hidden></div>
   <div id="ts" hidden></div>
 </div>
@@ -136,6 +176,7 @@ $('#md').onclick=e=>{if(e.target.id=='md'&&!e.target.dataset.k)closeM()};
 
 async function boot(){
   let c={};try{c=await A('config')}catch(e){}
+  try{if(window.firebase&&c.Fb&&c.Fb.apiKey){firebase.initializeApp(c.Fb);FB=firebase.auth()}}catch(e){}
   if(T){try{ME=await A('me');return app()}catch(e){}}
   if(!window.google){$('#le').textContent='Google sign-in could not load. Check your connection and refresh.';return}
   google.accounts.id.initialize({client_id:c.Client,callback:async r=>{try{const j=await A('login',{credential:r.credential});T=j.token;try{localStorage.setItem('tk',T)}catch(e){}ME=j.me;app()}catch(e){$('#le').textContent=e.message}}});
@@ -148,16 +189,21 @@ function askName(first){
 }
 async function go(t){
   tab=t;clearInterval(poll);$('#app').classList.remove('cs','dro');
-  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==t));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==(t=='reels'?'feed':t)));
+  document.querySelectorAll('.seg button').forEach(b=>b.classList.toggle('on',b.dataset.t==t));
   $('#main').innerHTML='';
-  try{if(t=='feed'||t=='reels'){posts=await A('feed');t=='feed'?home():reels()}else if(t=='people')people();else if(t=='alerts')alerts();else if(t=='circles')await circles();else if(t=='bc')await bcs();else profile()}catch(e){toast(e.message)}
+  try{if(t=='feed'||t=='reels'){posts=await A('feed');t=='feed'?home():reels()}else if(t=='people')people();else if(t=='alerts')alerts();else if(t=='circles')await circles();else if(t=='bc')await bcs();else await profile()}catch(e){toast(e.message)}
 }
-document.querySelector('nav').onclick=e=>{const b=e.target.closest('button');if(b)go(b.dataset.t)};
+document.querySelector('nav').onclick=e=>{const b=e.target.closest('button');if(b&&b.dataset.t)go(b.dataset.t)};
 
 function openDr(){
-  $('#dr').innerHTML=`<div class="dh" data-a="nv" data-t="me"><b class="av" style="width:52px;height:52px;font-size:22px">${E(ME.Username[0])}</b><div><div class="nm">${nm(ME)}</div><small>Settings and about</small></div></div>`+
-  [['feed','🏠','Home','#1877f2'],['reels','🎬','Reels','#ec4899'],['people','💬','Messages','#16a34a'],['circles','👥','Circles','#7c5cff'],['bc','📢','Broadcasts','#ff7a1a'],['alerts','🔔','Alerts','#ef4444'],['me','⚙️','Settings','#475569']]
-  .map(x=>`<button class="di" data-a="nv" data-t="${x[0]}"><i style="background:${x[3]}">${x[1]}</i>${x[2]}</button>`).join('');
+  const r=(a,i,t,x)=>`<button class="sr" data-a="${a}"${x||''}><i>${i}</i>${t}<em>›</em></button>`,nv=(t,i,l)=>r('nv',i,l,` data-t="${t}"`);
+  $('#dr').innerHTML='<div class="dt"><button data-a="dc" aria-label="Close">←</button><span>Settings and privacy</span></div>'+
+  '<p class="sg">Account</p><div class="cd">'+r('ep','👤','Edit profile')+r('un','✏️','Change username')+'</div>'+
+  '<p class="sg">Content &amp; display</p><div class="cd">'+r('cset','🔔','Chat settings')+r('th','🌓','Display')+nv('circles','👥','Circles')+r('gn','➕','Create group chat')+nv('bc','📢','Broadcasts')+nv('reels','🎬','Reels')+'</div>'+
+  '<p class="sg">Support and about</p><div class="cd">'+r('ab','ℹ️','About me')+r('lt','📄','Terms and Conditions')+r('lp','🔒','Privacy Policy')+'</div>'+
+  (ME.Admin?'<p class="sg">Admin</p><div class="cd">'+r('adm','🛡️','Admin panel')+'</div>':'')+
+  '<p class="sg">Login</p><div class="cd">'+r('out','🚪','Log out')+'</div>';
   $('#app').classList.add('dro');
 }
 
@@ -216,18 +262,22 @@ function sl(){
     return `<div class="c"><b class="av">${E((c.U.Username||'?')[0])}</b><div class="cb"><div class="nm">${nm(c.U)}</div><div>${E(c.Text)}</div><small>${ago(c.TS)} </small><button class="rp" data-a="rp" data-n="${E(c.U.Username)}">Reply</button></div><button class="cl${on?' on':''}" data-a="cl" data-i="${i}" aria-label="Like comment"><b>${on?'♥':'♡'}</b>${n||''}</button></div>`}).join('')||'<p class="empty">No comments yet. Start the conversation.</p>';
 }
 
+const stat=u=>u.On?'Online':u.Seen?'Last seen '+(ago(u.Seen)=='now'?'just now':ago(u.Seen)+' ago'):'';
 function people(){
-  $('#main').innerHTML='<div class="ch2"><b>Contacts</b><button data-a="cset" aria-label="Chat settings">⋯</button></div><div class="sb"><input id="q" placeholder="Search people by username" autocomplete="off"></div><div id="pl"></div>';
+  $('#main').innerHTML='<div class="ch2"><b>Friends</b><button data-a="cset" aria-label="Chat settings">⋯</button></div><div class="sb"><input id="q" placeholder="Search people by username" autocomplete="off"></div><div id="pl"></div>';
   let t;$('#q').oninput=()=>{clearTimeout(t);t=setTimeout(pl,250)};pl();
 }
-async function pl(){try{ppl=(!CS.con&&!$('#q').value)?[]:await A('search?q='+encodeURIComponent($('#q').value));drawP()}catch(e){toast(e.message)}}
+async function pl(){try{const q=$('#q').value;ppl=(!CS.con&&!q)?[]:await A(q?'search?q='+encodeURIComponent(q):'friends');drawP()}catch(e){toast(e.message)}}
 function drawP(){
-  $('#pl').innerHTML=(ppl.length?'':'<p class="empty">Search a username to find people. People you follow appear here.</p>')+ppl.map(u=>`<div class="pr"><b class="av">${E(u.Username[0])}</b><div class="nm">${nm(u)}${u.On?'<i class="dot" title="Online"></i>':''}</div><button class="fl" data-a="fol" data-i="${u.ID}"></button><button data-a="dm" data-i="${u.ID}">Message</button>${ME.Admin?`<button data-a="ver" data-i="${u.ID}">${u.Verified?'Unverify':'Verify'}</button>`:''}</div>`).join('');
+  const on=ppl.filter(u=>u.On),off=ppl.filter(u=>!u.On).sort((a,b)=>(b.Seen||0)-(a.Seen||0)),q=$('#q')&&$('#q').value;
+  const row=u=>`<div class="pr"><span class="avw" data-a="pf" data-i="${u.ID}"><b class="av">${E(u.Username[0])}</b>${u.On?'<i class="od"></i>':''}</span><div class="nm" data-a="pf" data-i="${u.ID}">${nm(u)}<br><small>${stat(u)}</small></div><button class="fl" data-a="fol" data-i="${u.ID}"></button><button data-a="dm" data-i="${u.ID}">Message</button>${ME.Admin?`<button data-a="ver" data-i="${u.ID}">${u.Verified?'Unverify':'Verify'}</button>`:''}</div>`;
+  const h=(t,n)=>n?`<p class="sg" style="padding:14px 16px 4px">${t} (${n})</p>`:'';
+  $('#pl').innerHTML=(ppl.length?'':'<p class="empty">Search a username to find people. People you follow and anyone online show up here.</p>')+(q?ppl.map(row).join(''):h('Online now',on.length)+on.map(row).join('')+h('Offline',off.length)+off.map(row).join(''));
   paint();
 }
 async function L(){const m=await A('msgs?w='+peer.ID),b=$('#ms');if(!b)return;b.innerHTML=m.map(x=>`<div class="m ${x.From==ME.ID?'me':''}">${msgM(x)}${E(x.Text)}</div>`).join('');b.scrollTop=b.scrollHeight}
 async function chat(u){
-  peer=u;$('#main').innerHTML=`<div class="ch"><div class="chh"><button data-a="back" aria-label="Back">‹</button><b>${nm(u)}</b></div><div class="ms" id="ms"></div><div class="bar"><label class="at" aria-label="Attach photo or video">📎<input id="mf" type="file" accept="image/*,video/*" hidden></label><input id="mi" placeholder="Message…" autocomplete="off"><button data-a="mic" id="mic" aria-label="Record voice note">🎤</button><button data-a="send">Send</button></div></div>`;
+  peer=u;$('#main').innerHTML=`<div class="ch"><div class="chh"><button data-a="back" aria-label="Back">‹</button><div><b>${nm(u)}</b><br><small>${stat(u)}</small></div></div><div class="ms" id="ms"></div><div class="bar"><label class="at" aria-label="Attach photo or video">📎<input id="mf" type="file" accept="image/*,video/*" hidden></label><input id="mi" placeholder="Message…" autocomplete="off"><button data-a="mic" id="mic" aria-label="Record voice note">🎤</button><button data-a="send">Send</button></div></div>`;
   $('#mi').onkeydown=e=>{if(e.key=='Enter')send()};$('#mf').onchange=()=>sendFile($('#mf').files[0]);
   await L();poll=setInterval(()=>L().catch(()=>{}),3000);
 }
@@ -270,17 +320,41 @@ function bnew(){
   $('#bcr').onclick=async()=>{try{await A('chcreate',{name:$('#bnm').value,desc:$('#bd').value});closeM();bcs()}catch(e){$('#er').textContent=e.message}};
 }
 
-/* Settings */
-function profile(){
-  const r=(x,i,t,s)=>`<button class="di" data-a="${x}"><i style="background:${i[1]}">${i[0]}</i><span>${t}${s?`<small>${s}</small>`:''}</span></button>`;
-  $('#main').innerHTML=`<div class="prof"><b class="av big">${E(ME.Username[0])}</b><h2>${nm(ME)}</h2><small>${E(ME.Email)}</small></div><div style="padding:0 12px 24px">`+
-  r('un',['✏️','#1877f2'],'Change username','@'+E(ME.Username))+
-  r('gn',['👥','#7c5cff'],'Create group chat','Start a circle with friends')+
-  r('cset',['💬','#16a34a'],'Chat settings','Sounds, pop-ups and active status')+
-  r('th',['🌓','#475569'],'Light or dark mode')+
-  r('ab',['ℹ️','#f59e0b'],'About me','About Amlink and its developer')+
-  (ME.Admin?r('adm',['🛡️','#ef4444'],'Admin panel'):'')+
-  r('out',['🚪','#64748b'],'Log out')+'</div>';
+/* Profile */
+let PF,ptab='p';
+async function profile(id){
+  PF=await A('profile'+(id?'?id='+id:''));ptab='p';
+  if(!ppl.some(x=>x.ID==PF.U.ID))ppl.push(PF.U);
+  pfDraw();
+}
+function opf(id){tab='pf';clearInterval(poll);document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));$('#main').innerHTML='';profile(id).catch(e=>toast(e.message))}
+function pfDraw(){
+  const j=PF,u=j.U,me=j.IsMe,L=j.Posts.filter(p=>ptab=='p'||p.Kind=='video');
+  const tb=(v,svg)=>`<button class="${ptab==v?'on':''}" data-a="pt" data-v="${v}" aria-label="${v=='p'?'Posts':'Reels'}">${svg}</button>`;
+  const tile=p=>`<button class="tl" data-a="pv" data-i="${p.ID}">${p.Media?(p.Kind=='video'?`<video src="${E(p.Media)}#t=0.1" muted playsinline preload="metadata"></video><span class="tp">▶</span>`:`<img src="${E(p.Media)}" loading="lazy" alt="">`):`<span class="tt">${E((p.Text||'').slice(0,90))}</span>`}</button>`;
+  $('#main').innerHTML=`<div class="pfh"><span class="avw"><b class="av big">${E(u.Username[0])}</b>${u.On?'<i class="od big"></i>':''}</span><h2>${E(j.Name||u.Username)}${u.Verified?VB:''}</h2><small>@${E(u.Username)}${me?'':stat(u)?' · '+stat(u):''}</small>`+
+  `<div class="act">${me?'<button class="ed" data-a="ep">Edit</button>':`<button class="fl" data-a="fol" data-i="${u.ID}"></button><button class="ed" data-a="dm" data-i="${u.ID}">Message</button>`}</div>`+
+  `<div class="st"><div><b>${j.Following}</b><small>Following</small></div><div><b>${j.Followers}</b><small>Followers</small></div><div><b>${j.Likes}</b><small>Likes</small></div></div>`+
+  (j.Bio?`<p class="bio">${E(j.Bio)}</p>`:me?'<button class="lnk" data-a="ep">Add a bio</button>':'')+`</div>`+
+  `<div class="pt">${tb('p','<svg viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg>')}${tb('r','<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M10 9l5 3-5 3z"/></svg>')}</div>`+
+  (L.length?'<div class="gr">'+L.map(tile).join('')+'</div>':'<p class="empty">Nothing here yet.</p>');
+  paint();
+}
+function pview(id){const p=PF.Posts.find(x=>x.ID==id);if(!p)return;modal(`<div style="display:grid;gap:8px">${mediaH(p)}${p.Text?`<p style="white-space:pre-wrap">${E(p.Text)}</p>`:''}<small>${ago(p.TS)} · ♥ ${(p.Likes||[]).length} · 💬 ${p.C.length}</small>${PF.IsMe||ME.Admin?`<button class="dl" data-a="delp" data-i="${p.ID}">Delete</button>`:''}</div>`)}
+function editP(){
+  modal(`<h3>Edit profile</h3><textarea id="bio" maxlength="120" placeholder="Write a short bio">${E(ME.Bio||'')}</textarea><p class="er" id="er"></p><button class="pri" id="sbio">Save</button><button class="lnk" data-a="un">Change username</button>`);
+  $('#sbio').onclick=async()=>{try{ME=await A('bio',{bio:$('#bio').value});closeM();go('me')}catch(e){$('#er').textContent=e.message}};
+}
+/* Create (plus button) */
+function plus(){
+  modal(`<h3>Create</h3><button class="di" data-a="rn"><i style="background:#ec4899">🎬</i><span>Post a reel<small>Share a video</small></span></button><button class="di" data-a="new"><i style="background:#1877f2">✍️</i><span>Create a post<small>Text, photo or video</small></span></button><button class="di" data-a="sa"><i style="background:#7c5cff">⭕</i><span>Add a moment<small>Disappears in 24 hours</small></span></button>`);
+}
+function reelNew(){
+  modal('<h3>Post a reel</h3><input id="fi" type="file" accept="video/*"><textarea id="tx" placeholder="Write a caption…" maxlength="300"></textarea><p class="er" id="er"></p><button class="pri" id="pub">Post reel</button>');
+  $('#pub').onclick=async()=>{const f=$('#fi').files[0],b=$('#pub');if(!f||!f.type.startsWith('video')){$('#er').textContent='Choose a video to post.';return}
+    b.disabled=true;b.textContent='Posting…';
+    try{const m=await up(f);await A('post',{text:$('#tx').value,media:m,kind:'video'});closeM();go('reels')}
+    catch(e){$('#er').textContent=e.message;b.disabled=false;b.textContent='Post reel'}};
 }
 const msgM=x=>x.Media?(x.Kind=='video'?`<video src="${E(x.Media)}" controls playsinline></video>`:x.Kind=='audio'?`<audio src="${E(x.Media)}" controls></audio>`:`<img src="${E(x.Media)}" alt="">`):'';
 async function up(f,type){const r=await fetch('/api/upload',{method:'POST',headers:{'X-Token':T,'Content-Type':type||f.type},body:f});const j=await r.json();if(j.error)throw new Error(j.error);return j.url}
@@ -294,7 +368,7 @@ async function mic(){
     rec.start();$('#mic').textContent='⏹'}catch(e){toast('Microphone not allowed')}
 }
 const TXT={like:'liked your post',comment:'commented on your post',follow:'started following you',msg:'sent you a message'};
-async function alerts(){const j=await A('notifs');$('#nb').hidden=true;$('#main').innerHTML=j.L.length?j.L.map(x=>`<div class="pr${x.New?' nw':''}"><b class="av">${E((x.U.Username||'?')[0])}</b><div class="nm">${nm(x.U)} <small>${TXT[x.Type]||''}, ${ago(x.TS)}</small></div></div>`).join(''):'<p class="empty">No notifications yet.</p>'}
+async function alerts(){const j=await A('notifs');$('#nb').hidden=true;$('#main').innerHTML='<div class="ch2"><b>Inbox</b></div><div style="padding:8px 12px"><button class="di" data-a="nv" data-t="circles"><i style="background:#7c5cff">👥</i><span>Circles<small>Group chats</small></span></button><button class="di" data-a="nv" data-t="bc"><i style="background:#ff7a1a">📢</i><span>Broadcasts<small>Channels you follow</small></span></button></div>'+(j.L.length?j.L.map(x=>`<div class="pr${x.New?' nw':''}"><b class="av">${E((x.U.Username||'?')[0])}</b><div class="nm">${nm(x.U)} <small>${TXT[x.Type]||''}, ${ago(x.TS)}</small></div></div>`).join(''):'<p class="empty">No notifications yet.</p>')}
 async function bell(){if(!T||!ME)return;try{const j=await A('notifs?c=1'),b=$('#nb');b.textContent=j.N;b.hidden=!j.N||tab=='alerts';if((j.M||0)>(bell.m||0)){if(CS.snd)beep();if(CS.pop)toast('New message')}bell.m=j.M||0}catch(e){}}
 function beep(){try{const a=new AudioContext(),o=a.createOscillator();o.connect(a.destination);o.frequency.value=880;o.start();o.stop(a.currentTime+.12)}catch(e){}}
 function cset(){const r=(k,t,s,on)=>`<div class="row"><div>${t}<small>${s}</small></div><label class="sw"><input type="checkbox" data-a="tg" data-k="${k}"${on?' checked':''}><span></span></label></div>`;modal('<h3>Chat settings</h3><small>Customise your Amlink experience.</small>'+r('snd','Message sounds','Play a sound for new messages',CS.snd)+r('pop','Pop up new messages','Show a notice when a message arrives',CS.pop)+r('con','Show contacts','List the people you follow',CS.con)+r('act','Active status','Let people see when you are online',!ME.Hide))}
@@ -311,8 +385,57 @@ function newPost(){
   };
 }
 
+let FB,AU={};
+const LEG={t:`<p><b>1. Using Amlink.</b> You must be at least 13 years old. Keep your login private. You are responsible for what happens on your account.</p><p><b>2. Your content.</b> You own what you post. By posting, you let Amlink store it and show it to other people as the app works.</p><p><b>3. Rules.</b> Do not post anything illegal, hateful, threatening or harassing. Do not post sexual content involving minors, spam, scams, malware or other people’s private information. Do not pretend to be someone else or break other people’s rights.</p><p><b>4. Moderation.</b> We may remove content, change verification and suspend or ban accounts that break these rules.</p><p><b>5. Messages.</b> Chats are private between the people in them. We may look at them only to investigate abuse reports or when the law requires it.</p><p><b>6. The service.</b> Amlink is provided as it is. We may change it, pause it or end it, and we do not promise it will always be available or error free.</p><p><b>7. Contact.</b> Amlink is developed and owned by Nwodili Yaemerie Convenant. Questions: whitefrostff@gmail.com.</p>`,
+p:`<p><b>What we collect.</b> Your name, email, date of birth, username, posts, comments, messages, photos, videos and voice notes you upload, and when you were last active.</p><p><b>Why.</b> To run your account, show your content, send notifications, keep people safe and check that you are old enough (13 or older). Your date of birth is never shown on your profile.</p><p><b>Who handles it.</b> Firebase (Google) handles email sign-in, Neon stores account data and messages, Supabase stores uploaded media, and Google handles Google sign-in. We do not sell your personal data.</p><p><b>Who can see it.</b> Posts, comments, moments and your username are visible to other users. Messages are visible only to the people in the chat. You can hide your active status in Chat settings.</p><p><b>Deleting your data.</b> Email us and we will delete your account and data.</p><p><b>Children.</b> Amlink is not for children under 13.</p><p><b>Contact.</b> whitefrostff@gmail.com</p>`};
+function legal(k){modal(`<h3>${k=='t'?'Terms and Conditions':'Privacy Policy'}</h3><div class="leg">${LEG[k]}</div><button class="pri" data-a="mc">Close</button>`)}
+const age=d=>{const b=new Date(d),n=new Date();if(isNaN(b))return -1;let a=n.getFullYear()-b.getUTCFullYear();if(n<new Date(n.getFullYear(),b.getUTCMonth(),b.getUTCDate()))a--;return a};
+const FE={'auth/invalid-credential':'Wrong email or password.','auth/wrong-password':'Wrong email or password.','auth/user-not-found':'Wrong email or password.','auth/invalid-email':'Enter a valid email address.','auth/weak-password':'Use a password with at least 6 characters.','auth/too-many-requests':'Too many tries. Wait a moment and try again.','auth/network-request-failed':'No connection. Check your internet.'};
+const fe=e=>FE[e.code]||e.message;
+function aOpen(m){if(!FB){$('#le').textContent='Email sign-in is not set up yet.';return}AU={m,s:0,d:{}};$('#au').hidden=false;aDraw(1)}
+const aSteps=()=>AU.m=='in'?['in']:['name','dob','acct','terms'];
+function aDraw(dir){
+  const S=aSteps(),k=S[AU.s],d=AU.d,tdy=new Date().toISOString().slice(0,10),ae='<p class="er" id="ae"></p>';
+  $('#dots').innerHTML=S.length>1?S.map((_,i)=>`<i class="${i<=AU.s?'on':''}"></i>`).join(''):'';
+  const P={
+    name:`<h2>What’s your name?</h2><p class="sub">This is how you’ll appear on Amlink.</p><input id="f1" value="${E(d.name||'')}" placeholder="Full name" maxlength="60" autocomplete="name">${ae}<button class="pri" data-a="nx">Next</button>`,
+    dob:`<h2>When’s your birthday?</h2><p class="sub">You must be at least 13 to join. It won’t show on your profile.</p><input id="f1" type="date" value="${E(d.dob||'')}" max="${tdy}">${ae}<button class="pri" data-a="nx">Next</button>`,
+    acct:`<h2>Set up your login</h2><p class="sub">You’ll use these to log in.</p><input id="f1" type="email" value="${E(d.em||'')}" placeholder="Email address" autocomplete="email"><input id="f2" type="password" placeholder="Password (6+ characters)" autocomplete="new-password">${ae}<button class="pri" data-a="nx">Next</button>`,
+    terms:`<h2>Almost there</h2><p class="sub">Please read and agree to continue.</p><button class="lnk" data-a="lt">Terms and Conditions</button><button class="lnk" data-a="lp">Privacy Policy</button><label class="row"><span>I am 13 or older and I agree to the Terms and Privacy Policy.</span><input type="checkbox" id="ag"></label>${ae}<button class="pri" data-a="nx">Create account</button>`,
+    in:`<h2>Welcome back</h2><p class="sub">Log in with your email.</p><input id="f1" type="email" placeholder="Email address" autocomplete="email"><input id="f2" type="password" placeholder="Password" autocomplete="current-password"><button class="lnk" data-a="fg">Forgot password?</button>${ae}<button class="pri" data-a="nx">Log in</button>`
+  };
+  $('#st').innerHTML=`<div class="sl${dir<0?' bk':''}">${P[k]}</div>`;
+  const f=$('#f1');if(f)setTimeout(()=>f.focus(),60);
+}
+async function aNext(){
+  if(AU.b)return;const k=aSteps()[AU.s],v=id=>($(id)?$(id).value.trim():''),ae=$('#ae');ae.textContent='';AU.b=1;
+  const nx=()=>{AU.s++;aDraw(1)};
+  try{
+    if(k=='name'){const n=v('#f1');if(n.length<2)throw new Error('Enter your full name.');AU.d.name=n;nx()}
+    else if(k=='dob'){const d=v('#f1'),a=age(d);if(a<0||a>120)throw new Error('Enter a valid date of birth.');if(a<13)throw new Error('You must be at least 13 to join Amlink.');AU.d.dob=d;nx()}
+    else if(k=='acct'){const em=v('#f1'),pw=$('#f2').value;if(!/^\S+@\S+\.\S+$/.test(em))throw new Error('Enter a valid email address.');if(pw.length<6)throw new Error('Use a password with at least 6 characters.');AU.d.em=em;AU.d.pw=pw;nx()}
+    else if(k=='terms'){if(!$('#ag').checked)throw new Error('Please agree to continue.');await aMake()}
+    else await aFin((await FB.signInWithEmailAndPassword(v('#f1'),$('#f2').value)).user);
+  }catch(e){const x=$('#ae');if(x)x.textContent=fe(e)}
+  AU.b=0;
+}
+async function aMake(){
+  const{em,pw}=AU.d;let u;
+  try{u=(await FB.createUserWithEmailAndPassword(em,pw)).user;try{await u.sendEmailVerification()}catch(x){}}
+  catch(e){if(e.code!='auth/email-already-in-use')throw e;try{u=(await FB.signInWithEmailAndPassword(em,pw)).user}catch(x){throw new Error('That email is already registered. Try logging in.')}}
+  await aFin(u);
+}
+async function aFin(u){
+  const j=await A('fblogin',{token:await u.getIdToken(),name:AU.d.name||'',dob:AU.d.dob||'',terms:'1'});
+  T=j.token;try{localStorage.setItem('tk',T)}catch(e){}ME=j.me;$('#au').hidden=true;app();
+}
+function aBack(){if(AU.s>0){AU.s--;aDraw(-1)}else $('#au').hidden=true}
+async function aForgot(){const em=$('#f1').value.trim();if(!em){toast('Enter your email first');return}try{await FB.sendPasswordResetEmail(em);toast('Reset link sent. Check your email.')}catch(e){toast(fe(e))}}
+$('#st').onkeydown=e=>{if(e.key=='Enter')aNext()};
+
 $('#app').onclick=async e=>{
   const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,i=b.dataset.i;
+  if(a!='dc'&&b.closest('#dr'))$('#app').classList.remove('dro');
   try{
     if(a=='like')upd(await A('like',{id:i}));
     else if(a=='cm')sheet(i);
@@ -349,7 +472,14 @@ $('#app').onclick=async e=>{
     else if(a=='bb')go('bc');
     else if(a=='bp'){await A('chpost',{id:i,text:$('#bt').value});bopen(i)}
     else if(a=='ab')modal('<h3>About me</h3><p>Amlink is where you share, chat and connect.</p><p>Developed and owned by <b>Nwodili Yaemerie Convenant</b>.</p><p>Contact: whitefrostff@gmail.com</p><button class="pri" data-a="mc">Close</button>');
+    else if(a=='plus')plus();
+    else if(a=='rn')reelNew();
+    else if(a=='pf')opf(i);
+    else if(a=='pv')pview(i);
+    else if(a=='pt'){ptab=b.dataset.v;pfDraw()}
+    else if(a=='ep')editP();
     else if(a=='mc')closeM();
+    else if(a=='su')aOpen('up');else if(a=='li')aOpen('in');else if(a=='nx')aNext();else if(a=='ab2')aBack();else if(a=='fg')aForgot();else if(a=='lt')legal('t');else if(a=='lp')legal('p');
   }catch(x){toast(x.message)}
 };
 $('#ci').onkeydown=e=>{if(e.key=='Enter')document.querySelector('[data-a=pc]').click()};
