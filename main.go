@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -25,6 +26,8 @@ type User struct {
 	Agreed                        int64
 	Bio                           string
 	Saved                         []string
+	Avatar, Cover string
+	Blocked []string
 }
 type Comment struct {
 	User, Text string
@@ -40,6 +43,7 @@ type Post struct {
 type Msg struct {
 	From, To, Text, Kind, Media string
 	TS                          int64
+	Read bool
 }
 type Notif struct {
 	To, From, Type, Post string
@@ -79,6 +83,8 @@ type State struct {
 	Channels []*Channel
 	Reports  []*Report
 	Notice   string
+	SessTS map[string]int64
+	Log []string
 }
 
 var (
@@ -160,6 +166,9 @@ func load() {
 	}
 	if S.Sess == nil {
 		S.Sess = map[string]string{}
+	}
+	if S.SessTS == nil {
+		S.SessTS = map[string]int64{}
 	}
 }
 
@@ -243,7 +252,7 @@ func uv(id string) map[string]any {
 	if u.Hide {
 		seen = 0
 	}
-	return map[string]any{"ID": u.ID, "Username": u.Username, "Verified": u.Verified, "On": now()-u.Seen < 120 && !u.Hide, "Seen": seen}
+	return map[string]any{"ID": u.ID, "Username": u.Username, "Verified": u.Verified, "On": now()-u.Seen < 120 && !u.Hide, "Seen": seen, "Av": u.Avatar}
 }
 func pv(p *Post) map[string]any {
 	cs := []map[string]any{}
@@ -293,6 +302,17 @@ func api(path string, f func(u *User, w http.ResponseWriter, r *http.Request)) {
 			fail(w, 401, "Please log in")
 			return
 		}
+		tok := r.Header.Get("X-Token")
+		if ts, k := S.SessTS[tok]; k && now()-ts > 2592000 {
+			delete(S.Sess, tok)
+			delete(S.SessTS, tok)
+			fail(w, 401, "Session expired")
+			return
+		}
+		if !rate(u.ID) {
+			fail(w, 429, "Slow down a little")
+			return
+		}
 		if u.Banned {
 			fail(w, 403, "This account is banned")
 			return
@@ -300,6 +320,27 @@ func api(path string, f func(u *User, w http.ResponseWriter, r *http.Request)) {
 		u.Seen = now()
 		f(u, w, r)
 	})
+}
+
+func blk(a, b *User) bool { return has(a.Blocked, b.ID) || has(b.Blocked, a.ID) }
+
+var rl = map[string][2]int64{}
+
+func rate(id string) bool {
+	t := now() / 60
+	v := rl[id]
+	if v[0] != t {
+		v = [2]int64{t, 0}
+	}
+	v[1]++
+	rl[id] = v
+	return v[1] <= 150
+}
+func alog(u *User, s string) {
+	S.Log = append(S.Log, time.Now().Format("2006-01-02 15:04")+" @"+u.Username+": "+s)
+	if len(S.Log) > 200 {
+		S.Log = S.Log[100:]
+	}
 }
 
 func main() {
@@ -363,6 +404,7 @@ func main() {
 		}
 		tok := uid() + uid()
 		S.Sess[tok] = t.Sub
+		S.SessTS[tok] = now()
 		save()
 		js(w, map[string]any{"token": tok, "me": u})
 	})
@@ -417,6 +459,7 @@ func main() {
 		}
 		tok := uid() + uid()
 		S.Sess[tok] = u.ID
+		S.SessTS[tok] = now()
 		save()
 		js(w, map[string]any{"token": tok, "me": u})
 	})
@@ -472,7 +515,14 @@ func main() {
 
 	api("feed", func(u *User, w http.ResponseWriter, r *http.Request) {
 		out := []map[string]any{}
-		for i := len(S.Posts) - 1; i >= 0 && len(out) < 60; i-- {
+		n, _ := strconv.Atoi(r.URL.Query().Get("n"))
+		if n < 60 || n > 300 {
+			n = 60
+		}
+		for i := len(S.Posts) - 1; i >= 0 && len(out) < n; i-- {
+			if o := S.Users[S.Posts[i].User]; o != nil && blk(u, o) {
+				continue
+			}
 			out = append(out, pv(S.Posts[i]))
 		}
 		js(w, out)
@@ -564,7 +614,7 @@ func main() {
 		q := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
 		out := []map[string]any{}
 		for _, o := range S.Users {
-			if o.ID == u.ID || o.Username == "" {
+			if o.ID == u.ID || o.Username == "" || blk(u, o) {
 				continue
 			}
 			if (q == "" && has(u.Following, o.ID)) || (q != "" && (strings.Contains(o.Username, q) || strings.Contains(strings.ToLower(o.Name), q))) {
@@ -576,11 +626,18 @@ func main() {
 
 	api("msgs", func(u *User, w http.ResponseWriter, r *http.Request) {
 		p := r.URL.Query().Get("w")
-		out := []Msg{}
-		for _, m := range S.Msgs {
+		out, ch := []Msg{}, false
+		for i := range S.Msgs {
+			m := &S.Msgs[i]
 			if (m.From == u.ID && m.To == p) || (m.From == p && m.To == u.ID) {
-				out = append(out, m)
+				if m.To == u.ID && !m.Read {
+					m.Read, ch = true, true
+				}
+				out = append(out, *m)
 			}
+		}
+		if ch {
+			save()
 		}
 		js(w, out)
 	})
@@ -588,7 +645,7 @@ func main() {
 	api("msg", func(u *User, w http.ResponseWriter, r *http.Request) {
 		b := in(r)
 		t := strings.TrimSpace(b["text"])
-		if S.Users[b["to"]] == nil || (t == "" && b["media"] == "") || len(t) > 1000 || !okMedia(b["media"]) {
+		if S.Users[b["to"]] == nil || blk(u, S.Users[b["to"]]) || (t == "" && b["media"] == "") || len(t) > 1000 || !okMedia(b["media"]) {
 			fail(w, 400, "Invalid message")
 			return
 		}
@@ -609,6 +666,7 @@ func main() {
 			return
 		}
 		o.Verified = !o.Verified
+		alog(u, "toggled verified on @"+o.Username)
 		save()
 		js(w, uv(o.ID))
 	})
@@ -683,7 +741,7 @@ func main() {
 			}
 			rp = append(rp, m)
 		}
-		js(w, map[string]any{"Users": len(S.Users), "Posts": len(S.Posts), "Msgs": len(S.Msgs), "L": us, "Online": on, "Banned": bn, "Verified": vr, "Reels": rv, "Groups": len(S.Groups), "Channels": len(S.Channels), "Moments": len(S.Statuses), "PL": pl, "R": rp, "Notice": S.Notice})
+		js(w, map[string]any{"Users": len(S.Users), "Posts": len(S.Posts), "Msgs": len(S.Msgs), "L": us, "Online": on, "Banned": bn, "Verified": vr, "Reels": rv, "Groups": len(S.Groups), "Channels": len(S.Channels), "Moments": len(S.Statuses), "PL": pl, "R": rp, "Notice": S.Notice, "Log": S.Log})
 	})
 
 	api("ban", func(u *User, w http.ResponseWriter, r *http.Request) {
@@ -693,6 +751,7 @@ func main() {
 			return
 		}
 		o.Banned = !o.Banned
+		alog(u, "toggled ban on @"+o.Username)
 		save()
 		js(w, map[string]bool{"Banned": o.Banned})
 	})
@@ -704,6 +763,7 @@ func main() {
 			return
 		}
 		o.Admin = !o.Admin
+		alog(u, "toggled admin on @"+o.Username)
 		if o.Admin {
 			o.Verified = true
 		}
@@ -717,6 +777,7 @@ func main() {
 			fail(w, 403, "Not allowed")
 			return
 		}
+		alog(u, "deleted user @"+o.Username)
 		purge(o.ID)
 		save()
 		js(w, ok)
@@ -729,6 +790,7 @@ func main() {
 			return
 		}
 		S.Notice = t
+		alog(u, "updated the notice")
 		save()
 		js(w, ok)
 	})
@@ -847,7 +909,7 @@ func main() {
 				}
 			}
 		}
-		js(w, map[string]any{"U": uv(id), "Name": o.Name, "Bio": o.Bio, "Following": len(o.Following), "Followers": fol, "Likes": lk, "Posts": ps, "IsMe": id == u.ID})
+		js(w, map[string]any{"U": uv(id), "Name": o.Name, "Bio": o.Bio, "Following": len(o.Following), "Followers": fol, "Likes": lk, "Posts": ps, "IsMe": id == u.ID, "Cover": o.Cover, "Blocked": has(u.Blocked, id)})
 	})
 	api("bio", func(u *User, w http.ResponseWriter, r *http.Request) {
 		bd := in(r)
@@ -860,13 +922,19 @@ func main() {
 			u.Name = n
 		}
 		u.Bio = b
+		if v, k := bd["avatar"]; k && okMedia(v) {
+			u.Avatar = v
+		}
+		if v, k := bd["cover"]; k && okMedia(v) {
+			u.Cover = v
+		}
 		save()
 		js(w, u)
 	})
 	api("friends", func(u *User, w http.ResponseWriter, r *http.Request) {
 		out := []map[string]any{}
 		for _, o := range S.Users {
-			if o.ID == u.ID || o.Username == "" || o.Banned {
+			if o.ID == u.ID || o.Username == "" || o.Banned || blk(u, o) {
 				continue
 			}
 			if (now()-o.Seen < 120 && !o.Hide) || has(u.Following, o.ID) {
@@ -1030,6 +1098,140 @@ func main() {
 		}
 		save()
 		js(w, ok)
+	})
+
+		api("onep", func(u *User, w http.ResponseWriter, r *http.Request) {
+		p := fp(r.URL.Query().Get("id"))
+		if p == nil {
+			fail(w, 404, "Post not found")
+			return
+		}
+		js(w, pv(p))
+	})
+	api("editpost", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		p, t := fp(b["id"]), strings.TrimSpace(b["text"])
+		if p == nil || p.User != u.ID || len(t) > 2000 || (t == "" && p.Media == "") {
+			fail(w, 400, "Cannot edit this post")
+			return
+		}
+		p.Text = t
+		save()
+		js(w, pv(p))
+	})
+	api("delcomment", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		p := fp(b["id"])
+		i, e := strconv.Atoi(b["i"])
+		if p == nil || e != nil || i < 0 || i >= len(p.Comments) {
+			fail(w, 400, "Invalid comment")
+			return
+		}
+		if p.Comments[i].User != u.ID && p.User != u.ID && !u.Admin {
+			fail(w, 403, "Not allowed")
+			return
+		}
+		p.Comments = append(p.Comments[:i], p.Comments[i+1:]...)
+		save()
+		js(w, pv(p))
+	})
+	api("explore", func(u *User, w http.ResponseWriter, r *http.Request) {
+		q := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
+		out := []map[string]any{}
+		for i := len(S.Posts) - 1; i >= 0 && len(out) < 40; i-- {
+			p := S.Posts[i]
+			if o := S.Users[p.User]; o != nil && blk(u, o) {
+				continue
+			}
+			if q == "" || strings.Contains(strings.ToLower(p.Text), q) {
+				out = append(out, pv(p))
+			}
+		}
+		js(w, out)
+	})
+	api("block", func(u *User, w http.ResponseWriter, r *http.Request) {
+		id := in(r)["id"]
+		if id == u.ID || S.Users[id] == nil {
+			fail(w, 400, "Invalid user")
+			return
+		}
+		if has(u.Blocked, id) {
+			u.Blocked = del(u.Blocked, id)
+		} else {
+			u.Blocked = append(u.Blocked, id)
+			u.Following = del(u.Following, id)
+		}
+		save()
+		js(w, u)
+	})
+	api("flist", func(u *User, w http.ResponseWriter, r *http.Request) {
+		id, t := r.URL.Query().Get("id"), r.URL.Query().Get("t")
+		o := S.Users[id]
+		if o == nil {
+			fail(w, 404, "User not found")
+			return
+		}
+		out := []map[string]any{}
+		for _, x := range S.Users {
+			if x.Username == "" || blk(u, x) {
+				continue
+			}
+			if (t == "following" && has(o.Following, x.ID)) || (t != "following" && has(x.Following, id)) {
+				out = append(out, uv(x.ID))
+			}
+		}
+		js(w, out)
+	})
+	api("inbox", func(u *User, w http.ResponseWriter, r *http.Request) {
+		type cv struct {
+			id   string
+			last Msg
+			un   int
+		}
+		m := map[string]*cv{}
+		for _, x := range S.Msgs {
+			if x.From != u.ID && x.To != u.ID {
+				continue
+			}
+			p := x.To
+			if x.From != u.ID {
+				p = x.From
+			}
+			c := m[p]
+			if c == nil {
+				c = &cv{id: p}
+				m[p] = c
+			}
+			c.last = x
+			if x.To == u.ID && !x.Read {
+				c.un++
+			}
+		}
+		list := []*cv{}
+		for _, c := range m {
+			if o := S.Users[c.id]; o != nil && !blk(u, o) {
+				list = append(list, c)
+			}
+		}
+		sort.Slice(list, func(a, b int) bool { return list[a].last.TS > list[b].last.TS })
+		out := []map[string]any{}
+		for _, c := range list {
+			l := cut(c.last.Text)
+			if l == "" {
+				l = "Media"
+			}
+			out = append(out, map[string]any{"U": uv(c.id), "Last": l, "TS": c.last.TS, "Un": c.un, "Mine": c.last.From == u.ID})
+		}
+		js(w, out)
+	})
+	api("export", func(u *User, w http.ResponseWriter, r *http.Request) {
+		mine := []map[string]any{}
+		for _, p := range S.Posts {
+			if p.User == u.ID {
+				mine = append(mine, pv(p))
+			}
+		}
+		js(w, map[string]any{"Account": u, "Posts": mine})
 	})
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
