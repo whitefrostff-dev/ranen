@@ -205,6 +205,28 @@ input,textarea{font-size:16px!important}
 .reel video{object-fit:contain;background:#000}
 #app.fs .bar{padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}
 @media(max-width:899px){#app.fs nav,#app.fs #tb,#app.fs #ann{display:none}}
+
+/* v6: feed, reels, moments, explore */
+#ptr{position:absolute;top:56px;left:50%;z-index:6;font-size:22px;opacity:0;pointer-events:none;transform:translate(-50%,0)}
+#npl{position:absolute;top:64px;left:50%;transform:translateX(-50%);z-index:7;border:0;border-radius:20px;padding:8px 16px;font-weight:700;background:var(--fg);color:var(--bg);box-shadow:0 4px 14px #0006}
+.skc{margin:10px 12px;padding:14px;border:1px solid var(--line);border-radius:18px;display:grid;gap:10px}
+.skc i{display:block;border-radius:8px;background:linear-gradient(90deg,var(--line) 25%,var(--card) 50%,var(--line) 75%) 0 0/200% 100%;animation:sk 1.2s linear infinite}
+.skc .sa{width:38px;height:38px;border-radius:50%}.skc .sl1{height:12px;width:55%}.skc .sm{height:220px;border-radius:14px}
+@keyframes sk{to{background-position:-200% 0}}
+#lm{display:none!important}
+.rl{touch-action:manipulation}
+.rbar{position:absolute;left:0;right:0;bottom:0;height:3px;background:#ffffff40;z-index:3}.rbar i{display:block;height:100%;width:0;background:#fff}
+.hrt{position:absolute;font-size:80px;color:#fe2c55;opacity:0;pointer-events:none;z-index:4;text-shadow:0 2px 12px #0008}
+.hrt.go{animation:pop .8s ease-out}
+@keyframes pop{0%{opacity:0;transform:scale(.3)}25%{opacity:1;transform:scale(1.2)}60%{opacity:1;transform:scale(1)}100%{opacity:0;transform:translateY(-40px) scale(1)}}
+.mo.sn b.av{box-shadow:0 0 0 2.5px var(--bg),0 0 0 5px var(--line)}
+#xsv{position:absolute;inset:0;z-index:19;background:#000;color:#fff;display:flex;flex-direction:column;touch-action:manipulation;user-select:none}
+#xsv .xb{display:flex;gap:4px;padding:calc(env(safe-area-inset-top,0px) + 10px) 10px 6px;z-index:2}
+#xsv .xb i{flex:1;height:3px;border-radius:2px;background:#ffffff55;overflow:hidden}#xsv .xb b{display:block;height:100%;background:#fff}
+#xsv .xh{display:flex;align-items:center;gap:8px;padding:6px 12px;z-index:2}#xsv .xh .av{width:34px;height:34px}#xsv .xh small{color:#ffffffb0;flex:1}#xsv .xh button{background:none;border:0;color:#fff;font-size:22px}
+#xsv .xm{position:absolute;inset:0;display:grid;place-items:center}#xsv .xm img,#xsv .xm video{max-width:100%;max-height:100%;object-fit:contain}#xsv .xm p{position:absolute;padding:24px;font-size:24px;font-weight:700;text-align:center;text-shadow:0 2px 8px #000;white-space:pre-wrap}
+#xsv .xf{position:absolute;left:0;right:0;bottom:0;padding:10px 12px calc(env(safe-area-inset-bottom,0px) + 10px);display:grid;gap:8px;z-index:3;background:linear-gradient(transparent,#000a)}
+#xsv .xf .bar{border:0;padding:0}#xsv .xf input{background:#ffffff26;color:#fff}#xsv .xf button{color:#fff}#xsv .ed{background:#ffffff26;color:#fff;padding:8px 10px}
 </style></head>
 <body>
 <svg width="0" height="0" style="position:absolute"><symbol id="vf" viewBox="0 0 24 24"><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5" fill="#1877f2"/><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5" fill="#1877f2" transform="rotate(45 12 12)"/><circle cx="12" cy="12" r="8.6" fill="#1877f2"/><path d="M7.4 12.4l3.1 3.1 6.2-6.6" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></symbol></svg>
@@ -795,6 +817,97 @@ const ch0=chat;chat=async function(u){fsOn();return ch0(u)};
 const gp0=gopen;gopen=async function(id,n){fsOn();return gp0(id,n)};
 const bo0=bopen;bopen=async function(id){fsOn();return bo0(id)};
 const go2=go;go=async function(t){$('#app').classList.remove('fs');return go2(t)};
+
+/* v6: smooth feed, For You, better reels, full-screen moments, explore */
+let xfeed='fy',xend=false,xld=false,xsnd=false;try{xfeed=localStorage.getItem('xf')||'fy'}catch(e){}
+const xSeen=()=>{try{return new Set(JSON.parse(localStorage.getItem('ms')||'[]'))}catch(e){return new Set}};
+const enc=encodeURIComponent;
+const A1=A;
+A=async(p,b)=>{if(p=='feed'){if(tab=='reels'&&rf=='y')p='foryou?k=video';else if(tab=='feed'&&xfeed=='fy')p='foryou'}return A1(p,b)};
+$('#app').insertAdjacentHTML('beforeend','<button id="npl" hidden data-a="npl">↑ New posts</button><div id="ptr">↻</div>');
+const tbx=$('#tb');if(tbx&&!$('#tb [data-a=xp]'))tbx.querySelector('[data-a=dr]').insertAdjacentHTML('beforebegin','<button data-a="xp" aria-label="Explore">🔍</button>');
+
+/* skeleton loading */
+const SK='<div class="skc"><i class="sa"></i><i class="sl1"></i><i class="sm"></i></div>'.repeat(3);
+const go3=go;
+go=async function(t){const p=go3(t);if(t=='feed')$('#main').innerHTML=SK;return p};
+
+/* feed: chips, infinite scroll */
+const hm0=home;
+home=function(){hm0();xend=false;
+  $('#main').insertAdjacentHTML('afterbegin',`<div class="atb"><button data-a="xfd" data-v="fy" class="${xfeed=='fy'?'on':''}">For You</button><button data-a="xfd" data-v="new" class="${xfeed=='new'?'on':''}">Latest</button></div>`);
+  if(xfeed=='new'){$('#main').insertAdjacentHTML('beforeend','<div id="snt" style="height:40px"></div>');xobs()}
+  $('#npl').hidden=true};
+function xobs(){const s=$('#snt');if(!s)return;
+  new IntersectionObserver(async es=>{if(!es[0].isIntersecting||xend||xld||tab!='feed'||xfeed!='new')return;xld=true;
+    try{const old=posts.length,f=await A('feed?n='+(old+30));if(f.length<=old)xend=true;else{posts=f;s.insertAdjacentHTML('beforebegin',f.slice(old).map(postH).join(''));paint()}}catch(e){}
+    xld=false},{root:$('#main'),rootMargin:'400px'}).observe(s)}
+setInterval(async()=>{if(!ME||tab!='feed'||xfeed!='new'||document.hidden||!posts[0])return;
+  try{const f=await A('feed?n=60');if(f[0]&&!posts.some(p=>p.ID==f[0].ID))$('#npl').hidden=false}catch(e){}},30000);
+
+/* pull to refresh */
+const xmn=$('#main');let xpy=null;
+const ptr=v=>{ptr.v=v;const e=$('#ptr');e.style.opacity=Math.min(1,v/45);e.style.transform=`translate(-50%,${v}px) rotate(${v*6}deg)`};ptr.v=0;
+xmn.addEventListener('touchstart',e=>{xpy=(xmn.scrollTop<=0&&tab=='feed')?e.touches[0].clientY:null},{passive:true});
+xmn.addEventListener('touchmove',e=>{if(xpy==null)return;const d=e.touches[0].clientY-xpy;if(d>0)ptr(Math.min(d,110)*.5);else ptr(0)},{passive:true});
+xmn.addEventListener('touchend',()=>{if(xpy==null)return;const hit=ptr.v>40;ptr(0);xpy=null;if(hit)go('feed')},{passive:true});
+
+/* reels: progress bar, double-tap like, preload, sound after first tap */
+const rl0=reels;
+reels=function(){rl0();const rl=$('.rl');if(!rl)return;
+  rl.querySelectorAll('.reel').forEach(r=>{r.insertAdjacentHTML('beforeend','<div class="rbar"><i></i></div><div class="hrt">♥</div>');const v=r.querySelector('video'),b=r.querySelector('.rbar i');v.addEventListener('timeupdate',()=>{if(v.duration)b.style.width=v.currentTime/v.duration*100+'%'})});
+  rl.addEventListener('dblclick',e=>{const r=e.target.closest('.reel');if(!r)return;const l=r.querySelector('.lk');if(l&&!l.classList.contains('on'))l.click();const h=r.querySelector('.hrt'),bx=r.getBoundingClientRect();h.style.left=(e.clientX-bx.left-40)+'px';h.style.top=(e.clientY-bx.top-40)+'px';h.classList.remove('go');void h.offsetWidth;h.classList.add('go')});
+  rl.addEventListener('click',e=>{if(xsnd||e.target.closest('button'))return;xsnd=true;if(mut){mut=false;document.querySelectorAll('.reel video').forEach(v=>v.muted=false);document.querySelectorAll('[data-a=mu]').forEach(m=>m.textContent='🔊')}e.stopPropagation()},true);
+  const io2=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){const n=e.target.nextElementSibling,nv=n&&n.querySelector('video');if(nv)nv.preload='auto'}}),{threshold:.7,root:rl});
+  rl.querySelectorAll('.reel').forEach(r=>io2.observe(r))};
+
+/* moments: full-screen viewer */
+strip=async function(){try{const l=await A('statuses');SG={};l.forEach(s=>(SG[s.U.ID]=SG[s.U.ID]||{U:s.U,L:[]}).L.push(s));
+  const sn=xSeen(),all=Object.values(SG).map(x=>({x,s:x.L.every(z=>sn.has(z.ID))})).sort((a,b)=>a.s-b.s);
+  const h='<div class="ms2"><button class="mo" data-a="sa"><b class="av">＋</b><span>Your moment</span></button>'+all.map(({x,s})=>`<button class="mo${s?' sn':''}" data-a="sv" data-i="${x.U.ID}">${AV(x.U)}<span>${E(x.U.Username)}</span></button>`).join('')+'</div>';
+  const c=$('.comp');if(c&&tab=='feed')c.insertAdjacentHTML('beforebegin',h)}catch(e){}};
+function xclose(){const o=$('#xsv');if(o){cancelAnimationFrame(o.r);o.remove()}}
+function xrefresh(){xclose();const o=document.querySelector('.ms2');if(o){o.remove();strip()}}
+sview=function(id){
+  const L2=SG[id].L,sn0=xSeen();let i=Math.max(0,L2.findIndex(s=>!sn0.has(s.ID))),el=0,dur=5000,hold=false,vd=null,last=0;
+  xclose();const ov=document.createElement('div');ov.id='xsv';$('#app').appendChild(ov);
+  const next=()=>{i++;i>=L2.length?xrefresh():show()},prev=()=>{i=Math.max(0,i-1);show()};
+  const tick=ts=>{if(!ov.isConnected)return;if(!hold)el+=ts-(last||ts);last=ts;const p=vd?(vd.duration?vd.currentTime/vd.duration:0):el/dur,b=ov.querySelectorAll('.xb i b')[i];if(b)b.style.width=Math.min(100,p*100)+'%';if(p>=1){next();return}ov.r=requestAnimationFrame(tick)};
+  const show=()=>{cancelAnimationFrame(ov.r);const s=L2[i],mine=s.U.ID==ME.ID;el=0;last=0;hold=false;
+    const sn=xSeen();sn.add(s.ID);try{localStorage.setItem('ms',JSON.stringify([...sn].slice(-500)))}catch(e){}
+    A('mview',{id:s.ID}).catch(()=>{});
+    ov.innerHTML=`<div class="xb">${L2.map((_,k)=>`<i><b style="width:${k<i?100:0}%"></b></i>`).join('')}</div><div class="xh">${AV(s.U)}<b>${nm(s.U)}</b><small>${ago(s.TS)}</small><button data-a="xcl" aria-label="Close">✕</button></div><div class="xm">${s.Media?(s.Kind=='video'?`<video src="${E(s.Media)}" playsinline autoplay></video>`:`<img src="${E(s.Media)}" alt="">`):''}${s.Text?`<p>${E(s.Text)}</p>`:''}</div><div class="xf">`+
+    (mine?`<button class="ed" data-a="mst" data-i="${s.ID}">👁 Viewers and reactions</button>`:`<div class="act">${['❤️','😂','😮','😢','🔥','👏'].map(e=>`<button class="ed" data-a="mrx" data-i="${s.ID}" data-e="${e}">${e}</button>`).join('')}</div><div class="bar"><input id="mrp" placeholder="Reply…" autocomplete="off"><button data-a="mrp" data-i="${s.ID}">Send</button></div>`)+'</div>';
+    vd=ov.querySelector('video');if(vd){vd.onended=next;vd.muted=false;vd.play().catch(()=>{vd.muted=true;vd.play().catch(()=>{})})}
+    ov.r=requestAnimationFrame(tick)};
+  ov.onpointerdown=e=>{if(e.target.closest('.xf,.xh'))return;hold=true;vd&&vd.pause();ov.dataset.t=Date.now()};
+  ov.onpointerup=e=>{if(!hold)return;hold=false;vd&&vd.play().catch(()=>{});if(Date.now()-ov.dataset.t<250){const r=ov.getBoundingClientRect();(e.clientX-r.left)<r.width*.33?prev():next()}};
+  ov.onpointercancel=()=>{hold=false;vd&&vd.play().catch(()=>{})};
+  ov.addEventListener('focusin',()=>{hold=true;vd&&vd.pause()});ov.addEventListener('focusout',()=>{hold=false;vd&&vd.play().catch(()=>{})});
+  show()};
+
+/* explore: search everything, trending, suggested, photo grid */
+const xtile=p=>`<button class="tl" data-a="xop" data-i="${p.ID}">${p.Kind=='video'?`<video src="${E(p.Media)}#t=0.1" muted playsinline preload="metadata"></video><span class="tp">▶</span>`:`<img src="${E(p.Media)}" loading="lazy" alt="">`}${p.More&&p.More.length?'<span class="tp" style="left:auto;right:6px;top:6px;bottom:auto">❐</span>':''}</button>`;
+explore=async function(q){clearInterval(poll);closeM();$('#app').classList.remove('cs','fs','dro');tab='xp';q=q||'';
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));
+  $('#main').innerHTML=`<div class="sb"><input id="xq" placeholder="Search people, #hashtags, posts" value="${E(q)}" autocomplete="off"></div><div id="xr"></div>`;
+  const inp=$('#xq');let t;inp.oninput=()=>{clearTimeout(t);t=setTimeout(()=>xres(inp.value.trim()),300)};
+  await xres(q)};
+async function xres(q){const box=$('#xr');if(!box)return;
+  try{
+    if(!q){const[d,f]=await Promise.all([A('discover'),A('foryou')]);posts=f;const g=f.filter(p=>p.Media);
+      box.innerHTML='<p class="sg" style="padding:6px 16px">Trending</p><div class="atb">'+(d.Tags.map(t=>`<button data-a="tag" data-q="${E(t.T)}">${E(t.T)} · ${t.N}</button>`).join('')||'<small style="padding:0 12px">No hashtags yet</small>')+'</div><p class="sg" style="padding:6px 16px">Suggested for you</p><div class="ms2">'+(d.People.map(u=>`<button class="mo" data-a="pf" data-i="${u.ID}">${AV(u)}<span>${E(u.Username)}</span></button>`).join('')||'<small>No suggestions yet</small>')+'</div><p class="sg" style="padding:6px 16px">Popular</p>'+(g.length?'<div class="gr">'+g.map(xtile).join('')+'</div>':'<p class="empty">Nothing to explore yet.</p>')}
+    else{const tag=q[0]=='#',[pe,po]=await Promise.all([tag?[]:A('search?q='+enc(q)),A('explore?q='+enc(q))]);posts=po;
+      box.innerHTML=(tag?'':'<p class="sg" style="padding:6px 16px">People</p>'+(pe.map(u=>`<div class="pr"><span data-a="pf" data-i="${u.ID}">${AV(u)}</span><div class="nm" data-a="pf" data-i="${u.ID}">${nm(u)}</div><button class="fl" data-a="fol" data-i="${u.ID}"></button></div>`).join('')||'<small style="padding:0 16px">No people found</small>')+'<p class="sg" style="padding:6px 16px">Hashtag</p><div class="atb"><button data-a="tag" data-q="#'+E(q.replace(/\W/g,''))+'">#'+E(q.replace(/\W/g,''))+'</button></div>')+'<p class="sg" style="padding:6px 16px">Posts</p>'+(po.map(postH).join('')||'<p class="empty">No posts found.</p>');paint()}
+  }catch(e){box.innerHTML='<p class="empty">'+E(e.message)+'</p>'}}
+
+$('#app').addEventListener('click',async e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,i=b.dataset.i,d=b.dataset;
+  try{
+    if(a=='xcl')xrefresh();
+    else if(a=='xfd'){xfeed=d.v;try{localStorage.setItem('xf',xfeed)}catch(x){}go('feed')}
+    else if(a=='npl'){b.hidden=true;go('feed')}
+    else if(a=='xop'){const p=posts.find(x=>x.ID==i);if(p){modal(postH(p)+'<button class="pri" data-a="mc">Close</button>');paint()}}
+  }catch(x){toast(x.message)}});
 
 </script>
 </body>
