@@ -1019,5 +1019,129 @@ $('#app').addEventListener('click',async e=>{const b=e.target.closest('[data-a]'
   }catch(x){toast(x.message)}});
 
 </script>
+<script>
+/* Amlink v8: loaded last, extends the earlier scripts */
+(()=>{
+const css=document.createElement('style');
+css.textContent=`
+[data-t=dark]{--card:#1b1b20;--line:#3a3a42}
+.pg .box{width:100%;max-width:560px;margin:0 auto}
+.pg .box input:not([type=checkbox]),.pg .box textarea{border:1px solid var(--line);background:var(--card)}
+.epa{z-index:2}.epa .av{border:3px solid var(--bg)}
+.mpv{justify-self:center;width:min(100%,300px);max-height:none}
+.rpc{margin:0 12px 10px;padding:10px;border:1px solid var(--line);border-radius:14px;cursor:pointer}.rpc p{padding:4px 0 0}
+.qt{font-size:12px;opacity:.7;border-left:3px solid currentColor;padding-left:6px;margin-bottom:4px}
+.rx{margin-top:4px;font-size:14px}.vw{align-self:center;color:var(--mut);margin-left:auto}
+#msh{position:absolute;inset:0;z-index:25}#msh .mb{position:absolute;inset:0;background:#0008}
+#msh .mc{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:18px 18px 0 0;padding:14px 12px calc(14px + env(safe-area-inset-bottom,0px));display:grid;gap:6px}
+.rpb{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;background:var(--card);border-top:1px solid var(--line)}.rpb button{background:none;border:0}
+`;
+document.head.appendChild(css);
+
+let V9={W:[],Hid:[],Tags:[]},LM=[],RP9=null;
+Object.assign(TXT,{repost:'reposted your post'});
+
+/* ---- smaller uploads: photos 1280px JPEG, videos max 25 MB / 60 s ---- */
+xcomp=async function(f){
+  if(!f.type.startsWith('image/')||f.type=='image/gif'||f.size<120000)return f;
+  try{const bm=await createImageBitmap(f),k=Math.min(1,1280/Math.max(bm.width,bm.height)),c=document.createElement('canvas');
+    c.width=Math.round(bm.width*k);c.height=Math.round(bm.height*k);
+    const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(bm,0,0,c.width,c.height);
+    const b=await new Promise(r=>c.toBlob(r,'image/jpeg',.72));return b&&b.size<f.size?b:f}catch(e){return f}};
+xvid=async function(f){
+  if(f.size>25*1024*1024)throw new Error('Video is too big (max 25 MB). Trim it or lower its quality first.');
+  const d=await new Promise(res=>{const v=document.createElement('video');v.preload='metadata';v.onloadedmetadata=()=>{URL.revokeObjectURL(v.src);res(v.duration)};v.onerror=()=>res(0);v.src=URL.createObjectURL(f)});
+  if(d>60)throw new Error('Videos can be up to 60 seconds')};
+
+/* ---- api: new endpoints + hide muted words / not interested ---- */
+const hid9=p=>p.U&&p.U.ID!=ME.ID&&(V9.Hid.includes(p.ID)||V9.W.some(w=>(p.Text||'').toLowerCase().includes(w)));
+const f0=A;
+A=async(p,b)=>{
+  const[base,...q]=p.split('?'),m={msg:'msg2',gmsg:'gmsg2',gmsgs:'gmsgs2'}[base]||base;
+  const r=await f0(m+(q.length?'?'+q.join('?'):''),b);
+  return['feed','foryou','explore'].includes(base)&&Array.isArray(r)?r.filter(x=>!hid9(x)):r};
+const ap=app;app=function(){ap();A('v8me').then(j=>{V9={W:j.W||[],Hid:j.Hid||[],Tags:j.Tags||[]}}).catch(()=>{})};
+
+/* ---- reposts, views, not interested ---- */
+const ph=postH;
+postH=p=>{const h=ph(p);if(!p.Rep)return h;const o=p.Rep,
+  c=o.Gone?'<div class="rpc"><small>The original post is unavailable.</small></div>':`<div class="rpc" data-a="rpo" data-i="${E(o.ID)}"><b>${nm(o.U)}</b>${o.Text?`<p>${tg(o.Text)}</p>`:''}${mediaH(o)}</div>`;
+  return h.replace('<footer>',()=>c+'<footer>')};
+const Q=new Set(),SN=new Set(),io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){const id=e.target.dataset.pid;if(id&&!SN.has(id)){SN.add(id);Q.add(id)}}}),{threshold:.6});
+setInterval(()=>{if(Q.size&&T){const ids=[...Q].slice(0,30);ids.forEach(x=>Q.delete(x));A('pview',{ids:ids.join(',')}).catch(()=>{})}},6000);
+const pt=paint;
+paint=function(){pt();
+  document.querySelectorAll('.post').forEach(el=>{const l=el.querySelector('footer .lk');if(!l||el.dataset.pid)return;
+    const id=l.dataset.i,p=posts.find(x=>x.ID==id),mine=p&&p.U.ID==ME.ID;el.dataset.pid=id;io.observe(el);
+    el.querySelector('footer').insertAdjacentHTML('beforeend',`<button data-a="rps" data-i="${id}" aria-label="Repost">🔁</button>`+(mine?`<small class="vw">👁 ${p.Views||0}</small>`:`<button data-a="hdp" data-i="${id}" aria-label="Not interested">🚫</button>`))})};
+
+/* ---- chat: reply, react, edit, unsend ---- */
+L=async function(){
+  const m=await A('msgs?w='+peer.ID),b=$('#ms');if(!b)return;LM=m;
+  b.innerHTML=m.map(x=>{const me=x.From==ME.ID,rp=x.Reply&&m.find(y=>y.ID==x.Reply),rx=Object.values(x.React||{});
+    return`<div class="m ${me?'me':''}" data-a="mm" data-id="${x.ID}">${rp?`<div class="qt">${E((rp.Text||'Media').slice(0,60))}</div>`:''}${msgM(x)}${E(x.Text)}${x.Edited?' <small>edited</small>':''}${me?`<small> ${x.Read?'✓✓':'✓'}</small>`:''}${rx.length?`<div class="rx">${rx.join('')}</div>`:''}</div>`}).join('');
+  b.scrollTop=b.scrollHeight};
+send=async function(){const i=$('#mi'),t=i.value.trim();if(!t)return;i.value='';await A('msg',{to:peer.ID,text:t,reply:RP9?RP9.ID:''});RP9=null;rpbar();await L()};
+function rpbar(){let r=$('#rpb');if(!RP9){r&&r.remove();return}
+  if(!r){r=document.createElement('div');r.id='rpb';r.className='rpb';const bar=document.querySelector('.ch .bar');if(!bar)return;bar.before(r)}
+  r.innerHTML='<small>↩ '+E((RP9.Text||'Media').slice(0,50))+'</small><button data-a="rpx" aria-label="Cancel reply">✕</button>'}
+function msheet(id){const x=LM.find(y=>y.ID==id);if(!x)return;const me=x.From==ME.ID;
+  let s=$('#msh');if(!s){s=document.createElement('div');s.id='msh';$('#app').appendChild(s)}
+  s.innerHTML=`<div class="mb" data-a="mclose"></div><div class="mc"><div class="act">${['❤️','😂','😮','😢','🔥','👍'].map(e=>`<button class="ed" data-a="mrc" data-id="${id}" data-e="${e}">${e}</button>`).join('')}</div><button class="sr" data-a="mrep" data-id="${id}">↩ Reply</button>${me&&!x.Media?`<button class="sr" data-a="med" data-id="${id}">✎ Edit</button>`:''}${me?`<button class="sr" data-a="mun" data-id="${id}">🗑 Unsend</button>`:''}</div>`;s.hidden=false}
+const ch=chat;chat=async function(u){RP9=null;return ch(u)};
+
+/* ---- circles: photos and videos ---- */
+gload=async function(){const m=await A('gmsgs?g='+gid),b=$('#ms');if(!b)return;
+  b.innerHTML=m.map(x=>`<div class="m ${x.Me?'me':''}">${x.Me?'':'<small>'+nm(x.U)+'</small><br>'}${msgM(x)}${E(x.Text)}</div>`).join('');b.scrollTop=b.scrollHeight};
+const gp=gopen;
+gopen=async function(id,n){await gp(id,n);const bar=document.querySelector('.ch .bar');if(!bar||$('#gf'))return;
+  bar.insertAdjacentHTML('afterbegin','<label class="at" aria-label="Attach">📎<input id="gf" type="file" accept="image/*,video/*" hidden></label>');
+  $('#gf').onchange=async()=>{const f=$('#gf').files[0];if(!f)return;try{await A('gmsg',{g:gid,text:'',media:await up(f),kind:f.type.split('/')[0]});await gload()}catch(x){toast(x.message)}}};
+
+/* ---- message requests (people you do not follow) ---- */
+const al=alerts;
+alerts=async function(){await al();
+  try{const rows=[...document.querySelectorAll('#main .pr[data-a=dm]')].filter(r=>!(ME.Following||[]).includes(r.dataset.i)&&!/^You:/.test((r.querySelector('small')||{}).textContent||''));
+    if(!rows.length)return;const h=[...document.querySelectorAll('#main .sg')].find(s=>s.textContent.trim()=='Messages');if(!h)return;
+    const box=document.createElement('div');box.innerHTML=`<p class="sg" style="padding:6px 16px">Message requests (${rows.length})</p>`;rows.forEach(r=>box.appendChild(r));h.before(box)}catch(e){}};
+
+/* ---- drafts ---- */
+const dr=()=>{try{return JSON.parse(localStorage.getItem('dr9')||'[]')}catch(e){return[]}},sdr=a=>{try{localStorage.setItem('dr9',JSON.stringify(a.slice(0,20)))}catch(e){}};
+function ddraw(){const b=$('#dls');if(b)b.innerHTML=dr().map((d,k)=>`<div class="pr"><div class="nm"><small>${E(d.t.slice(0,80))}</small></div><button class="ed" data-k="${k}" data-a="dus">Use</button><button class="ed" data-k="${k}" data-a="ddl" aria-label="Delete draft">✕</button></div>`).join('')}
+const np=newPost;
+newPost=function(){np();const pub=$('#pub');if(!pub)return;
+  pub.insertAdjacentHTML('beforebegin','<button class="fb" id="dsv" type="button">💾 Save as draft</button><div id="dls"></div>');
+  $('#dsv').onclick=()=>{const t=$('#tx').value.trim();if(!t){toast('Write something first');return}sdr([{t,ts:Date.now()},...dr()]);ddraw();toast('Draft saved')};ddraw()};
+
+/* ---- hashtag follow, muted words menu ---- */
+const xr=xres;
+xres=async function(q){await xr(q);const b=$('#xr');if(!b)return;
+  if(q&&q[0]=='#'){const t=(q.toLowerCase().match(/^#\w+/)||[''])[0];if(t){const f=V9.Tags.includes(t);b.insertAdjacentHTML('afterbegin',`<div style="padding:8px 16px"><button class="ed" data-a="tgf" data-t="${E(t)}">${f?'Following ':'Follow '}${E(t)}</button></div>`)}}
+  else if(!q&&V9.Tags.length)b.insertAdjacentHTML('afterbegin','<p class="sg" style="padding:6px 16px">Your tags</p><div class="atb">'+V9.Tags.map(t=>`<button data-a="tag" data-q="${E(t)}">${E(t)}</button>`).join('')+'</div>')};
+const od=openDr;
+openDr=function(){od();$('#dr').insertAdjacentHTML('beforeend','<p class="sg">Feed controls</p><div class="cd"><button class="sr" data-a="mw9"><i>🔇</i>Muted words<em>›</em></button></div>')};
+
+/* ---- clicks ---- */
+$('#app').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,i=b.dataset.i,d=b.dataset,cl=()=>{const s=$('#msh');if(s)s.hidden=true};
+  try{
+    if(a=='rps'){const t=prompt('Add your thoughts (optional)','');if(t===null)return;await A('repost',{id:i,text:t});toast('Reposted');go(tab=='reels'?'reels':'feed')}
+    else if(a=='hdp'){await A('hidepost',{id:i});V9.Hid.push(i);const p=b.closest('.post');p&&p.remove();toast('Okay, you will see less like this')}
+    else if(a=='rpo'){const p=await A('onep?id='+i);posts=[p];modal(postH(p)+'<button class="pri" data-a="mc">Close</button>');paint()}
+    else if(a=='mm'){if(!e.target.closest('audio,video'))msheet(d.id)}
+    else if(a=='mclose')cl();
+    else if(a=='mrc'){cl();await A('mact',{id:d.id,op:'react',e:d.e});L()}
+    else if(a=='mrep'){RP9=LM.find(x=>x.ID==d.id)||null;cl();rpbar();$('#mi')&&$('#mi').focus()}
+    else if(a=='rpx'){RP9=null;rpbar()}
+    else if(a=='med'){cl();const x=LM.find(y=>y.ID==d.id),t=prompt('Edit message',x?x.Text:'');if(t&&t.trim()){await A('mact',{id:d.id,op:'edit',text:t});L()}}
+    else if(a=='mun'){cl();if(confirm('Unsend this message?')){await A('mact',{id:d.id,op:'unsend'});L()}}
+    else if(a=='mw9')modal(`<h3>Muted words</h3><small>Posts with these words are hidden from your feeds. Separate with commas.</small><textarea id="mwt" maxlength="500">${E(V9.W.join(', '))}</textarea><button class="pri" data-a="mws9">Save</button>`);
+    else if(a=='mws9'){const j=await A('mw',{w:$('#mwt').value});V9.W=j.W||[];closeM();toast('Muted words saved')}
+    else if(a=='tgf'){const j=await A('tagfol',{t:d.t});V9.Tags=j.Tags||[];explore(d.t)}
+    else if(a=='dus'){const x=dr()[+d.k];if(x){$('#tx').value=x.t;sdr(dr().filter((_,k)=>k!=+d.k));ddraw()}}
+    else if(a=='ddl'){sdr(dr().filter((_,k)=>k!=+d.k));ddraw()}
+  }catch(x){toast(x.message)}});
+})();
+</script>
 </body>
 </html>
