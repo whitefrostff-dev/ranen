@@ -33,8 +33,8 @@ type User struct {
 	Agreed                        int64
 	Bio                           string
 	Saved                         []string
-	Avatar, Cover string
-	Blocked []string
+	Avatar, Cover                 string
+	Blocked                       []string
 }
 type Comment struct {
 	User, Text string
@@ -42,8 +42,8 @@ type Comment struct {
 	Likes      []string
 }
 type Post struct {
-	More []string
-	Poll *Poll
+	More                        []string
+	Poll                        *Poll
 	ID, User, Text, Media, Kind string
 	TS                          int64
 	Likes                       []string
@@ -52,7 +52,10 @@ type Post struct {
 type Msg struct {
 	From, To, Text, Kind, Media string
 	TS                          int64
-	Read bool
+	Read                        bool
+	ID, Reply                   string
+	Edited                      bool
+	React                       map[string]string
 }
 type Notif struct {
 	To, From, Type, Post string
@@ -82,7 +85,8 @@ type Report struct {
 	TS                   int64
 }
 type State struct {
-	X Extra
+	X        Extra
+	X2       Ext2
 	Users    map[string]*User
 	Posts    []*Post
 	Msgs     []Msg
@@ -93,8 +97,8 @@ type State struct {
 	Channels []*Channel
 	Reports  []*Report
 	Notice   string
-	SessTS map[string]int64
-	Log []string
+	SessTS   map[string]int64
+	Log      []string
 }
 
 var (
@@ -148,7 +152,9 @@ func load() {
 	loaded := false
 	if env("DATABASE_URL") != "" {
 		neon("CREATE TABLE IF NOT EXISTS store(key text PRIMARY KEY, value jsonb NOT NULL)")
-		if rows, e := neon("SELECT value::text AS v FROM store WHERE key='state'"); e == nil && len(rows) > 0 {
+		if loadParts() {
+			loaded = true
+		} else if rows, e := neon("SELECT value::text AS v FROM store WHERE key='state'"); e == nil && len(rows) > 0 {
 			raw := rows[0]["v"]
 			if len(raw) > 0 && raw[0] == '"' {
 				var t string
@@ -213,6 +219,9 @@ func uid() string {
 	return hex.EncodeToString(b)
 }
 func js(w http.ResponseWriter, v any) {
+	if u, ok := v.(*User); ok {
+		v = pubUser(u)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(v)
 }
@@ -273,7 +282,7 @@ func pv(p *Post) map[string]any {
 	for _, c := range p.Comments {
 		cs = append(cs, map[string]any{"U": uv(c.User), "Text": c.Text, "TS": c.TS, "Likes": c.Likes})
 	}
-	return map[string]any{"ID": p.ID, "U": uv(p.User), "Text": p.Text, "Media": p.Media, "Kind": p.Kind, "TS": p.TS, "Likes": p.Likes, "C": cs, "More": p.More, "Poll": p.Poll, "Sens": x().Sens[p.ID]}
+	return map[string]any{"ID": p.ID, "U": uv(p.User), "Text": p.Text, "Media": p.Media, "Kind": p.Kind, "TS": p.TS, "Likes": p.Likes, "C": cs, "More": p.More, "Poll": p.Poll, "Sens": x().Sens[p.ID], "Rep": repOf(p.ID), "Views": x2().Views[p.ID]}
 }
 func fpOld(id string) *Post {
 	for _, p := range S.Posts {
@@ -299,7 +308,7 @@ func fc(id string) *Channel {
 	}
 	return nil
 }
-func okMedia(m string) bool { return m == "" || strings.HasPrefix(m, env("SUPABASE_URL")+"/storage/") }
+func okMedia(m string) bool { return okMedia2(m) }
 func cut(s string) string {
 	r := []rune(s)
 	if len(r) > 30 {
@@ -359,6 +368,7 @@ func alog(u *User, s string) {
 
 func main() {
 	load()
+	fillIDs(true)
 	go writer()
 	go janitor()
 	go func() {
@@ -379,6 +389,7 @@ func main() {
 	extra(ok)
 	extra2()
 	extra3()
+	extra4()
 
 	// removes a user and everything that points at them
 	purge := func(id string) {
@@ -437,7 +448,7 @@ func main() {
 		S.SessTS[tok] = now()
 		xdev(tok, r)
 		save()
-		js(w, map[string]any{"token": tok, "me": u})
+		js(w, map[string]any{"token": tok, "me": pubUser(u)})
 	})
 
 	// Email sign-in: Firebase checks the password, we check the Firebase token.
@@ -495,7 +506,7 @@ func main() {
 		S.SessTS[tok] = now()
 		xdev(tok, r)
 		save()
-		js(w, map[string]any{"token": tok, "me": u})
+		js(w, map[string]any{"token": tok, "me": pubUser(u)})
 	})
 
 	http.HandleFunc("/api/upload", func(w http.ResponseWriter, r *http.Request) {
@@ -512,7 +523,11 @@ func main() {
 			return
 		}
 		name := uid() + "." + ext
-		resp, e := sb("POST", "/storage/v1/object/media/"+name, http.MaxBytesReader(w, r.Body, 50<<20), ct)
+		data, good := readUpload(w, r, ct)
+		if !good {
+			return
+		}
+		resp, e := sb("POST", "/storage/v1/object/media/"+name, bytes.NewReader(data), ct)
 		if e != nil || resp.StatusCode > 299 {
 			fail(w, 500, "Upload failed")
 			return
@@ -860,6 +875,7 @@ func main() {
 					fail(w, 403, "Not allowed")
 					return
 				}
+				dropFiles(append([]string{p.Media}, p.More...)...)
 				S.Posts = append(S.Posts[:i], S.Posts[i+1:]...)
 				save()
 				js(w, ok)
@@ -1144,7 +1160,7 @@ func main() {
 		js(w, ok)
 	})
 
-		api("onep", func(u *User, w http.ResponseWriter, r *http.Request) {
+	api("onep", func(u *User, w http.ResponseWriter, r *http.Request) {
 		p := fp(r.URL.Query().Get("id"))
 		if p != nil && hid(u, p.User) {
 			p = nil
@@ -1387,8 +1403,9 @@ func push(to, ev string) {
 func priv(v, o *User) bool {
 	return o != nil && v.ID != o.ID && x().Priv[o.ID] && !has(v.Following, o.ID)
 }
+
 var xfiles = map[string][2]string{
-	"/sw.js":         {"text/javascript", `const C='amlink-v4';
+	"/sw.js": {"text/javascript", `const C='amlink-v4';
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(C).then(c=>c.add('/')).catch(()=>{}))});
 self.addEventListener('activate',e=>e.waitUntil(clients.claim()));
 self.addEventListener('fetch',e=>{if(e.request.mode=='navigate')e.respondWith(fetch(e.request).catch(()=>caches.match('/')))});
@@ -1992,13 +2009,13 @@ func extra(ok map[string]bool) {
 
 // ---------- v5: fixes ----------
 var (
-	hc       = &http.Client{Timeout: 15 * time.Second}
-	hu       = &http.Client{Timeout: 3 * time.Minute}
-	saveSig  = make(chan struct{}, 1)
-	saveVer  = 0
-	pver     = -1
-	pidx     = map[string]*Post{}
-	okTypes  = map[string]string{"image/jpeg": "jpg", "image/png": "png", "image/gif": "gif", "image/webp": "webp", "image/avif": "avif", "image/heic": "heic", "image/heif": "heif", "video/mp4": "mp4", "video/webm": "webm", "video/quicktime": "mov", "video/3gpp": "3gp", "audio/webm": "weba", "audio/mp4": "m4a", "audio/mpeg": "mp3", "audio/ogg": "ogg", "audio/wav": "wav", "audio/aac": "aac"}
+	hc      = &http.Client{Timeout: 15 * time.Second}
+	hu      = &http.Client{Timeout: 3 * time.Minute}
+	saveSig = make(chan struct{}, 1)
+	saveVer = 0
+	pver    = -1
+	pidx    = map[string]*Post{}
+	okTypes = map[string]string{"image/jpeg": "jpg", "image/png": "png", "image/gif": "gif", "image/webp": "webp", "image/avif": "avif", "image/heic": "heic", "image/heif": "heif", "video/mp4": "mp4", "video/webm": "webm", "video/quicktime": "mov", "video/3gpp": "3gp", "audio/webm": "weba", "audio/mp4": "m4a", "audio/mpeg": "mp3", "audio/ogg": "ogg", "audio/wav": "wav", "audio/aac": "aac"}
 )
 
 func rn(s string) int { return utf8.RuneCountInString(s) }
@@ -2012,6 +2029,7 @@ func trunc(s string, n int) string {
 
 // save is called while holding mu; the state is written at most every 1.5 seconds
 func save() {
+	fillIDs(false)
 	saveVer++
 	select {
 	case saveSig <- struct{}{}:
@@ -2028,13 +2046,7 @@ func writer() {
 	}
 }
 func flush(b []byte) {
-	if env("DATABASE_URL") != "" {
-		neon("INSERT INTO store(key,value) VALUES('state',$1::jsonb) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", string(b))
-		return
-	}
-	if os.WriteFile("state.json.tmp", b, 0644) == nil {
-		os.Rename("state.json.tmp", "state.json")
-	}
+	flushParts()
 }
 
 // fp finds a post through an index that is rebuilt whenever the state changes
@@ -2540,5 +2552,432 @@ func extra3() {
 		e.URep = ku
 		save()
 		js(w, ok)
+	})
+}
+
+// =====================================================================
+// ---------- v8: fixes and new features ----------
+// =====================================================================
+
+// Ext2 holds the v8 data.
+type Ext2 struct {
+	Views map[string]int
+	Rep   map[string]string   // repost id -> original post id
+	MW    map[string][]string // muted words per user
+	Hid   map[string][]string // "not interested" post ids per user
+	Tags  map[string][]string // followed hashtags per user
+}
+
+var (
+	mediaRe = regexp.MustCompile(`^[0-9a-f]{24}\.[a-z0-9]{2,5}$`)
+	tagOne  = regexp.MustCompile(`^#\w{1,30}$`)
+	partH   = map[string][32]byte{}
+	partMu  sync.Mutex
+	oldGone bool
+)
+
+func init() {
+	modPaths["/api/msg2"], modPaths["/api/gmsg2"], modPaths["/api/repost"], modPaths["/api/mact"] = "m", "m", "p", "t"
+}
+
+func x2() *Ext2 {
+	e := &S.X2
+	if e.Views == nil {
+		e.Views = map[string]int{}
+	}
+	if e.Rep == nil {
+		e.Rep = map[string]string{}
+	}
+	if e.MW == nil {
+		e.MW = map[string][]string{}
+	}
+	if e.Hid == nil {
+		e.Hid = map[string][]string{}
+	}
+	if e.Tags == nil {
+		e.Tags = map[string][]string{}
+	}
+	return e
+}
+
+// FIX 1: never send DOB / consent time to the browser
+func pubUser(u *User) *User {
+	c := *u
+	c.DOB, c.Agreed = "", 0
+	return &c
+}
+
+// FIX 2: strict media URL check (no path tricks)
+func okMedia2(m string) bool {
+	if m == "" {
+		return true
+	}
+	p := env("SUPABASE_URL") + "/storage/v1/object/public/media/"
+	return strings.HasPrefix(m, p) && mediaRe.MatchString(strings.TrimPrefix(m, p))
+}
+
+// FIX 3: read the upload (30 MB max) and reject files that are really text/html/scripts
+func readUpload(w http.ResponseWriter, r *http.Request, ct string) ([]byte, bool) {
+	b, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 30<<20))
+	if err != nil || len(b) == 0 {
+		fail(w, 400, "Upload is empty or too big (30 MB max)")
+		return nil, false
+	}
+	n := len(b)
+	if n > 512 {
+		n = 512
+	}
+	s := http.DetectContentType(b[:n])
+	if strings.HasPrefix(s, "text/") || (strings.HasPrefix(s, "application/") && s != "application/octet-stream" && s != "application/ogg") {
+		fail(w, 400, "That is not a real image, video or audio file")
+		return nil, false
+	}
+	return b, true
+}
+
+// FIX 4: every message gets an id (old ones are filled in once at start)
+func fillIDs(all bool) {
+	for i := len(S.Msgs) - 1; i >= 0; i-- {
+		if S.Msgs[i].ID == "" {
+			S.Msgs[i].ID = uid()
+		} else if !all {
+			break
+		}
+	}
+}
+
+// FIX 5: the state is saved as 4 separate rows and only changed rows are written
+func rawJSON(raw json.RawMessage) []byte {
+	if len(raw) > 0 && raw[0] == '"' {
+		var t string
+		json.Unmarshal(raw, &t)
+		return []byte(t)
+	}
+	return raw
+}
+func loadParts() bool {
+	rows, e := neon("SELECT key, value::text AS v FROM store WHERE key LIKE 's\\_%'")
+	if e != nil || len(rows) == 0 {
+		return false
+	}
+	m := map[string][]byte{}
+	for _, r := range rows {
+		var k string
+		json.Unmarshal(r["key"], &k)
+		m[k] = rawJSON(r["v"])
+	}
+	if m["s_rest"] == nil {
+		return false
+	}
+	json.Unmarshal(m["s_rest"], &S)
+	if b := m["s_users"]; b != nil {
+		json.Unmarshal(b, &S.Users)
+	}
+	if b := m["s_posts"]; b != nil {
+		json.Unmarshal(b, &S.Posts)
+	}
+	if b := m["s_msgs"]; b != nil {
+		json.Unmarshal(b, &S.Msgs)
+	}
+	return true
+}
+func flushParts() {
+	if env("DATABASE_URL") == "" {
+		mu.Lock()
+		b, _ := json.Marshal(S)
+		mu.Unlock()
+		if os.WriteFile("state.json.tmp", b, 0644) == nil {
+			os.Rename("state.json.tmp", "state.json")
+		}
+		return
+	}
+	mu.Lock()
+	r := S
+	r.Users, r.Posts, r.Msgs = nil, nil, nil
+	ps := map[string][]byte{}
+	ps["s_users"], _ = json.Marshal(S.Users)
+	ps["s_posts"], _ = json.Marshal(S.Posts)
+	ps["s_msgs"], _ = json.Marshal(S.Msgs)
+	ps["s_rest"], _ = json.Marshal(r)
+	mu.Unlock()
+	partMu.Lock()
+	defer partMu.Unlock()
+	all := true
+	for _, k := range []string{"s_users", "s_posts", "s_msgs", "s_rest"} {
+		h := sha256.Sum256(ps[k])
+		if partH[k] == h {
+			continue
+		}
+		if _, e := neon("INSERT INTO store(key,value) VALUES($1,$2::jsonb) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", k, string(ps[k])); e != nil {
+			all = false
+			continue
+		}
+		partH[k] = h
+	}
+	if all && !oldGone { // the old single-row copy is removed once the new rows are safe
+		if _, e := neon("DELETE FROM store WHERE key='state'"); e == nil {
+			oldGone = true
+		}
+	}
+}
+
+// ---------- storage clean-up ----------
+func dropFiles(fs ...string) {
+	pre := env("SUPABASE_URL") + "/storage/v1/object/public/media/"
+	var names []string
+	for _, f := range fs {
+		if n := strings.TrimPrefix(f, pre); n != f && mediaRe.MatchString(n) {
+			names = append(names, n)
+		}
+	}
+	if len(names) == 0 {
+		return
+	}
+	go func() {
+		for _, n := range names {
+			if r, err := sb("DELETE", "/storage/v1/object/media/"+n, nil, ""); err == nil {
+				r.Body.Close()
+			}
+		}
+	}()
+}
+func v8janitor() {
+	for range time.Tick(10 * time.Minute) {
+		mu.Lock()
+		var fs []string
+		ks := S.Statuses[:0]
+		for _, s := range S.Statuses {
+			if now()-s.TS > 86400 {
+				fs = append(fs, s.Media)
+			} else {
+				ks = append(ks, s)
+			}
+		}
+		S.Statuses = ks
+		kn := S.Notifs[:0]
+		for _, n := range S.Notifs {
+			if now()-n.TS < 30*86400 {
+				kn = append(kn, n)
+			}
+		}
+		S.Notifs = kn
+		save()
+		mu.Unlock()
+		dropFiles(fs...)
+	}
+}
+
+// ---------- features ----------
+func repOf(id string) any {
+	o := x2().Rep[id]
+	if o == "" {
+		return nil
+	}
+	p := fp(o)
+	if p == nil || x().Priv[p.User] {
+		return map[string]any{"Gone": true}
+	}
+	return map[string]any{"ID": p.ID, "U": uv(p.User), "Text": p.Text, "Media": p.Media, "Kind": p.Kind}
+}
+
+func extra4() {
+	ok := map[string]bool{"ok": true}
+	go v8janitor()
+
+	// circles with photos / videos / voice
+	api("gmsg2", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		g, t := fg(b["g"]), strings.TrimSpace(b["text"])
+		k := b["kind"]
+		if k != "image" && k != "video" && k != "audio" {
+			k = ""
+		}
+		if g == nil || !has(g.Members, u.ID) || (t == "" && b["media"] == "") || rn(t) > 1000 || !okMedia(b["media"]) {
+			fail(w, 400, "Invalid message")
+			return
+		}
+		g.Msgs = append(g.Msgs, Msg{From: u.ID, To: g.ID, Text: t, Kind: k, Media: b["media"], TS: now()})
+		for _, m := range g.Members {
+			note(m, u.ID, "msg", "")
+		}
+		save()
+		js(w, ok)
+	})
+	api("gmsgs2", func(u *User, w http.ResponseWriter, r *http.Request) {
+		g := fg(r.URL.Query().Get("g"))
+		if g == nil || !has(g.Members, u.ID) {
+			fail(w, 403, "Not in this circle")
+			return
+		}
+		out, st := []map[string]any{}, len(g.Msgs)-200
+		if st < 0 {
+			st = 0
+		}
+		for _, m := range g.Msgs[st:] {
+			out = append(out, map[string]any{"U": uv(m.From), "Me": m.From == u.ID, "Text": m.Text, "TS": m.TS, "Media": m.Media, "Kind": m.Kind})
+		}
+		js(w, out)
+	})
+
+	// chat: reply, react, edit, unsend (by id)
+	api("msg2", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		t, o := strings.TrimSpace(b["text"]), S.Users[b["to"]]
+		k := b["kind"]
+		if k != "image" && k != "video" && k != "audio" {
+			k = ""
+		}
+		if o == nil || blk(u, o) || (t == "" && b["media"] == "") || rn(t) > 1000 || !okMedia(b["media"]) {
+			fail(w, 400, "Invalid message")
+			return
+		}
+		rp := b["reply"]
+		if rp != "" {
+			found := false
+			for i := len(S.Msgs) - 1; i >= 0 && i > len(S.Msgs)-500; i-- {
+				if S.Msgs[i].ID == rp {
+					found = true
+					break
+				}
+			}
+			if !found {
+				rp = ""
+			}
+		}
+		S.Msgs = append(S.Msgs, Msg{From: u.ID, To: o.ID, Text: t, Kind: k, Media: b["media"], TS: now(), Reply: rp})
+		note(o.ID, u.ID, "msg", "")
+		save()
+		js(w, ok)
+	})
+	api("mact", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		for i := range S.Msgs {
+			m := &S.Msgs[i]
+			if m.ID != b["id"] || (m.From != u.ID && m.To != u.ID) {
+				continue
+			}
+			other := m.To
+			if m.From != u.ID {
+				other = m.From
+			}
+			switch b["op"] {
+			case "react":
+				e := b["e"]
+				if e == "" || !strings.Contains("❤️😂😮😢🔥👍", e) {
+					fail(w, 400, "Invalid reaction")
+					return
+				}
+				if m.React == nil {
+					m.React = map[string]string{}
+				}
+				if m.React[u.ID] == e {
+					delete(m.React, u.ID)
+				} else {
+					m.React[u.ID] = e
+				}
+			case "edit":
+				t := strings.TrimSpace(b["text"])
+				if m.From != u.ID || m.Media != "" || t == "" || rn(t) > 1000 {
+					fail(w, 400, "Cannot edit this message")
+					return
+				}
+				m.Text, m.Edited = t, true
+			case "unsend":
+				if m.From != u.ID {
+					fail(w, 403, "Not allowed")
+					return
+				}
+				dropFiles(m.Media)
+				S.Msgs = append(S.Msgs[:i], S.Msgs[i+1:]...)
+			default:
+				fail(w, 400, "Unknown action")
+				return
+			}
+			push(other, "msg")
+			save()
+			js(w, ok)
+			return
+		}
+		fail(w, 404, "Message not found")
+	})
+
+	// reposts and quote posts
+	api("repost", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		o, t := fp(b["id"]), strings.TrimSpace(b["text"])
+		if o == nil || hid(u, o.User) || rn(t) > 500 || x().NoVer[u.ID] {
+			fail(w, 400, "You cannot repost this")
+			return
+		}
+		if q := fp(x2().Rep[o.ID]); q != nil {
+			o = q
+		}
+		p := &Post{ID: uid(), User: u.ID, Text: t, TS: now(), Likes: []string{}}
+		S.Posts = append(S.Posts, p)
+		x2().Rep[p.ID] = o.ID
+		note(o.User, u.ID, "repost", o.ID)
+		mentions(u, t, p.ID)
+		save()
+		js(w, ok)
+	})
+
+	// views (batched by the browser) shown to the post owner
+	api("pview", func(u *User, w http.ResponseWriter, r *http.Request) {
+		for i, id := range strings.Split(in(r)["ids"], ",") {
+			if i >= 30 {
+				break
+			}
+			if p := fp(id); p != nil && p.User != u.ID && !hid(u, p.User) {
+				x2().Views[id]++
+			}
+		}
+		js(w, ok)
+	})
+
+	// muted words, not interested, followed tags
+	api("v8me", func(u *User, w http.ResponseWriter, r *http.Request) {
+		e := x2()
+		js(w, map[string]any{"W": e.MW[u.ID], "Hid": e.Hid[u.ID], "Tags": e.Tags[u.ID]})
+	})
+	api("mw", func(u *User, w http.ResponseWriter, r *http.Request) {
+		if v, k := in(r)["w"]; k {
+			var ws []string
+			for _, s := range strings.Split(strings.ToLower(v), ",") {
+				if s = strings.TrimSpace(s); s != "" && rn(s) <= 30 && len(ws) < 50 {
+					ws = append(ws, s)
+				}
+			}
+			x2().MW[u.ID] = ws
+			save()
+		}
+		js(w, map[string]any{"W": x2().MW[u.ID]})
+	})
+	api("hidepost", func(u *User, w http.ResponseWriter, r *http.Request) {
+		id := in(r)["id"]
+		h := x2().Hid[u.ID]
+		if fp(id) != nil && !has(h, id) {
+			h = append(h, id)
+			if len(h) > 500 {
+				h = h[1:]
+			}
+			x2().Hid[u.ID] = h
+			save()
+		}
+		js(w, ok)
+	})
+	api("tagfol", func(u *User, w http.ResponseWriter, r *http.Request) {
+		t := strings.ToLower(strings.TrimSpace(in(r)["t"]))
+		if !tagOne.MatchString(t) {
+			fail(w, 400, "Invalid tag")
+			return
+		}
+		e := x2()
+		if has(e.Tags[u.ID], t) {
+			e.Tags[u.ID] = del(e.Tags[u.ID], t)
+		} else if len(e.Tags[u.ID]) < 50 {
+			e.Tags[u.ID] = append(e.Tags[u.ID], t)
+		}
+		save()
+		js(w, map[string]any{"Tags": e.Tags[u.ID]})
 	})
 }
