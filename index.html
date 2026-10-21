@@ -1143,5 +1143,67 @@ $('#app').addEventListener('click',async e=>{
   }catch(x){toast(x.message)}});
 })();
 </script>
+ <!-- ===== Amlink v9 fixes: paste this whole block in index.html just above the final </body> ===== -->
+<style>
+/* sizing and overflow: nothing can push the page wider than the screen */
+html{-webkit-text-size-adjust:100%}
+img,video,canvas,svg{max-width:100%}
+#main,.pg,.post,.pfc,.pfh,.pr,.ch,.chh,.m,.box,.cd,.cd2,.post header>div,.pr .nm{min-width:0}
+#main{overflow-x:hidden}
+.post{max-width:100%}.post p,.m,.nm,.bio,.pfn h2{overflow-wrap:anywhere}
+.post img,.post video,.car img{height:auto;max-height:min(78vh,680px);object-fit:contain;background:var(--card)}
+
+/* profile: buttons wrap instead of overflowing */
+.pfc{grid-template-columns:minmax(0,1fr);margin-inline:max(12px,2%)}
+.act{flex-wrap:wrap;justify-content:center;max-width:100%}
+.act .ed,.act .fl{padding:8px 14px;white-space:nowrap}
+.pst{grid-template-columns:repeat(4,minmax(0,1fr));min-width:0}
+.cov{height:auto;aspect-ratio:3/1;min-height:110px;max-height:210px}
+
+/* full-page screens (edit profile, moderation, create) fill the column */
+.pg{width:100%}
+#md:not([hidden]){display:block}
+.epc{background-color:#2a2a30!important;border:1px solid var(--line)}
+.av{background-color:#2a2a30!important}
+
+/* chat: small photo thumbnails, tap to open full size */
+.m{max-width:min(80%,440px)}
+.m img,.m video{display:block;width:auto;height:auto;max-width:min(240px,100%);max-height:280px;object-fit:cover;border-radius:12px;cursor:zoom-in}
+.m video{cursor:auto}
+#lbx{position:fixed;inset:0;z-index:99;background:#000e;display:grid;place-items:center;padding:12px;cursor:zoom-out}
+#lbx img{max-width:100%;max-height:100%;object-fit:contain}
+
+/* every device size */
+@media(max-width:380px){.pst{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:10px}.seg button{padding:5px 10px}nav button{font-size:10px}.pfn h2{font-size:20px}}
+@media(min-width:600px) and (max-width:899px){#app{max-width:680px}}
+@media(min-width:1500px){#app{max-width:1360px;grid-template-columns:280px minmax(0,680px) 360px}#sh{left:calc(50% - 400px);width:680px}}
+@media(max-height:520px){nav button{padding:4px 0}#tb{padding:2px 12px}}
+</style>
+<script>
+/* DM photos are shrunk to 1024px / quality 0.66 before upload; posts keep 1280px / 0.72 */
+xcomp=async function(f){
+  if(!f.type.startsWith('image/')||f.type=='image/gif')return f;
+  const dm=!!window.XW,w=window.XW||1280,q=window.XQ||.72;
+  if(f.size<(dm?30000:120000))return f;
+  try{const bm=await createImageBitmap(f),k=Math.min(1,w/Math.max(bm.width,bm.height)),c=document.createElement('canvas');
+    c.width=Math.round(bm.width*k);c.height=Math.round(bm.height*k);
+    const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(bm,0,0,c.width,c.height);
+    const b=await new Promise(r=>c.toBlob(r,'image/jpeg',q));return b&&b.size<f.size?b:f}catch(e){return f}};
+sendFile=async function(f){
+  if(!f)return;
+  try{window.XW=1024;window.XQ=.66;const url=await up(f);
+    await A('msg',{to:peer.ID,text:'',media:url,kind:f.type.split('/')[0]});
+    const i=$('#mf');if(i)i.value='';await L()}
+  catch(e){toast(e.message)}
+  finally{window.XW=0;window.XQ=0}};
+/* tap a chat photo to see it full size */
+document.addEventListener('click',e=>{
+  const i=e.target.closest('.m img');if(!i)return;
+  e.stopPropagation();e.preventDefault();
+  const o=document.createElement('div');o.id='lbx';
+  const im=document.createElement('img');im.src=i.src;im.alt='';o.appendChild(im);
+  o.onclick=()=>o.remove();document.body.appendChild(o)},true);
+</script>
+
 </body>
 </html>
