@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -375,6 +376,7 @@ func main() {
 	}
 	ok := map[string]bool{"ok": true}
 	extra(ok)
+	extra2()
 
 	// removes a user and everything that points at them
 	purge := func(id string) {
@@ -540,7 +542,7 @@ func main() {
 	api("feed", func(u *User, w http.ResponseWriter, r *http.Request) {
 		out := []map[string]any{}
 		n, _ := strconv.Atoi(r.URL.Query().Get("n"))
-		if n < 60 || n > 300 {
+		if n < 60 || n > 1000 {
 			n = 60
 		}
 		for i := len(S.Posts) - 1; i >= 0 && len(out) < n; i-- {
@@ -2180,4 +2182,48 @@ func purgeMore(id string) {
 			}
 		}
 	}(files)
+}
+
+// ---------- v6: For You ranking ----------
+func extra2() {
+	api("foryou", func(u *User, w http.ResponseWriter, r *http.Request) {
+		vid := r.URL.Query().Get("k") == "video"
+		aff := map[string]int{}
+		for _, p := range S.Posts {
+			if has(p.Likes, u.ID) {
+				aff[p.User]++
+			}
+		}
+		type sp struct {
+			p *Post
+			s float64
+		}
+		l := []sp{}
+		t := float64(now())
+		for _, p := range S.Posts {
+			if (vid && p.Kind != "video") || hid(u, p.User) {
+				continue
+			}
+			h := (t - float64(p.TS)) / 3600
+			e := float64(len(p.Likes)) + 2*float64(len(p.Comments))
+			if p.Poll != nil {
+				e += float64(len(p.Poll.Votes))
+			}
+			s := (1 + e) / math.Pow(h+2, 1.3)
+			if has(u.Following, p.User) {
+				s *= 2.5
+			}
+			s *= 1 + 0.3*float64(aff[p.User])
+			if p.User == u.ID {
+				s *= 0.5
+			}
+			l = append(l, sp{p, s})
+		}
+		sort.Slice(l, func(a, b int) bool { return l[a].s > l[b].s })
+		out := []map[string]any{}
+		for i := 0; i < len(l) && i < 60; i++ {
+			out = append(out, pv(l[i].p))
+		}
+		js(w, out)
+	})
 }
