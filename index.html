@@ -227,6 +227,25 @@ input,textarea{font-size:16px!important}
 #xsv .xm{position:absolute;inset:0;display:grid;place-items:center}#xsv .xm img,#xsv .xm video{max-width:100%;max-height:100%;object-fit:contain}#xsv .xm p{position:absolute;padding:24px;font-size:24px;font-weight:700;text-align:center;text-shadow:0 2px 8px #000;white-space:pre-wrap}
 #xsv .xf{position:absolute;left:0;right:0;bottom:0;padding:10px 12px calc(env(safe-area-inset-bottom,0px) + 10px);display:grid;gap:8px;z-index:3;background:linear-gradient(transparent,#000a)}
 #xsv .xf .bar{border:0;padding:0}#xsv .xf input{background:#ffffff26;color:#fff}#xsv .xf button{color:#fff}#xsv .ed{background:#ffffff26;color:#fff;padding:8px 10px}
+
+/* v7: full-page screens, sensitive blur */
+#md{display:block;padding:0;background:var(--bg);overflow-y:auto;overscroll-behavior:contain}
+.pg{max-width:640px;margin:0 auto;min-height:100%;display:flex;flex-direction:column}
+.pgh{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:12px;padding:calc(env(safe-area-inset-top,0px) + 10px) 12px 10px;background:var(--bg);border-bottom:1px solid var(--line)}
+.pgh button{background:none;border:0;font-size:28px;line-height:1;width:36px}.pgh b{font-size:18px}
+.pg .box{background:none;border-radius:0;padding:16px 16px calc(28px + env(safe-area-inset-bottom,0px));gap:14px;align-content:start;flex:1}
+.pg .box input,.pg .box textarea{border-radius:14px;padding:14px 16px}.pg .box textarea{min-height:130px}
+.fb{display:block;text-align:center;padding:13px;border-radius:14px;background:var(--card);font-weight:700;cursor:pointer;border:0;width:100%}
+.fl2{display:grid;gap:6px;font-weight:600}.fl2 small{float:right}
+.ep{position:relative;margin-bottom:44px}.epc{height:140px;border-radius:16px;background:linear-gradient(135deg,#000,#2a2a30)}.epa{position:absolute;left:16px;bottom:-44px}
+.pvg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.pvg:empty{display:none}
+.pvi{position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;background:var(--card)}.pvi img,.pvi video{width:100%;height:100%;object-fit:cover}
+.pvi button{position:absolute;top:4px;right:4px;border:0;border-radius:50%;width:26px;height:26px;background:#000a;color:#fff}
+.mpv{position:relative;aspect-ratio:9/12;max-height:50vh;border-radius:18px;overflow:hidden;background:linear-gradient(135deg,#000,#2a2a30);display:grid;place-items:center}
+.mpv img,.mpv video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.mpv p{position:relative;padding:16px;font-size:22px;font-weight:700;text-align:center;color:#fff;text-shadow:0 2px 8px #000;white-space:pre-wrap}
+.sxw{position:relative;overflow:hidden}.sxw .sxm{filter:blur(34px)}.sxw.on .sxm{filter:none}.sxw.on .sxb{display:none}
+.sxb{position:absolute;inset:0;margin:auto;height:46px;width:80%;border:0;border-radius:23px;background:#000c;color:#fff;font-weight:700}
 </style></head>
 <body>
 <svg width="0" height="0" style="position:absolute"><symbol id="vf" viewBox="0 0 24 24"><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5" fill="#1877f2"/><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5" fill="#1877f2" transform="rotate(45 12 12)"/><circle cx="12" cy="12" r="8.6" fill="#1877f2"/><path d="M7.4 12.4l3.1 3.1 6.2-6.6" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></symbol></svg>
@@ -907,6 +926,96 @@ $('#app').addEventListener('click',async e=>{const b=e.target.closest('[data-a]'
     else if(a=='xfd'){xfeed=d.v;try{localStorage.setItem('xf',xfeed)}catch(x){}go('feed')}
     else if(a=='npl'){b.hidden=true;go('feed')}
     else if(a=='xop'){const p=posts.find(x=>x.ID==i);if(p){modal(postH(p)+'<button class="pri" data-a="mc">Close</button>');paint()}}
+  }catch(x){toast(x.message)}});
+
+/* v7: full-page screens, compression, security, moderation */
+Object.assign(TXT,{login:'New login to your account. Check Devices and sessions',warn:'Amlink: your content broke the rules',susp:'Amlink: your posting is suspended for a while'});
+modal=function(h,keep){const m=$('#md'),t=(h.match(/<h3>(.*?)<\/h3>/)||[])[1]||'';
+  m.innerHTML='<div class="pg"><div class="pgh">'+(keep?'':'<button data-a="mc" aria-label="Back">←</button>')+'<b>'+t+'</b></div><div class="box">'+h.replace(/<h3>.*?<\/h3>/,'')+'</div></div>';
+  m.dataset.k=keep?1:'';m.hidden=false;m.scrollTop=0};
+
+/* compression and limits */
+async function xcomp(f){if(!f.type.startsWith('image/')||f.type=='image/gif'||f.size<250000)return f;
+  try{const bm=await createImageBitmap(f),k=Math.min(1,1600/Math.max(bm.width,bm.height)),c=document.createElement('canvas');c.width=Math.round(bm.width*k);c.height=Math.round(bm.height*k);c.getContext('2d').drawImage(bm,0,0,c.width,c.height);
+    const b=await new Promise(r=>c.toBlob(r,'image/jpeg',.82));return b&&b.size<f.size?b:f}catch(e){return f}}
+async function xvid(f){if(f.size>50*1024*1024)throw new Error('Video is too big (max 50 MB)');
+  const d=await new Promise(res=>{const v=document.createElement('video');v.preload='metadata';v.onloadedmetadata=()=>{URL.revokeObjectURL(v.src);res(v.duration)};v.onerror=()=>res(0);v.src=URL.createObjectURL(f)});
+  if(d>180)throw new Error('Videos can be up to 3 minutes')}
+const up0=up;
+up=async function(f,type){if(f.type&&f.type.startsWith('video/'))await xvid(f);const g=await xcomp(f);return up0(g,g.type||type)};
+
+/* full-page create screens */
+let XF=[];
+function xpv(){const g=$('#pvg');if(!g)return;g.innerHTML=XF.map((f,i)=>`<div class="pvi">${f.type.startsWith('video')?`<video src="${URL.createObjectURL(f)}#t=0.1" muted playsinline></video>`:`<img src="${URL.createObjectURL(f)}" alt="">`}<button data-a="xrm" data-i="${i}" aria-label="Remove">✕</button></div>`).join('')}
+newPost=function(){XF=[];
+  modal(`<h3>New post</h3><textarea id="tx" placeholder="What’s on your mind? Use @name or #tag" maxlength="2000"></textarea><small id="tc">0/2000</small><div class="pvg" id="pvg"></div><label class="fb">📷 Add photos or a video<input id="fi" type="file" accept="image/*,video/*" multiple hidden></label><button class="fb" id="pbt" type="button">📊 Add a poll</button><div id="pol" hidden style="display:grid;gap:8px"><input class="po1" placeholder="Option 1" maxlength="40"><input class="po1" placeholder="Option 2" maxlength="40"><input class="po1" placeholder="Option 3 (optional)" maxlength="40"><input class="po1" placeholder="Option 4 (optional)" maxlength="40"></div><label class="row"><span>Mark as sensitive content</span><input type="checkbox" id="sn" style="width:22px;height:22px"></label><p class="er" id="er"></p><button class="pri" id="pub">Post</button>`);
+  $('#tx').oninput=()=>$('#tc').textContent=$('#tx').value.length+'/2000';
+  $('#fi').onchange=()=>{XF=[...XF,...$('#fi').files].slice(0,10);$('#fi').value='';xpv()};
+  $('#pbt').onclick=()=>{$('#pol').hidden=!$('#pol').hidden};
+  $('#pub').onclick=async()=>{const b=$('#pub');$('#er').textContent='';b.disabled=true;
+    try{if(XF.length>1&&XF.some(f=>!f.type.startsWith('image')))throw new Error('Several files must all be photos');
+      const urls=[];for(let i=0;i<XF.length;i++){b.textContent='Uploading '+(i+1)+'/'+XF.length+'…';urls.push(await up(XF[i]))}
+      b.textContent='Posting…';const po=$('#pol').hidden?'':[...document.querySelectorAll('.po1')].map(x=>x.value.trim()).filter(Boolean).join('|');
+      await A('post2',{text:$('#tx').value,media:urls.join(','),kind:XF[0]?(XF[0].type.startsWith('video')?'video':'image'):'',poll:po,sens:$('#sn').checked?'1':''});
+      closeM();go(tab=='reels'?'reels':'feed')}
+    catch(e){$('#er').textContent=e.message;b.disabled=false;b.textContent='Post'}}};
+sadd=function(){let f=null,url='';
+  modal(`<h3>New moment</h3><div class="mpv" id="mpv"><p>Your moment</p></div><textarea id="tx" placeholder="Add text. It disappears in 24 hours." maxlength="300"></textarea><small id="tc">0/300</small><label class="fb">📷 Add a photo or video<input id="fi" type="file" accept="image/*,video/*" hidden></label><p class="er" id="er"></p><button class="pri" id="pub">Share moment</button>`);
+  const draw=()=>{$('#mpv').innerHTML=(f?(f.type.startsWith('video')?`<video src="${url}" muted playsinline controls></video>`:`<img src="${url}" alt="">`):'')+`<p>${E($('#tx').value)||(f?'':'Your moment')}</p>`};
+  $('#tx').oninput=()=>{$('#tc').textContent=$('#tx').value.length+'/300';draw()};
+  $('#fi').onchange=()=>{f=$('#fi').files[0]||null;url=f?URL.createObjectURL(f):'';draw()};
+  $('#pub').onclick=async()=>{const b=$('#pub');b.disabled=true;b.textContent='Sharing…';
+    try{let m='',k='';if(f){m=await up(f);k=f.type.startsWith('video')?'video':'image'}
+      await A('status',{text:$('#tx').value,media:m,kind:k});closeM();go('feed')}
+    catch(e){$('#er').textContent=e.message;b.disabled=false;b.textContent='Share moment'}}};
+reelNew=function(){
+  modal(`<h3>New reel</h3><div class="mpv" id="rpv"><p>Pick a video</p></div><label class="fb">🎬 Choose a video<input id="fi" type="file" accept="video/*" hidden></label><textarea id="tx" placeholder="Write a caption. Use #tags" maxlength="300"></textarea><small id="tc">0/300</small><p class="er" id="er"></p><button class="pri" id="pub">Post reel</button>`);
+  $('#tx').oninput=()=>$('#tc').textContent=$('#tx').value.length+'/300';
+  $('#fi').onchange=()=>{const f=$('#fi').files[0];if(f)$('#rpv').innerHTML=`<video src="${URL.createObjectURL(f)}" controls playsinline muted></video>`};
+  $('#pub').onclick=async()=>{const f=$('#fi').files[0],b=$('#pub');if(!f||!f.type.startsWith('video')){$('#er').textContent='Choose a video to post.';return}
+    b.disabled=true;b.textContent='Uploading…';
+    try{const m=await up(f);b.textContent='Posting…';await A('post',{text:$('#tx').value,media:m,kind:'video'});closeM();go('reels')}
+    catch(e){$('#er').textContent=e.message;b.disabled=false;b.textContent='Post reel'}}};
+editP=function(){let un0=ME.Username||'';
+  modal(`<h3>Edit profile</h3><div class="ep"><div class="epc" id="pvc" style="${ME.Cover?`background:url('${E(ME.Cover)}') center/cover`:''}"></div><span class="epa" id="pva">${AV({Av:ME.Avatar,Username:ME.Username},'big')}</span></div><label class="fb">Change cover photo<input id="cvf" type="file" accept="image/*" hidden></label><label class="fb">Change profile photo<input id="avf" type="file" accept="image/*" hidden></label><label class="fl2">Display name<input id="enm" maxlength="60" value="${E(ME.Name||'')}"></label><label class="fl2">Username<input id="eun" maxlength="20" value="${E(ME.Username||'')}" autocapitalize="none"></label><label class="fl2"><span>Bio <small id="bc">${(ME.Bio||'').length}/120</small></span><textarea id="bio" maxlength="120" placeholder="Write a short bio">${E(ME.Bio||'')}</textarea></label><p class="er" id="er"></p><button class="pri" id="sbio">Save changes</button>`);
+  $('#cvf').onchange=()=>{const f=$('#cvf').files[0];if(f)$('#pvc').style.background=`url('${URL.createObjectURL(f)}') center/cover`};
+  $('#avf').onchange=()=>{const f=$('#avf').files[0];if(f)$('#pva').innerHTML=`<b class="av big" style="background:url('${URL.createObjectURL(f)}') center/cover"></b>`};
+  $('#bio').oninput=()=>$('#bc').textContent=$('#bio').value.length+'/120';
+  $('#sbio').onclick=async()=>{const b=$('#sbio');b.disabled=true;b.textContent='Saving…';
+    try{const un=$('#eun').value.trim().toLowerCase();if(un&&un!=un0)ME=await A('username',{u:un});
+      ME=await A('bio',{bio:$('#bio').value,name:$('#enm').value,avatar:await upf('#avf',ME.Avatar),cover:await upf('#cvf',ME.Cover)});closeM();go('me')}
+    catch(e){$('#er').textContent=e.message;b.disabled=false;b.textContent='Save changes'}}};
+
+/* sensitive content */
+const m1=mediaH;
+mediaH=p=>{const h=m1(p);return p.Sens&&h?'<div class="sxw"><div class="sxm">'+h+'</div><button class="sxb" data-a="sxv">⚠ Sensitive content · tap to view</button></div>':h};
+const pt1=paint;
+paint=function(){pt1();document.querySelectorAll('.post footer').forEach(f=>{const l=f.querySelector('.lk');if(l&&(f.querySelector('[data-a=epost]')||ME.Admin)&&!f.querySelector('.sn2'))f.insertAdjacentHTML('beforeend',`<button class="sn2" data-a="sens" data-i="${l.dataset.i}" aria-label="Toggle sensitive">⚠</button>`)})};
+
+/* security: devices and sessions */
+const xua=u=>{const o=/Android/.test(u)?'Android':/iPhone|iPad/.test(u)?'iOS':/Windows/.test(u)?'Windows':/Mac OS/.test(u)?'Mac':/Linux/.test(u)?'Linux':'Unknown device',b=/Edg\//.test(u)?'Edge':/Firefox/.test(u)?'Firefox':/Chrome/.test(u)?'Chrome':/Safari/.test(u)?'Safari':'Browser';return b+' on '+o};
+async function xsess(){const l=await A('sessions');
+  modal('<h3>Devices and sessions</h3><p class="sub">These devices are logged in to your account. Log out any you do not recognise.</p>'+l.map(s=>`<div class="cd" style="padding:14px;display:grid;gap:6px"><b>${E(xua(s.UA||''))}${s.Me?' · This device':''}</b><small>${E(s.IP||'Unknown location')} · signed in ${ago(s.TS)=='now'?'just now':ago(s.TS)+' ago'}</small>${s.Me?'':`<button class="ed" data-a="srv" data-i="${s.ID}">Log out this device</button>`}</div>`).join('')+'<button class="pri sec" data-a="sra">Log out of all other devices</button><button class="pri" data-a="srm">Log out everywhere</button>')}
+
+/* moderation (admin) */
+async function xmq(){const j=await A('modq'),bt=(r,o,l)=>`<button class="ed" style="padding:8px 12px" data-a="mq" data-i="${r.ID}" data-o="${o}">${l}</button>`;
+  modal('<h3>Moderation</h3><label class="fl2">Blocked words (comma separated)<textarea id="mw" placeholder="word1, word2">'+E(j.Words.join(', '))+'</textarea></label><button class="pri" data-a="mws">Save blocked words</button><p class="sg" style="padding:0">Review queue ('+j.Q.length+')</p>'+
+  (j.Q.map(r=>`<div class="cd" style="padding:12px;display:grid;gap:8px"><div><b>${E(r.Kind)}</b> reported by ${nm(r.By)} against ${nm(r.To)}<br><small>${E(r.Text||'')} ${E(r.Reason||'')} · ${ago(r.TS)}</small></div><div class="act" style="flex-wrap:wrap">${bt(r,'dismiss','Dismiss')}${bt(r,'delete','Delete')}${r.Kind=='post'?bt(r,'sens','Sensitive'):''}${bt(r,'warn','Warn')}${bt(r,'susp1','Suspend 24h')}${bt(r,'susp7','Suspend 7d')}${bt(r,'ban','Ban')}</div></div>`).join('')||'<p class="empty">The queue is clear.</p>'))}
+const od2=openDr;
+openDr=function(){od2();$('#dr').insertAdjacentHTML('beforeend','<p class="sg">Security</p><div class="cd"><button class="sr" data-a="sess"><i>🔐</i>Devices and sessions<em>›</em></button>'+(ME.Admin?'<button class="sr" data-a="xmq"><i>🛡️</i>Moderation<em>›</em></button>':'')+'</div>')};
+
+$('#app').addEventListener('click',async e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,i=b.dataset.i,d=b.dataset;
+  try{
+    if(a=='xrm'){XF.splice(+i,1);xpv()}
+    else if(a=='sxv')b.parentElement.classList.add('on');
+    else if(a=='sens'){const j=await A('sens',{id:i});posts.forEach(p=>{if(p.ID==i)p.Sens=j.Sens});toast(j.Sens?'Marked as sensitive':'Sensitive tag removed')}
+    else if(a=='sess')xsess();
+    else if(a=='srv'){await A('revoke',{id:i});xsess()}
+    else if(a=='sra'){await A('revoke',{all:'1'});xsess()}
+    else if(a=='srm'){if(confirm('Log out of every device, including this one?')){await A('revoke',{all:'1',me:'1'});out()}}
+    else if(a=='xmq')xmq();
+    else if(a=='mq'){await A('modact',{id:i,op:d.o});xmq()}
+    else if(a=='mws'){await A('modwords',{w:$('#mw').value});toast('Blocked words saved')}
   }catch(x){toast(x.message)}});
 
 </script>
