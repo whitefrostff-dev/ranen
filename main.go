@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -272,7 +273,7 @@ func pv(p *Post) map[string]any {
 	for _, c := range p.Comments {
 		cs = append(cs, map[string]any{"U": uv(c.User), "Text": c.Text, "TS": c.TS, "Likes": c.Likes})
 	}
-	return map[string]any{"ID": p.ID, "U": uv(p.User), "Text": p.Text, "Media": p.Media, "Kind": p.Kind, "TS": p.TS, "Likes": p.Likes, "C": cs, "More": p.More, "Poll": p.Poll}
+	return map[string]any{"ID": p.ID, "U": uv(p.User), "Text": p.Text, "Media": p.Media, "Kind": p.Kind, "TS": p.TS, "Likes": p.Likes, "C": cs, "More": p.More, "Poll": p.Poll, "Sens": x().Sens[p.ID]}
 }
 func fpOld(id string) *Post {
 	for _, p := range S.Posts {
@@ -377,6 +378,7 @@ func main() {
 	ok := map[string]bool{"ok": true}
 	extra(ok)
 	extra2()
+	extra3()
 
 	// removes a user and everything that points at them
 	purge := func(id string) {
@@ -425,6 +427,7 @@ func main() {
 		if u == nil {
 			u = &User{ID: t.Sub, Email: t.Email, Name: t.Name, Following: []string{}}
 			S.Users[t.Sub] = u
+			x().Born[u.ID] = now()
 		}
 		if t.Email == admin && t.Email_verified == "true" {
 			u.Admin, u.Verified = true, true
@@ -432,6 +435,7 @@ func main() {
 		tok := uid() + uid()
 		S.Sess[tok] = t.Sub
 		S.SessTS[tok] = now()
+		xdev(tok, r)
 		save()
 		js(w, map[string]any{"token": tok, "me": u})
 	})
@@ -480,13 +484,16 @@ func main() {
 			}
 			u = &User{ID: f.LocalId, Email: f.Email, Name: n, DOB: b["dob"], Agreed: now(), Following: []string{}}
 			S.Users[u.ID] = u
+			x().Born[u.ID] = now()
 		}
+		x().NoVer[u.ID] = !f.EmailVerified
 		if f.EmailVerified && f.Email == admin {
 			u.Admin, u.Verified = true, true
 		}
 		tok := uid() + uid()
 		S.Sess[tok] = u.ID
 		S.SessTS[tok] = now()
+		xdev(tok, r)
 		save()
 		js(w, map[string]any{"token": tok, "me": u})
 	})
@@ -556,6 +563,10 @@ func main() {
 
 	api("post", func(u *User, w http.ResponseWriter, r *http.Request) {
 		b := in(r)
+		if x().NoVer[u.ID] {
+			fail(w, 403, "Verify your email first (check your inbox), then log in again")
+			return
+		}
 		if strings.TrimSpace(b["text"]) == "" && b["media"] == "" {
 			fail(w, 400, "Write something or add a photo or video")
 			return
@@ -1290,7 +1301,7 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
-	(&http.Server{Addr: ":" + port, ReadHeaderTimeout: 10 * time.Second, IdleTimeout: 2 * time.Minute}).ListenAndServe()
+	(&http.Server{Addr: ":" + port, Handler: modMW(http.DefaultServeMux), ReadHeaderTimeout: 10 * time.Second, IdleTimeout: 2 * time.Minute}).ListenAndServe()
 }
 
 // ---------- v4 additions ----------
@@ -1312,6 +1323,12 @@ type Extra struct {
 	GAdm   map[string][]string
 	MView  map[string][]string
 	MReact map[string]map[string]string
+	Dev    map[string]*Dev
+	NoVer  map[string]bool
+	Born   map[string]int64
+	Susp   map[string]int64
+	Sens   map[string]bool
+	Words  []string
 	URep   []*URep
 }
 
@@ -1338,6 +1355,21 @@ func x() *Extra {
 	}
 	if e.MView == nil {
 		e.MView = map[string][]string{}
+	}
+	if e.Dev == nil {
+		e.Dev = map[string]*Dev{}
+	}
+	if e.NoVer == nil {
+		e.NoVer = map[string]bool{}
+	}
+	if e.Born == nil {
+		e.Born = map[string]int64{}
+	}
+	if e.Susp == nil {
+		e.Susp = map[string]int64{}
+	}
+	if e.Sens == nil {
+		e.Sens = map[string]bool{}
 	}
 	if e.MReact == nil {
 		e.MReact = map[string]map[string]string{}
@@ -1401,6 +1433,10 @@ func extra(ok map[string]bool) {
 	api("post2", func(u *User, w http.ResponseWriter, r *http.Request) {
 		b := in(r)
 		t := strings.TrimSpace(b["text"])
+		if x().NoVer[u.ID] {
+			fail(w, 403, "Verify your email first (check your inbox), then log in again")
+			return
+		}
 		var media []string
 		for _, m := range strings.Split(b["media"], ",") {
 			if m != "" {
@@ -1438,6 +1474,9 @@ func extra(ok map[string]bool) {
 			p.Media, p.More = media[0], media[1:]
 		}
 		S.Posts = append(S.Posts, p)
+		if b["sens"] == "1" {
+			x().Sens[p.ID] = true
+		}
 		mentions(u, t, p.ID)
 		save()
 		js(w, ok)
@@ -2059,6 +2098,11 @@ func janitor() {
 				delete(rl, id)
 			}
 		}
+		for tok := range x().Dev {
+			if _, k := S.Sess[tok]; !k {
+				delete(x().Dev, tok)
+			}
+		}
 		live := map[string]bool{}
 		for _, s := range S.Statuses {
 			live[s.ID] = true
@@ -2159,6 +2203,9 @@ func purgeMore(id string) {
 	delete(e.Req, id)
 	delete(e.Pin, id)
 	delete(e.Mute, id)
+	delete(e.NoVer, id)
+	delete(e.Born, id)
+	delete(e.Susp, id)
 	for k, l := range e.Req {
 		e.Req[k] = del(l, id)
 	}
@@ -2225,5 +2272,273 @@ func extra2() {
 			out = append(out, pv(l[i].p))
 		}
 		js(w, out)
+	})
+}
+
+// ---------- v7: security and moderation ----------
+type Dev struct {
+	UA, IP string
+	TS     int64
+}
+
+func tid(t string) string {
+	h := sha256.Sum256([]byte(t))
+	return hex.EncodeToString(h[:6])
+}
+func cip(r *http.Request) string {
+	if f := r.Header.Get("X-Forwarded-For"); f != "" {
+		return strings.TrimSpace(strings.Split(f, ",")[0])
+	}
+	a := r.RemoteAddr
+	if i := strings.LastIndex(a, ":"); i > 0 {
+		a = a[:i]
+	}
+	return a
+}
+
+// xdev records the device for a new session and alerts the user about a login from a new device (call with mu held)
+func xdev(tok string, r *http.Request) {
+	id := S.Sess[tok]
+	ua := trunc(r.UserAgent(), 160)
+	had, known := false, false
+	for t, d := range x().Dev {
+		if S.Sess[t] == id {
+			had = true
+			if d.UA == ua {
+				known = true
+			}
+		}
+	}
+	x().Dev[tok] = &Dev{ua, cip(r), now()}
+	if had && !known {
+		S.Notifs = append(S.Notifs, Notif{id, id, "login", "", now(), false})
+		push(id, "login")
+	}
+}
+
+var modPaths = map[string]string{"/api/post": "p", "/api/post2": "p", "/api/status": "p", "/api/chpost": "p", "/api/comment": "c", "/api/comment2": "c", "/api/msg": "m", "/api/gmsg": "m", "/api/bio": "t", "/api/editpost": "t", "/api/chcreate": "t", "/api/gcreate": "t"}
+var modHits = map[string][]int64{}
+
+func modMW(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if cl, k := modPaths[r.URL.Path]; k && r.Method == "POST" {
+			b, _ := io.ReadAll(http.MaxBytesReader(w, r.Body, 1<<20))
+			r.Body = io.NopCloser(bytes.NewReader(b))
+			if code, msg := modCheck(r, b, cl); msg != "" {
+				fail(w, code, msg)
+				return
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+func badText(s string, words []string) bool {
+	l := strings.ToLower(s)
+	for _, w := range words {
+		if w != "" && strings.Contains(l, w) {
+			return true
+		}
+	}
+	return false
+}
+func modCheck(r *http.Request, b []byte, cl string) (int, string) {
+	mu.Lock()
+	defer mu.Unlock()
+	u := S.Users[S.Sess[r.Header.Get("X-Token")]]
+	if u == nil || u.Admin {
+		return 0, ""
+	}
+	e := x()
+	if t := e.Susp[u.ID]; t > now() {
+		return 403, fmt.Sprintf("Your account is suspended from posting for about %d more hours", (t-now())/3600+1)
+	}
+	var m map[string]any
+	json.Unmarshal(b, &m)
+	for k, v := range m {
+		if s, ok := v.(string); ok && k != "media" && k != "avatar" && k != "cover" && k != "id" && k != "g" && k != "to" && k != "token" && badText(s, e.Words) {
+			return 400, "That contains words that are not allowed on Amlink"
+		}
+	}
+	if born, k := e.Born[u.ID]; k && cl != "t" && now()-born < 86400 {
+		lim := map[string]int{"p": 5, "c": 30, "m": 40}[cl]
+		key := u.ID + cl
+		h := modHits[key][:0:0]
+		for _, t := range modHits[key] {
+			if now()-t < 3600 {
+				h = append(h, t)
+			}
+		}
+		if len(h) >= lim {
+			modHits[key] = h
+			return 429, "New accounts have posting limits during the first day. Try again later."
+		}
+		modHits[key] = append(h, now())
+	}
+	return 0, ""
+}
+
+func extra3() {
+	ok := map[string]bool{"ok": true}
+	api("sessions", func(u *User, w http.ResponseWriter, r *http.Request) {
+		cur := r.Header.Get("X-Token")
+		out := []map[string]any{}
+		for t, id := range S.Sess {
+			if id != u.ID {
+				continue
+			}
+			m := map[string]any{"ID": tid(t), "Me": t == cur, "UA": "", "IP": "", "TS": S.SessTS[t]}
+			if d := x().Dev[t]; d != nil {
+				m["UA"], m["IP"], m["TS"] = d.UA, d.IP, d.TS
+			}
+			out = append(out, m)
+		}
+		sort.Slice(out, func(a, b int) bool { return out[a]["TS"].(int64) > out[b]["TS"].(int64) })
+		js(w, out)
+	})
+	api("revoke", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		cur := r.Header.Get("X-Token")
+		for t, o := range S.Sess {
+			if o == u.ID && (tid(t) == b["id"] || (b["all"] == "1" && (t != cur || b["me"] == "1"))) {
+				delete(S.Sess, t)
+				delete(S.SessTS, t)
+				delete(x().Dev, t)
+			}
+		}
+		save()
+		js(w, ok)
+	})
+	api("sens", func(u *User, w http.ResponseWriter, r *http.Request) {
+		id := in(r)["id"]
+		p := fp(id)
+		if p == nil || (p.User != u.ID && !u.Admin) {
+			fail(w, 403, "Not allowed")
+			return
+		}
+		x().Sens[id] = !x().Sens[id]
+		save()
+		js(w, map[string]bool{"Sens": x().Sens[id]})
+	})
+	api("modq", func(u *User, w http.ResponseWriter, r *http.Request) {
+		if !u.Admin {
+			fail(w, 403, "Admins only")
+			return
+		}
+		q := []map[string]any{}
+		for _, rp := range S.Reports {
+			m := map[string]any{"ID": rp.ID, "Kind": "post", "By": uv(rp.By), "To": uv(""), "Reason": rp.Reason, "TS": rp.TS, "Text": ""}
+			if p := fp(rp.Post); p != nil {
+				m["To"], m["Text"] = uv(p.User), trunc(p.Text, 80)
+			}
+			q = append(q, m)
+		}
+		for _, o := range x().URep {
+			q = append(q, map[string]any{"ID": o.ID, "Kind": o.Kind, "By": uv(o.By), "To": uv(o.Target), "Reason": o.Reason, "TS": o.TS, "Text": o.Text})
+		}
+		ws := x().Words
+		if ws == nil {
+			ws = []string{}
+		}
+		js(w, map[string]any{"Q": q, "Words": ws})
+	})
+	api("modwords", func(u *User, w http.ResponseWriter, r *http.Request) {
+		if !u.Admin {
+			fail(w, 403, "Admins only")
+			return
+		}
+		var ws []string
+		for _, s := range strings.Split(strings.ToLower(in(r)["w"]), ",") {
+			if s = strings.TrimSpace(s); s != "" && rn(s) <= 40 && len(ws) < 200 {
+				ws = append(ws, s)
+			}
+		}
+		x().Words = ws
+		alog(u, "updated blocked words")
+		save()
+		js(w, ok)
+	})
+	api("modact", func(u *User, w http.ResponseWriter, r *http.Request) {
+		if !u.Admin {
+			fail(w, 403, "Admins only")
+			return
+		}
+		b := in(r)
+		id, op := b["id"], b["op"]
+		var target, post, ctext string
+		cidx, found := -1, false
+		for _, rp := range S.Reports {
+			if rp.ID == id {
+				found, post = true, rp.Post
+				if p := fp(post); p != nil {
+					target = p.User
+				}
+			}
+		}
+		for _, o := range x().URep {
+			if o.ID == id {
+				found, target, post, ctext, cidx = true, o.Target, o.Post, o.Text, o.Idx
+			}
+		}
+		if !found {
+			fail(w, 404, "Report not found")
+			return
+		}
+		t, e := S.Users[target], x()
+		switch op {
+		case "dismiss":
+		case "delete":
+			if cidx >= 0 {
+				if p := fp(post); p != nil && cidx < len(p.Comments) && strings.HasPrefix(p.Comments[cidx].Text, ctext) {
+					p.Comments = append(p.Comments[:cidx], p.Comments[cidx+1:]...)
+				}
+			} else {
+				for i, p := range S.Posts {
+					if p.ID == post {
+						S.Posts = append(S.Posts[:i], S.Posts[i+1:]...)
+						break
+					}
+				}
+			}
+		case "sens":
+			if cidx < 0 {
+				e.Sens[post] = true
+			}
+		case "warn", "susp1", "susp7", "ban":
+			if t != nil && !t.Admin {
+				typ := "warn"
+				switch op {
+				case "susp1":
+					e.Susp[target], typ = now()+86400, "susp"
+				case "susp7":
+					e.Susp[target], typ = now()+7*86400, "susp"
+				case "ban":
+					t.Banned = true
+				}
+				if op != "ban" {
+					S.Notifs = append(S.Notifs, Notif{target, target, typ, "", now(), false})
+					push(target, typ)
+				}
+				alog(u, op+" on @"+t.Username)
+			}
+		default:
+			fail(w, 400, "Unknown action")
+			return
+		}
+		keep := S.Reports[:0]
+		for _, rp := range S.Reports {
+			if rp.ID != id {
+				keep = append(keep, rp)
+			}
+		}
+		S.Reports = keep
+		ku := []*URep{}
+		for _, o := range e.URep {
+			if o.ID != id {
+				ku = append(ku, o)
+			}
+		}
+		e.URep = ku
+		save()
+		js(w, ok)
 	})
 }
