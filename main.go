@@ -11,12 +11,15 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/signal"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
+	"unicode/utf8"
 )
 
 type User struct {
@@ -107,7 +110,7 @@ func sb(method, path string, body io.Reader, ct string) (*http.Response, error) 
 	if ct != "" {
 		r.Header.Set("Content-Type", ct)
 	}
-	return http.DefaultClient.Do(r)
+	return hu.Do(r)
 }
 
 // Neon (Postgres) over HTTPS: no driver needed. Set DATABASE_URL to your Neon connection string.
@@ -123,7 +126,7 @@ func neon(q string, p ...any) ([]map[string]json.RawMessage, error) {
 	r, _ := http.NewRequest("POST", "https://"+u.Hostname()+"/sql", bytes.NewReader(b))
 	r.Header.Set("Content-Type", "application/json")
 	r.Header.Set("Neon-Connection-String", env("DATABASE_URL"))
-	resp, e := http.DefaultClient.Do(r)
+	resp, e := hc.Do(r)
 	if e != nil {
 		return nil, e
 	}
@@ -179,7 +182,7 @@ func load() {
 
 var saveCh = make(chan []byte, 1)
 
-func save() { // call while holding mu; only the newest state is written
+func saveOld() { // call while holding mu; only the newest state is written
 	b, _ := json.Marshal(S)
 	select {
 	case <-saveCh:
@@ -187,7 +190,7 @@ func save() { // call while holding mu; only the newest state is written
 	}
 	saveCh <- b
 }
-func writer() {
+func writerOld() {
 	for b := range saveCh {
 		if env("DATABASE_URL") != "" {
 			neon("INSERT INTO store(key,value) VALUES('state',$1::jsonb) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", string(b))
@@ -270,7 +273,7 @@ func pv(p *Post) map[string]any {
 	}
 	return map[string]any{"ID": p.ID, "U": uv(p.User), "Text": p.Text, "Media": p.Media, "Kind": p.Kind, "TS": p.TS, "Likes": p.Likes, "C": cs, "More": p.More, "Poll": p.Poll}
 }
-func fp(id string) *Post {
+func fpOld(id string) *Post {
 	for _, p := range S.Posts {
 		if p.ID == id {
 			return p
@@ -355,15 +358,27 @@ func alog(u *User, s string) {
 func main() {
 	load()
 	go writer()
+	go janitor()
+	go func() {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+		<-c
+		mu.Lock()
+		b, _ := json.Marshal(S)
+		mu.Unlock()
+		flush(b)
+		os.Exit(0)
+	}()
 	admin := env("ADMIN_EMAIL")
 	if admin == "" {
-		admin = "whitefrostff@gmail.com"
+		admin = "admin-not-set@invalid.local"
 	}
 	ok := map[string]bool{"ok": true}
 	extra(ok)
 
 	// removes a user and everything that points at them
 	purge := func(id string) {
+		purgeMore(id)
 		delete(S.Users, id)
 		ps := S.Posts[:0]
 		for _, p := range S.Posts {
@@ -390,13 +405,13 @@ func main() {
 	})
 
 	http.HandleFunc("/api/login", func(w http.ResponseWriter, r *http.Request) {
-		resp, e := http.Get("https://oauth2.googleapis.com/tokeninfo?id_token=" + url.QueryEscape(in(r)["credential"]))
+		resp, e := hc.Get("https://oauth2.googleapis.com/tokeninfo?id_token=" + url.QueryEscape(in(r)["credential"]))
 		if e != nil {
 			fail(w, 502, "Google check failed")
 			return
 		}
 		defer resp.Body.Close()
-		var t struct{ Aud, Email, Name, Sub string }
+		var t struct{ Aud, Email, Name, Sub, Email_verified string }
 		json.NewDecoder(resp.Body).Decode(&t)
 		if resp.StatusCode != 200 || t.Aud != env("GOOGLE_CLIENT_ID") || t.Sub == "" {
 			fail(w, 401, "Google sign-in was rejected")
@@ -409,7 +424,7 @@ func main() {
 			u = &User{ID: t.Sub, Email: t.Email, Name: t.Name, Following: []string{}}
 			S.Users[t.Sub] = u
 		}
-		if t.Email == admin {
+		if t.Email == admin && t.Email_verified == "true" {
 			u.Admin, u.Verified = true, true
 		}
 		tok := uid() + uid()
@@ -423,7 +438,7 @@ func main() {
 	http.HandleFunc("/api/fblogin", func(w http.ResponseWriter, r *http.Request) {
 		b := in(r)
 		body, _ := json.Marshal(map[string]string{"idToken": b["token"]})
-		resp, e := http.Post("https://identitytoolkit.googleapis.com/v1/accounts:lookup?key="+url.QueryEscape(env("FIREBASE_API_KEY")), "application/json", bytes.NewReader(body))
+		resp, e := hc.Post("https://identitytoolkit.googleapis.com/v1/accounts:lookup?key="+url.QueryEscape(env("FIREBASE_API_KEY")), "application/json", bytes.NewReader(body))
 		if e != nil {
 			fail(w, 502, "Firebase check failed")
 			return
@@ -457,7 +472,7 @@ func main() {
 		}
 		if u == nil {
 			n := strings.TrimSpace(b["name"])
-			if n == "" || len(n) > 60 || !old13(b["dob"]) || b["terms"] != "1" {
+			if n == "" || rn(n) > 60 || !old13(b["dob"]) || b["terms"] != "1" {
 				fail(w, 400, "Finish creating your account first")
 				return
 			}
@@ -475,20 +490,19 @@ func main() {
 	})
 
 	http.HandleFunc("/api/upload", func(w http.ResponseWriter, r *http.Request) {
-		mu.Lock()
-		u := S.Users[S.Sess[r.Header.Get("X-Token")]]
-		mu.Unlock()
+		u := authUser(r)
 		ct := r.Header.Get("Content-Type")
 		if u == nil {
 			fail(w, 401, "Please log in")
 			return
 		}
 		ct = strings.Split(ct, ";")[0]
-		if !strings.HasPrefix(ct, "image/") && !strings.HasPrefix(ct, "video/") && !strings.HasPrefix(ct, "audio/") {
+		ext, good := okTypes[ct]
+		if !good {
 			fail(w, 400, "Only images and videos")
 			return
 		}
-		name := uid() + "." + strings.Split(ct, "/")[1]
+		name := uid() + "." + ext
 		resp, e := sb("POST", "/storage/v1/object/media/"+name, http.MaxBytesReader(w, r.Body, 50<<20), ct)
 		if e != nil || resp.StatusCode > 299 {
 			fail(w, 500, "Upload failed")
@@ -530,7 +544,7 @@ func main() {
 			n = 60
 		}
 		for i := len(S.Posts) - 1; i >= 0 && len(out) < n; i-- {
-			if o := S.Users[S.Posts[i].User]; o != nil && (blk(u, o) || priv(u, o)) {
+			if o := S.Users[S.Posts[i].User]; o != nil && (o.Banned || blk(u, o) || priv(u, o)) {
 				continue
 			}
 			out = append(out, pv(S.Posts[i]))
@@ -544,7 +558,7 @@ func main() {
 			fail(w, 400, "Write something or add a photo or video")
 			return
 		}
-		if len(b["text"]) > 2000 || !okMedia(b["media"]) {
+		if rn(b["text"]) > 2000 || !okMedia(b["media"]) {
 			fail(w, 400, "Invalid post")
 			return
 		}
@@ -559,6 +573,9 @@ func main() {
 
 	api("like", func(u *User, w http.ResponseWriter, r *http.Request) {
 		p := fp(in(r)["id"])
+		if p != nil && hid(u, p.User) {
+			p = nil
+		}
 		if p == nil {
 			fail(w, 404, "Post not found")
 			return
@@ -573,7 +590,7 @@ func main() {
 		js(w, pv(p))
 	})
 
-	api("comment", func(u *User, w http.ResponseWriter, r *http.Request) {
+	_ = (func(u *User, w http.ResponseWriter, r *http.Request) {
 		b := in(r)
 		p, t := fp(b["id"]), strings.TrimSpace(b["text"])
 		if p == nil || t == "" || len(t) > 300 {
@@ -624,7 +641,7 @@ func main() {
 		q := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
 		out := []map[string]any{}
 		for _, o := range S.Users {
-			if o.ID == u.ID || o.Username == "" || blk(u, o) {
+			if o.ID == u.ID || o.Username == "" || o.Banned || blk(u, o) {
 				continue
 			}
 			if (q == "" && has(u.Following, o.ID)) || (q != "" && (strings.Contains(o.Username, q) || strings.Contains(strings.ToLower(o.Name), q))) {
@@ -655,7 +672,7 @@ func main() {
 	api("msg", func(u *User, w http.ResponseWriter, r *http.Request) {
 		b := in(r)
 		t := strings.TrimSpace(b["text"])
-		if S.Users[b["to"]] == nil || blk(u, S.Users[b["to"]]) || (t == "" && b["media"] == "") || len(t) > 1000 || !okMedia(b["media"]) {
+		if S.Users[b["to"]] == nil || blk(u, S.Users[b["to"]]) || (t == "" && b["media"] == "") || rn(t) > 1000 || !okMedia(b["media"]) {
 			fail(w, 400, "Invalid message")
 			return
 		}
@@ -795,7 +812,7 @@ func main() {
 
 	api("notice", func(u *User, w http.ResponseWriter, r *http.Request) {
 		t := strings.TrimSpace(in(r)["text"])
-		if !u.Admin || len(t) > 200 {
+		if !u.Admin || rn(t) > 200 {
 			fail(w, 403, "Not allowed")
 			return
 		}
@@ -878,7 +895,7 @@ func main() {
 		}
 		why := strings.TrimSpace(b["reason"])
 		if len(why) > 200 {
-			why = why[:200]
+			why = trunc(why, 200)
 		}
 		S.Reports = append(S.Reports, &Report{uid(), p.ID, u.ID, why, now()})
 		save()
@@ -905,6 +922,10 @@ func main() {
 			fail(w, 404, "User not found")
 			return
 		}
+		if (o.Banned && !u.Admin) || (id != u.ID && blk(u, o)) {
+			fail(w, 404, "User not found")
+			return
+		}
 		fol, lk, ps := 0, 0, []map[string]any{}
 		for _, x := range S.Users {
 			if has(x.Following, id) {
@@ -924,11 +945,11 @@ func main() {
 	api("bio", func(u *User, w http.ResponseWriter, r *http.Request) {
 		bd := in(r)
 		b := strings.TrimSpace(bd["bio"])
-		if len(b) > 120 {
+		if rn(b) > 120 {
 			fail(w, 400, "Bio is too long (120 characters max)")
 			return
 		}
-		if n := strings.TrimSpace(bd["name"]); n != "" && len(n) <= 60 {
+		if n := strings.TrimSpace(bd["name"]); n != "" && rn(n) <= 60 {
 			u.Name = n
 		}
 		u.Bio = b
@@ -961,7 +982,7 @@ func main() {
 		if k != "image" && k != "video" {
 			k = ""
 		}
-		if (strings.TrimSpace(b["text"]) == "" && b["media"] == "") || len(b["text"]) > 300 || !okMedia(b["media"]) {
+		if (strings.TrimSpace(b["text"]) == "" && b["media"] == "") || rn(b["text"]) > 300 || !okMedia(b["media"]) {
 			fail(w, 400, "Add text, a photo or a video")
 			return
 		}
@@ -993,7 +1014,7 @@ func main() {
 				m = append(m, id)
 			}
 		}
-		if n == "" || len(n) > 40 || len(m) < 2 {
+		if n == "" || rn(n) > 40 || len(m) < 2 {
 			fail(w, 400, "Name the circle and add at least one person")
 			return
 		}
@@ -1033,7 +1054,7 @@ func main() {
 	api("gmsg", func(u *User, w http.ResponseWriter, r *http.Request) {
 		b := in(r)
 		g, t := fg(b["g"]), strings.TrimSpace(b["text"])
-		if g == nil || !has(g.Members, u.ID) || t == "" || len(t) > 1000 {
+		if g == nil || !has(g.Members, u.ID) || t == "" || rn(t) > 1000 {
 			fail(w, 400, "Invalid message")
 			return
 		}
@@ -1049,7 +1070,7 @@ func main() {
 	api("chcreate", func(u *User, w http.ResponseWriter, r *http.Request) {
 		b := in(r)
 		n := strings.TrimSpace(b["name"])
-		if n == "" || len(n) > 40 || len(b["desc"]) > 200 {
+		if n == "" || rn(n) > 40 || rn(b["desc"]) > 200 {
 			fail(w, 400, "Give your broadcast a name")
 			return
 		}
@@ -1098,7 +1119,7 @@ func main() {
 	api("chpost", func(u *User, w http.ResponseWriter, r *http.Request) {
 		b := in(r)
 		c, t := fc(b["id"]), strings.TrimSpace(b["text"])
-		if c == nil || c.Owner != u.ID || t == "" || len(t) > 500 {
+		if c == nil || c.Owner != u.ID || t == "" || rn(t) > 500 {
 			fail(w, 400, "Only the owner can post an update")
 			return
 		}
@@ -1112,7 +1133,7 @@ func main() {
 
 		api("onep", func(u *User, w http.ResponseWriter, r *http.Request) {
 		p := fp(r.URL.Query().Get("id"))
-		if p != nil && priv(u, S.Users[p.User]) {
+		if p != nil && hid(u, p.User) {
 			p = nil
 		}
 		if p == nil {
@@ -1124,7 +1145,7 @@ func main() {
 	api("editpost", func(u *User, w http.ResponseWriter, r *http.Request) {
 		b := in(r)
 		p, t := fp(b["id"]), strings.TrimSpace(b["text"])
-		if p == nil || p.User != u.ID || len(t) > 2000 || (t == "" && p.Media == "") {
+		if p == nil || p.User != u.ID || rn(t) > 2000 || (t == "" && p.Media == "") {
 			fail(w, 400, "Cannot edit this post")
 			return
 		}
@@ -1153,7 +1174,7 @@ func main() {
 		out := []map[string]any{}
 		for i := len(S.Posts) - 1; i >= 0 && len(out) < 40; i-- {
 			p := S.Posts[i]
-			if o := S.Users[p.User]; o != nil && (blk(u, o) || priv(u, o)) {
+			if o := S.Users[p.User]; o != nil && (o.Banned || blk(u, o) || priv(u, o)) {
 				continue
 			}
 			if q == "" || strings.Contains(strings.ToLower(p.Text), q) {
@@ -1267,7 +1288,7 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
-	http.ListenAndServe(":"+port, nil)
+	(&http.Server{Addr: ":" + port, ReadHeaderTimeout: 10 * time.Second, IdleTimeout: 2 * time.Minute}).ListenAndServe()
 }
 
 // ---------- v4 additions ----------
@@ -1392,7 +1413,7 @@ func extra(ok map[string]bool) {
 		if b["poll"] != "" {
 			var o []string
 			for _, s := range strings.Split(b["poll"], "|") {
-				if s = strings.TrimSpace(s); s != "" && len(s) <= 40 {
+				if s = strings.TrimSpace(s); s != "" && rn(s) <= 40 {
 					o = append(o, s)
 				}
 			}
@@ -1402,7 +1423,7 @@ func extra(ok map[string]bool) {
 			}
 			pl = &Poll{o, map[string]int{}}
 		}
-		if (t == "" && len(media) == 0 && pl == nil) || len(t) > 2000 || len(media) > 10 {
+		if (t == "" && len(media) == 0 && pl == nil) || rn(t) > 2000 || len(media) > 10 {
 			fail(w, 400, "Invalid post")
 			return
 		}
@@ -1423,7 +1444,7 @@ func extra(ok map[string]bool) {
 		b := in(r)
 		p := fp(b["id"])
 		i, e := strconv.Atoi(b["i"])
-		if p == nil || p.Poll == nil || e != nil || i < 0 || i >= len(p.Poll.Opts) {
+		if p == nil || p.Poll == nil || e != nil || i < 0 || i >= len(p.Poll.Opts) || hid(u, p.User) {
 			fail(w, 400, "Invalid vote")
 			return
 		}
@@ -1439,7 +1460,7 @@ func extra(ok map[string]bool) {
 	api("comment2", func(u *User, w http.ResponseWriter, r *http.Request) {
 		b := in(r)
 		p, t := fp(b["id"]), strings.TrimSpace(b["text"])
-		if p == nil || t == "" || len(t) > 300 || priv(u, S.Users[p.User]) {
+		if p == nil || t == "" || rn(t) > 300 || hid(u, p.User) {
 			fail(w, 400, "Invalid comment")
 			return
 		}
@@ -1526,6 +1547,10 @@ func extra(ok map[string]bool) {
 			case <-tk.C:
 				mu.Lock()
 				if o := S.Users[id]; o != nil {
+					if o.Banned {
+						mu.Unlock()
+						return
+					}
 					o.Seen = now()
 				}
 				mu.Unlock()
@@ -1582,7 +1607,7 @@ func extra(ok map[string]bool) {
 	api("mreply", func(u *User, w http.ResponseWriter, r *http.Request) {
 		b := in(r)
 		s, t := fst(b["id"]), strings.TrimSpace(b["text"])
-		if s == nil || t == "" || len(t) > 500 || blk(u, S.Users[s.User]) {
+		if s == nil || t == "" || rn(t) > 500 || S.Users[s.User] == nil || blk(u, S.Users[s.User]) {
 			fail(w, 400, "Invalid reply")
 			return
 		}
@@ -1638,7 +1663,7 @@ func extra(ok map[string]bool) {
 		switch b["op"] {
 		case "rename":
 			n := strings.TrimSpace(b["name"])
-			if !adm || n == "" || len(n) > 40 {
+			if !adm || n == "" || rn(n) > 40 {
 				fail(w, 403, "Not allowed")
 				return
 			}
@@ -1760,7 +1785,7 @@ func extra(ok map[string]bool) {
 		b := in(r)
 		k, why := b["kind"], strings.TrimSpace(b["reason"])
 		if len(why) > 200 {
-			why = why[:200]
+			why = trunc(why, 200)
 		}
 		rp := &URep{ID: uid(), Kind: k, By: u.ID, Reason: why, TS: now()}
 		if k == "user" {
@@ -1922,4 +1947,237 @@ func extra(ok map[string]bool) {
 		save()
 		js(w, map[string]bool{"Muted": m})
 	})
+}
+
+// ---------- v5: fixes ----------
+var (
+	hc       = &http.Client{Timeout: 15 * time.Second}
+	hu       = &http.Client{Timeout: 3 * time.Minute}
+	saveSig  = make(chan struct{}, 1)
+	saveVer  = 0
+	pver     = -1
+	pidx     = map[string]*Post{}
+	okTypes  = map[string]string{"image/jpeg": "jpg", "image/png": "png", "image/gif": "gif", "image/webp": "webp", "image/avif": "avif", "image/heic": "heic", "image/heif": "heif", "video/mp4": "mp4", "video/webm": "webm", "video/quicktime": "mov", "video/3gpp": "3gp", "audio/webm": "weba", "audio/mp4": "m4a", "audio/mpeg": "mp3", "audio/ogg": "ogg", "audio/wav": "wav", "audio/aac": "aac"}
+)
+
+func rn(s string) int { return utf8.RuneCountInString(s) }
+func trunc(s string, n int) string {
+	r := []rune(s)
+	if len(r) > n {
+		return string(r[:n])
+	}
+	return s
+}
+
+// save is called while holding mu; the state is written at most every 1.5 seconds
+func save() {
+	saveVer++
+	select {
+	case saveSig <- struct{}{}:
+	default:
+	}
+}
+func writer() {
+	for range saveSig {
+		time.Sleep(1500 * time.Millisecond)
+		mu.Lock()
+		b, _ := json.Marshal(S)
+		mu.Unlock()
+		flush(b)
+	}
+}
+func flush(b []byte) {
+	if env("DATABASE_URL") != "" {
+		neon("INSERT INTO store(key,value) VALUES('state',$1::jsonb) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", string(b))
+		return
+	}
+	if os.WriteFile("state.json.tmp", b, 0644) == nil {
+		os.Rename("state.json.tmp", "state.json")
+	}
+}
+
+// fp finds a post through an index that is rebuilt whenever the state changes
+func fp(id string) *Post {
+	if pver != saveVer || len(pidx) != len(S.Posts) {
+		pidx = make(map[string]*Post, len(S.Posts))
+		for _, p := range S.Posts {
+			pidx[p.ID] = p
+		}
+		pver = saveVer
+	}
+	return pidx[id]
+}
+
+// hid: true when viewer u must not see or interact with content by user id
+func hid(u *User, id string) bool {
+	o := S.Users[id]
+	return o == nil || o.Banned || blk(u, o) || priv(u, o)
+}
+
+// authUser checks the session, expiry, ban and rate limit (used by upload)
+func authUser(r *http.Request) *User {
+	mu.Lock()
+	defer mu.Unlock()
+	tok := r.Header.Get("X-Token")
+	u := S.Users[S.Sess[tok]]
+	if u == nil || u.Banned {
+		return nil
+	}
+	if ts, k := S.SessTS[tok]; k && now()-ts > 2592000 {
+		return nil
+	}
+	if !rate(u.ID) {
+		return nil
+	}
+	u.Seen = now()
+	return u
+}
+
+// janitor clears expired sessions, old rate-limit entries and stale moment data
+func janitor() {
+	for range time.Tick(10 * time.Minute) {
+		mu.Lock()
+		t := now()
+		for tok := range S.Sess {
+			ts, k := S.SessTS[tok]
+			if !k {
+				S.SessTS[tok] = t
+			} else if t-ts > 2592000 {
+				delete(S.Sess, tok)
+				delete(S.SessTS, tok)
+			}
+		}
+		for tok := range S.SessTS {
+			if _, k := S.Sess[tok]; !k {
+				delete(S.SessTS, tok)
+			}
+		}
+		for id, v := range rl {
+			if v[0] < t/60-2 {
+				delete(rl, id)
+			}
+		}
+		live := map[string]bool{}
+		for _, s := range S.Statuses {
+			live[s.ID] = true
+		}
+		for id := range x().MView {
+			if !live[id] {
+				delete(x().MView, id)
+			}
+		}
+		for id := range x().MReact {
+			if !live[id] {
+				delete(x().MReact, id)
+			}
+		}
+		save()
+		mu.Unlock()
+	}
+}
+
+// purgeMore removes everything else that belongs to a deleted account (call before deleting the user)
+func purgeMore(id string) {
+	e := x()
+	var files []string
+	if u := S.Users[id]; u != nil {
+		files = append(files, u.Avatar, u.Cover)
+	}
+	for _, p := range S.Posts {
+		if p.User == id {
+			files = append(files, p.Media)
+			files = append(files, p.More...)
+			continue
+		}
+		cs := p.Comments[:0:0]
+		for _, c := range p.Comments {
+			if c.User != id {
+				c.Likes = del(c.Likes, id)
+				cs = append(cs, c)
+			}
+		}
+		p.Comments = cs
+		p.Likes = del(p.Likes, id)
+		if p.Poll != nil {
+			delete(p.Poll.Votes, id)
+		}
+	}
+	ks := S.Statuses[:0]
+	for _, s := range S.Statuses {
+		if s.User == id {
+			files = append(files, s.Media)
+		} else {
+			ks = append(ks, s)
+		}
+	}
+	S.Statuses = ks
+	km := S.Msgs[:0]
+	for _, m := range S.Msgs {
+		if m.From == id || m.To == id {
+			files = append(files, m.Media)
+			continue
+		}
+		km = append(km, m)
+	}
+	S.Msgs = km
+	kn := S.Notifs[:0]
+	for _, n := range S.Notifs {
+		if n.To != id && n.From != id {
+			kn = append(kn, n)
+		}
+	}
+	S.Notifs = kn
+	kg := S.Groups[:0]
+	for _, g := range S.Groups {
+		if !has(g.Members, id) {
+			kg = append(kg, g)
+			continue
+		}
+		g.Members = del(g.Members, id)
+		e.GAdm[g.ID] = del(e.GAdm[g.ID], id)
+		if len(g.Members) == 0 {
+			continue
+		}
+		if g.Owner == id {
+			g.Owner = g.Members[0]
+		}
+		kg = append(kg, g)
+	}
+	S.Groups = kg
+	kc := S.Channels[:0]
+	for _, c := range S.Channels {
+		if c.Owner == id {
+			continue
+		}
+		c.Subs = del(c.Subs, id)
+		kc = append(kc, c)
+	}
+	S.Channels = kc
+	delete(e.Priv, id)
+	delete(e.Req, id)
+	delete(e.Pin, id)
+	delete(e.Mute, id)
+	for k, l := range e.Req {
+		e.Req[k] = del(l, id)
+	}
+	for k, l := range e.Mute {
+		e.Mute[k] = del(l, id)
+	}
+	ku := []*URep{}
+	for _, r := range e.URep {
+		if r.By != id && r.Target != id {
+			ku = append(ku, r)
+		}
+	}
+	e.URep = ku
+	go func(fs []string) {
+		pre := env("SUPABASE_URL") + "/storage/v1/object/public/media/"
+		for _, f := range fs {
+			if n := strings.TrimPrefix(f, pre); n != f && n != "" && !strings.Contains(n, "/") {
+				if r, err := sb("DELETE", "/storage/v1/object/media/"+n, nil, ""); err == nil {
+					r.Body.Close()
+				}
+			}
+		}
+	}(files)
 }
