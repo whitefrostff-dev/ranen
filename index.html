@@ -1205,5 +1205,139 @@ document.addEventListener('click',e=>{
   o.onclick=()=>o.remove();document.body.appendChild(o)},true);
 </script>
 
+<!-- ===== Amlink v10: photo editor, welcome tour, richer chat, insights, polish ===== -->
+<style>
+.post{position:relative}
+#main>*:not(.rl):not(.ch){animation:fin .28s ease both}
+@keyframes fin{from{opacity:0;transform:translateY(8px)}}
+@media(prefers-reduced-motion:reduce){#main>*{animation:none!important}.hp{animation:none!important}}
+.ed:active,.pri:active,.fb:active,nav button:active,.sr:active{transform:scale(.97)}
+.hp{position:absolute;left:50%;top:42%;width:96px;height:96px;margin:-48px 0 0 -48px;line-height:96px;text-align:center;font-size:84px;color:#fe2c55;text-shadow:0 2px 14px #0008;pointer-events:none;z-index:5;animation:pop .8s ease-out forwards}
+#offb{position:fixed;top:0;left:0;right:0;z-index:98;background:#f02849;color:#fff;text-align:center;font-weight:700;font-size:13px;padding:calc(env(safe-area-inset-top,0px) + 6px) 8px 6px}
+.ped{position:absolute!important;top:auto!important;bottom:4px;right:4px!important}
+#pedt{position:absolute;inset:0;z-index:40;background:var(--bg);display:flex;flex-direction:column;overflow-y:auto;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+#pedt .pgh{max-width:none}
+.pcv{display:grid;place-items:center;padding:10px;background:#000;min-height:38vh}
+.pcv canvas{max-width:100%;max-height:46vh;object-fit:contain}
+#pedt .fl2{padding:6px 16px}
+.atb button.on2{background:var(--sh) 0 0/200% 100%;color:#000;border-color:transparent}
+.dsep{align-self:center;font-size:12px;color:var(--mut);padding:4px 12px;background:var(--card);border-radius:12px}
+.lnk2{color:inherit;text-decoration:underline;word-break:break-all}
+.emp{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;padding:6px 8px;background:var(--card);border-top:1px solid var(--line);max-height:30vh;overflow:auto}
+.emp button{background:none;border:0;font-size:24px;padding:4px}
+.bars{display:flex;align-items:flex-end;gap:6px;height:120px;padding-top:18px}
+.bars i{flex:1;background:var(--fg);opacity:.85;border-radius:6px 6px 0 0;position:relative;min-width:6px}
+.bars b{position:absolute;top:-16px;left:0;right:0;text-align:center;font-size:11px;font-style:normal;color:var(--mut)}
+.ob p.big{font-size:44px;text-align:center}
+</style>
+<script>
+(()=>{
+/* ================= 1. PHOTO EDITOR (filters, rotate, flip, crop, brightness, contrast) ================= */
+const FILT={'Original':'','Vivid':'saturate(1.4) contrast(1.1)','B&W':'grayscale(1)','Warm':'sepia(.35) saturate(1.2)','Cool':'hue-rotate(15deg) saturate(1.1) brightness(1.05)','Fade':'contrast(.85) brightness(1.1) saturate(.8)','Drama':'contrast(1.35) brightness(.9)'};
+const CROPS=[[0,'Original'],[1,'Square'],[.8,'4:5'],[1.7778,'16:9']];
+const canF=()=>'filter' in CanvasRenderingContext2D.prototype;
+const xpv0=xpv;
+xpv=function(){xpv0();document.querySelectorAll('#pvg .pvi').forEach((el,i)=>{if(XF[i]&&XF[i].type.startsWith('image/')&&!el.querySelector('.ped'))el.insertAdjacentHTML('beforeend',`<button class="ped" data-a="ped" data-i="${i}" aria-label="Edit photo">✎</button>`)})};
+async function xed(i){
+  const f=XF[i];if(!f)return;let bm;try{bm=await createImageBitmap(f)}catch(e){toast('This photo cannot be edited');return}
+  let rot=0,fl=false,flt='Original',br=100,ct=100,cr=0;const F=canF();
+  const o=document.createElement('div');o.id='pedt';
+  o.innerHTML=`<div class="pgh"><button data-a="pcx" aria-label="Cancel">←</button><b>Edit photo</b><button class="ed" style="margin-left:auto;padding:6px 16px" data-a="pok">Done</button></div><div class="pcv"><canvas id="pcv"></canvas></div>`+
+  (F?`<div class="atb" id="pft">${Object.keys(FILT).map(k=>`<button data-a="pfi" data-f="${k}">${k}</button>`).join('')}</div>`:'')+
+  `<div class="act" style="justify-content:center;flex-wrap:wrap;padding:6px"><button class="ed" data-a="prt">⟳ Rotate</button><button class="ed" data-a="pfl">⇋ Flip</button><button class="ed" data-a="prc">Crop: Original</button></div>`+
+  (F?`<label class="fl2">Brightness<input type="range" id="pbr" min="60" max="140" value="100"></label><label class="fl2">Contrast<input type="range" id="pct" min="60" max="140" value="100"></label>`:'<p class="sub" style="padding:0 16px">Filters are not supported on this browser.</p>');
+  $('#app').appendChild(o);
+  const draw=(cv,max)=>{const q=rot%2,sw=q?bm.height:bm.width,sh=q?bm.width:bm.height,t=document.createElement('canvas');t.width=sw;t.height=sh;
+    const tx=t.getContext('2d');tx.translate(sw/2,sh/2);tx.rotate(rot*Math.PI/2);if(fl)tx.scale(-1,1);tx.drawImage(bm,-bm.width/2,-bm.height/2);
+    let cw=sw,ch=sh;if(cr){if(sw/sh>cr)cw=sh*cr;else ch=sw/cr}
+    const k=Math.min(1,max/Math.max(cw,ch));cv.width=Math.round(cw*k);cv.height=Math.round(ch*k);
+    const x=cv.getContext('2d');if(F)x.filter=((FILT[flt]||'')+` brightness(${br}%) contrast(${ct}%)`).trim();
+    x.drawImage(t,(sw-cw)/2,(sh-ch)/2,cw,ch,0,0,cv.width,cv.height)};
+  const show=()=>{draw($('#pcv'),900);o.querySelectorAll('#pft button').forEach(b=>b.classList.toggle('on2',b.dataset.f==flt));const c=o.querySelector('[data-a=prc]');c.textContent='Crop: '+CROPS.find(x=>x[0]==cr)[1]};
+  o.onclick=e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;e.stopPropagation();
+    if(a=='pcx')o.remove();
+    else if(a=='pfi'){flt=b.dataset.f;show()}
+    else if(a=='prt'){rot=(rot+1)%4;show()}
+    else if(a=='pfl'){fl=!fl;show()}
+    else if(a=='prc'){const k=CROPS.findIndex(x=>x[0]==cr);cr=CROPS[(k+1)%CROPS.length][0];show()}
+    else if(a=='pok'){const c=document.createElement('canvas');draw(c,1600);c.toBlob(bl=>{if(!bl){toast('Could not save the edit');return}XF[i]=new File([bl],'edited.jpg',{type:'image/jpeg'});xpv();o.remove()},'image/jpeg',.9)}};
+  o.oninput=e=>{if(e.target.id=='pbr')br=+e.target.value;if(e.target.id=='pct')ct=+e.target.value;show()};
+  show()}
+
+/* ================= 2. WELCOME TOUR FOR NEW USERS ================= */
+const an0=askName;askName=function(first){an0(first);if(first)window.XOB=1};
+async function onb(){
+  let ppl2=[];try{ppl2=(await A('discover')).People||[]}catch(e){}
+  modal(`<h3>Welcome to Amlink 👋</h3><p class="sub">Let’s set you up in 20 seconds.</p><p class="sg" style="padding:0">1. Follow a few people</p>`+
+   (ppl2.length?ppl2.map(u=>`<div class="pr"><span>${AV(u)}</span><div class="nm">${nm(u)}</div><button class="fl" data-a="fol" data-i="${u.ID}"></button></div>`).join(''):'<p class="empty" style="padding:12px">No suggestions yet. You are one of the first here!</p>')+
+   `<p class="sg" style="padding:0">2. Make it yours</p><button class="fb" data-a="ep">📷 Add a profile photo and bio</button><button class="fb" data-a="ntf">🔔 Turn on alerts</button><button class="pri" data-a="mc">Start exploring</button>`);
+  paint()}
+const go10=go;
+go=async function(t){const r=go10(t);if(window.XOB&&t=='feed'){window.XOB=0;try{if(localStorage.getItem('ob10'))return r;localStorage.setItem('ob10','1')}catch(e){}setTimeout(onb,700)}return r};
+
+/* ================= 3. RICHER CHAT (emoji, links, day separators, voice timer) ================= */
+const EMJ=['😀','😂','🥹','😍','😘','😎','🤔','😢','😭','😡','👍','👎','🙏','👏','🙌','💪','🔥','✨','🎉','❤️','💔','💯','😅','🤝','👀','😴','🤗','😬','🥳','😇','🤩','😜','🙄','😮','🤣','😊','🫶','😉','🥰','😆'];
+function linkify(root){if(!root)return;
+  const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>/https?:\/\//.test(n.nodeValue)&&!n.parentElement.closest('a,textarea,script,style,button')?1:2}),list=[];
+  while(w.nextNode())list.push(w.currentNode);
+  list.forEach(n=>{const t=n.nodeValue,re=/https?:\/\/[^\s<>"']+/g;let m,last=0;const f=document.createDocumentFragment();
+    while(m=re.exec(t)){const u=m[0].replace(/[.,!?;:)\]]+$/,'');f.append(t.slice(last,m.index));const a=document.createElement('a');a.href=u;a.textContent=u;a.target='_blank';a.rel='noopener noreferrer';a.className='lnk2';f.append(a);last=m.index+u.length;re.lastIndex=last}
+    f.append(t.slice(last));n.replaceWith(f)})}
+function dayseps(){const m=window.XM10;if(!Array.isArray(m))return;const mp={};m.forEach(x=>mp[x.ID]=x.TS);let last='';const td=new Date().toDateString(),yd=new Date(Date.now()-864e5).toDateString();
+  document.querySelectorAll('#ms .m[data-id]').forEach(el=>{const t=mp[el.dataset.id];if(!t)return;const d=new Date(t*1000),k=d.toDateString();
+    if(k!==last){last=k;const lb=k==td?'Today':k==yd?'Yesterday':d.toLocaleDateString(undefined,{day:'numeric',month:'short',year:d.getFullYear()==new Date().getFullYear()?undefined:'numeric'});el.insertAdjacentHTML('beforebegin',`<div class="dsep">${lb}</div>`)}})}
+const A10=A;A=async(p,b)=>{const r=await A10(p,b);if(typeof p=='string'&&p.startsWith('msgs?'))window.XM10=r;return r};
+const L10=L;L=async function(){await L10();dayseps();linkify($('#ms'))};
+const gl10=gload;gload=async function(){await gl10();linkify($('#ms'))};
+const pt10=paint;paint=function(){pt10();linkify($('#main'))};
+function emo(){if(document.querySelector('.ch .bar')&&!$('#emb')){const mi=$('#mi');mi&&mi.insertAdjacentHTML('afterend','<button id="emb" data-a="emo" aria-label="Emoji" style="font-size:20px">😊</button>')}}
+const chat10=chat;chat=async function(u){await chat10(u);emo()};
+const gop10=gopen;gopen=async function(id,n){await gop10(id,n);emo()};
+let XT=null;const mic0=mic;
+mic=async function(){const was=!!rec;await mic0();clearInterval(XT);
+  if(!was&&rec){let s=0;XT=setInterval(()=>{if(!rec){clearInterval(XT);return}s++;const b=$('#mic');if(b)b.textContent='⏹ '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0');if(s>=120&&rec)rec.stop()},1000)}};
+
+/* ================= 4. CREATOR INSIGHTS ================= */
+const od10=openDr;
+openDr=function(){od10();$('#dr').insertAdjacentHTML('beforeend','<p class="sg">Creator tools</p><div class="cd"><button class="sr" data-a="xins"><i>📊</i>Insights<em>›</em></button></div>')};
+async function xins(){
+  const j=await A('profile'),ps=j.Posts||[];let v=0,l=0,c=0;
+  ps.forEach(p=>{v+=p.Views||0;l+=(p.Likes||[]).length;c+=(p.C||[]).length});
+  const sc=p=>(p.Views||0)+3*(p.Likes||[]).length+5*(p.C||[]).length,er=v?((l+c)/v*100).toFixed(1)+'%':'-',
+   wk=ps.filter(p=>Date.now()/1000-p.TS<7*86400).length,top=[...ps].sort((a,b)=>sc(b)-sc(a)).slice(0,5),hrs={};
+  ps.forEach(p=>{const h=new Date(p.TS*1000).getHours();hrs[h]=(hrs[h]||0)+1+(p.Likes||[]).length+(p.C||[]).length});
+  const bh=Object.keys(hrs).sort((a,b)=>hrs[b]-hrs[a])[0],last=ps.slice(0,10).reverse(),mx=Math.max(1,...last.map(p=>(p.Likes||[]).length+(p.C||[]).length));
+  modal(`<h3>Insights</h3><div class="stg" style="padding:0">${[['Followers',j.Followers],['Posts',ps.length],['Views',v],['Likes',l],['Comments',c],['Engagement',er]].map(x=>`<div class="stc"><b>${x[1]}</b><small>${x[0]}</small></div>`).join('')}</div>`+
+   `<p class="sub">${wk} post${wk==1?'':'s'} in the last 7 days.${ps.length>=3&&bh!=null?` Your posts do best around ${String(bh).padStart(2,'0')}:00.`:''}</p>`+
+   `<p class="sg" style="padding:0">Recent posts (likes + comments)</p><div class="bars">${last.map(p=>{const n=(p.Likes||[]).length+(p.C||[]).length;return`<i style="height:${Math.max(6,n/mx*100)}%"><b>${n}</b></i>`}).join('')||'<small>No posts yet</small>'}</div>`+
+   `<p class="sg" style="padding:0">Top posts</p>`+(top.map(p=>`<div class="cd" style="padding:12px;display:grid;gap:4px"><span>${E((p.Text||(p.Kind=='video'?'🎬 Video':'🖼 Photo')).slice(0,80))}</span><small>👁 ${p.Views||0} · ♥ ${(p.Likes||[]).length} · 💬 ${(p.C||[]).length} · ${ago(p.TS)}</small></div>`).join('')||'<p class="empty">Post something to see insights.</p>'))}
+
+/* ================= 5. POLISH: double-tap heart, haptics, offline bar, grouped notifications ================= */
+document.addEventListener('dblclick',e=>{const m=e.target.closest('.post img,.post video,.post .cw');if(!m||e.target.closest('.sxw:not(.on)'))return;
+  const p=m.closest('.post'),l=p&&p.querySelector('.lk');if(!l)return;if(!l.classList.contains('on'))l.click();
+  const h=document.createElement('span');h.className='hp';h.textContent='♥';p.appendChild(h);setTimeout(()=>h.remove(),850);navigator.vibrate&&navigator.vibrate(15)});
+document.addEventListener('click',e=>{if(e.target.closest('.lk'))navigator.vibrate&&navigator.vibrate(8)},true);
+const offb=on=>{let b=$('#offb');if(on){if(!b){b=document.createElement('div');b.id='offb';b.textContent='You are offline. Reconnecting…';document.body.appendChild(b)}}else b&&b.remove()};
+addEventListener('offline',()=>offb(true));addEventListener('online',()=>offb(false));if(!navigator.onLine)offb(true);
+const al10=alerts;
+alerts=async function(){await al10();
+  try{const g={};document.querySelectorAll('#main .pr[data-a=nrow]').forEach(r=>{const x=NL[+r.dataset.n];if(!x||!['like','repost','mreact','follow'].includes(x.Type))return;(g[x.Type+'|'+(x.Post||'')]=g[x.Type+'|'+(x.Post||'')]||[]).push(r)});
+    Object.values(g).forEach(l=>{if(l.length<2)return;const x=NL[+l[0].dataset.n],n=l.length-1;l[0].querySelector('.nm').innerHTML=`${nm(x.U)} and ${n} other${n>1?'s':''} <small>${TXT[x.Type]||''}, ${ago(x.TS)}</small>`;l.slice(1).forEach(r=>r.remove())})}catch(e){}};
+
+/* ---- clicks for the new features ---- */
+$('#app').addEventListener('click',async e=>{
+  const lk=e.target.closest('a.lnk2');
+  if(lk){try{const u=new URL(lk.href);if(u.origin==location.origin){e.preventDefault();const p=u.searchParams.get('p'),n=u.searchParams.get('u');
+    if(p){const q=await A('onep?id='+p);posts=[q];modal(postH(q)+'<button class="pri" data-a="mc">Close</button>');paint()}else if(n){const j=await A('byname',{u:n});closeM();opf(j.id)}}}catch(x){toast(x.message)}return}
+  const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,d=b.dataset;
+  try{
+    if(a=='ped')xed(+d.i);
+    else if(a=='xins')xins();
+    else if(a=='emo'){let p=$('#emp');if(p)p.remove();else{const bar=document.querySelector('.ch .bar');if(bar)bar.insertAdjacentHTML('beforebegin','<div class="emp" id="emp">'+EMJ.map(x=>`<button data-a="emj" data-e="${x}">${x}</button>`).join('')+'</div>')}}
+    else if(a=='emj'){const i=$('#mi');if(i){const s=i.selectionStart==null?i.value.length:i.selectionStart,t=i.selectionEnd==null?s:i.selectionEnd;i.value=i.value.slice(0,s)+d.e+i.value.slice(t);i.focus();i.setSelectionRange(s+d.e.length,s+d.e.length)}}
+  }catch(x){toast(x.message)}});
+})();
+</script>
+
 </body>
 </html>
