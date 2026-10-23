@@ -465,7 +465,7 @@ function reelNew(){
     catch(e){$('#er').textContent=e.message;b.disabled=false;b.textContent='Post reel'}};
 }
 const msgM=x=>x.Media?(x.Kind=='video'?`<video src="${E(x.Media)}" controls playsinline></video>`:x.Kind=='audio'?`<audio src="${E(x.Media)}" controls></audio>`:`<img src="${E(x.Media)}" alt="">`):'';
-async function up(f,type){const r=await fetch('/api/upload',{method:'POST',headers:{'X-Token':T,'Content-Type':type||f.type},body:f});const j=await r.json();if(j.error)throw new Error(j.error);return j.url}
+async function up(f,type){const r=await fetch('/api/upload',{method:'POST',headers:{'X-Token':T,'X-Scan':window.XSCAN||'','Content-Type':type||f.type},body:f});const j=await r.json();if(j.error)throw new Error(j.error);return j.url}
 async function sendFile(f){if(!f)return;try{await A('msg',{to:peer.ID,text:'',media:await up(f),kind:f.type.split('/')[0]});await L()}catch(e){toast(e.message)}}
 let rec;
 async function mic(){
@@ -495,7 +495,7 @@ function newPost(){
 
 let FB,AU={};
 const LEG={t:`<p><b>1. Using Amlink.</b> You must be at least 13 years old. Keep your login private. You are responsible for what happens on your account.</p><p><b>2. Your content.</b> You own what you post. By posting, you let Amlink store it and show it to other people as the app works.</p><p><b>3. Rules.</b> Do not post anything illegal, hateful, threatening or harassing. Do not post sexual content involving minors, spam, scams, malware or other people’s private information. Do not pretend to be someone else or break other people’s rights.</p><p><b>4. Moderation.</b> We may remove content, change verification and suspend or ban accounts that break these rules.</p><p><b>5. Messages.</b> Chats are private between the people in them. We may look at them only to investigate abuse reports or when the law requires it.</p><p><b>6. The service.</b> Amlink is provided as it is. We may change it, pause it or end it, and we do not promise it will always be available or error free.</p><p><b>7. Contact.</b> Amlink is developed and owned by Nwodili Yaemerie Convenant. Questions: whitefrostff@gmail.com.</p>`,
-p:`<p><b>What we collect.</b> Your name, email, date of birth, username, posts, comments, messages, photos, videos and voice notes you upload, and when you were last active.</p><p><b>Why.</b> To run your account, show your content, send notifications, keep people safe and check that you are old enough (13 or older). Your date of birth is never shown on your profile.</p><p><b>Who handles it.</b> Firebase (Google) handles email sign-in, Neon stores account data and messages, Supabase stores uploaded media, and Google handles Google sign-in. We do not sell your personal data.</p><p><b>Who can see it.</b> Posts, comments, moments and your username are visible to other users. Messages are visible only to the people in the chat. You can hide your active status in Chat settings.</p><p><b>Deleting your data.</b> Email us and we will delete your account and data.</p><p><b>Children.</b> Amlink is not for children under 13.</p><p><b>Contact.</b> whitefrostff@gmail.com</p>`};
+p:`<p><b>What we collect.</b> Your name, email, date of birth, username, posts, comments, messages, photos, videos and voice notes you upload, and when you were last active.</p><p><b>Why.</b> To run your account, show your content, send notifications, keep people safe and check that you are old enough (13 or older). Your date of birth is never shown on your profile.</p><p><b>Who handles it.</b> Firebase (Google) handles email sign-in, Neon stores account data and messages, Supabase stores uploaded media, and Google handles Google sign-in. Uploaded images, and still frames taken from uploaded videos, are checked automatically for harmful content by a moderation service (OpenAI). We do not sell your personal data.</p><p><b>Who can see it.</b> Posts, comments, moments and your username are visible to other users. Messages are visible only to the people in the chat. You can hide your active status in Chat settings.</p><p><b>Deleting your data.</b> Email us and we will delete your account and data.</p><p><b>Children.</b> Amlink is not for children under 13.</p><p><b>Contact.</b> whitefrostff@gmail.com</p>`};
 function legal(k){modal(`<h3>${k=='t'?'Terms and Conditions':'Privacy Policy'}</h3><div class="leg">${LEG[k]}</div><button class="pri" data-a="mc">Close</button>`)}
 const age=d=>{const b=new Date(d),n=new Date();if(isNaN(b))return -1;let a=n.getFullYear()-b.getUTCFullYear();if(n<new Date(n.getFullYear(),b.getUTCMonth(),b.getUTCDate()))a--;return a};
 const FE={'auth/invalid-credential':'Wrong email or password.','auth/wrong-password':'Wrong email or password.','auth/user-not-found':'Wrong email or password.','auth/invalid-email':'Enter a valid email address.','auth/weak-password':'Use a password with at least 6 characters.','auth/too-many-requests':'Too many tries. Wait a moment and try again.','auth/network-request-failed':'No connection. Check your internet.'};
@@ -1143,7 +1143,6 @@ $('#app').addEventListener('click',async e=>{
   }catch(x){toast(x.message)}});
 })();
 </script>
- <!-- ===== Amlink v9 fixes: paste this whole block in index.html just above the final </body> ===== -->
 <style>
 /* sizing and overflow: nothing can push the page wider than the screen */
 html{-webkit-text-size-adjust:100%}
@@ -1335,6 +1334,237 @@ $('#app').addEventListener('click',async e=>{
     else if(a=='xins')xins();
     else if(a=='emo'){let p=$('#emp');if(p)p.remove();else{const bar=document.querySelector('.ch .bar');if(bar)bar.insertAdjacentHTML('beforebegin','<div class="emp" id="emp">'+EMJ.map(x=>`<button data-a="emj" data-e="${x}">${x}</button>`).join('')+'</div>')}}
     else if(a=='emj'){const i=$('#mi');if(i){const s=i.selectionStart==null?i.value.length:i.selectionStart,t=i.selectionEnd==null?s:i.selectionEnd;i.value=i.value.slice(0,s)+d.e+i.value.slice(t);i.focus();i.setSelectionRange(s+d.e.length,s+d.e.length)}}
+  }catch(x){toast(x.message)}});
+})();
+</script>
+
+
+<!-- ===== Amlink v11: threaded replies, push alerts, link previews, avatar cropper, motion ===== -->
+<style>
+/* avatars: always a perfect circle, photo fills it */
+.av{aspect-ratio:1/1;overflow:hidden;border-radius:50%;background-size:cover!important;background-position:center!important;background-repeat:no-repeat!important}
+.mo b.av{border-radius:50%}
+.post header .av,.post header .nm,.c .av,.c .nm,.reel .ra .av,.reel .info b{cursor:pointer}
+
+/* photo cropper for profile pictures */
+#crp{position:absolute;inset:0;z-index:45;background:var(--bg);display:flex;flex-direction:column;align-items:center;gap:14px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));animation:pgin .28s cubic-bezier(.2,.8,.2,1)}
+#crp .pgh{align-self:stretch}
+.crw{width:300px;height:300px;border-radius:50%;overflow:hidden;touch-action:none;margin-top:18px;border:2px solid var(--line);background:#000}
+.crw canvas{display:block;max-width:none;touch-action:none;cursor:grab}
+
+/* threaded comments */
+.c.rpl .av{width:26px;height:26px;font-size:12px}
+.rps{margin-left:44px;border-left:2px solid var(--line);padding-left:8px;animation:fin .25s ease both}
+.vr{background:none;border:0;color:var(--mut);font-size:12px;font-weight:700;padding:2px 0 8px 44px}
+#rpn{margin:0}
+
+/* link preview cards */
+.lpc{display:grid;color:var(--fg);text-decoration:none;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--bg);margin:0 12px 10px}
+.lpi{display:block;aspect-ratio:1.91/1;background-size:cover;background-position:center;background-color:var(--card)}
+.lpc div{padding:8px 12px;display:grid;gap:2px;min-width:0}
+.lpc small{font-size:12px;color:var(--mut)}
+.lpc b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lpc span{font-size:13px;color:var(--mut);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.m .lpc{margin:6px 0 0;max-width:260px}
+
+/* motion: it answers what the person does (open, tap, switch) */
+@keyframes rise2{from{opacity:0;transform:translateY(22px) scale(.985)}}
+@keyframes bump{40%{transform:scale(1.45)}70%{transform:scale(.9)}}
+@keyframes pgin{from{opacity:0;transform:translateY(24px)}}
+@keyframes tin{from{opacity:0;transform:translate(-50%,-16px)}}
+@keyframes navpop{50%{transform:translateY(-4px) scale(1.15)}}
+@keyframes ringp{50%{box-shadow:0 0 0 2.5px var(--bg),0 0 0 7px var(--acc)}}
+#main>article.post{animation:rise2 .5s cubic-bezier(.2,.8,.2,1) both}
+#main>article.post:nth-of-type(2){animation-delay:.05s}
+#main>article.post:nth-of-type(3){animation-delay:.1s}
+#main>article.post:nth-of-type(4){animation-delay:.15s}
+#main>article.post:nth-of-type(5){animation-delay:.2s}
+#main>article.post:nth-of-type(n+6){animation-delay:.25s}
+.bump{animation:bump .4s ease}
+#md:not([hidden]) .pg{animation:pgin .3s cubic-bezier(.2,.8,.2,1)}
+#ts{animation:tin .3s cubic-bezier(.2,.8,.2,1)}
+nav button.on svg{animation:navpop .35s ease}
+.mo:not(.sn) b.av{animation:ringp 2.6s ease-in-out infinite}
+.fl,.ed,.pri,.fb,.cl,.lk,.bm{transition:background .2s,color .2s,transform .15s,opacity .2s}
+.post{transition:box-shadow .2s}
+.post:hover{box-shadow:0 6px 22px #0002}
+.pr:active,.mo:active,.tl:active{transform:scale(.98)}
+.tl{transition:transform .2s}.tl:hover{transform:scale(1.02)}
+@media(prefers-reduced-motion:reduce){#main>article.post,.bump,#md .pg,#ts,nav button.on svg,.mo b.av,#crp,.rps{animation:none!important}.tl:hover{transform:none}}
+</style>
+<script>
+(()=>{
+Object.assign(TXT,{reply:'replied to your comment'});
+
+/* ================= 1. PUSH ALERTS ================= */
+const enc=u=>btoa(String.fromCharCode(...u)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const dec=s=>{const p='='.repeat((4-s.length%4)%4),r=atob((s+p).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(r,c=>c.charCodeAt(0))};
+async function pushSync(ask){
+  if(!('serviceWorker' in navigator)||!window.PushManager||!window.Notification){if(ask)toast('Not supported here. On iPhone, add Amlink to your Home Screen first.');return}
+  if(Notification.permission!='granted'){if(!ask)return;const p=await Notification.requestPermission();if(p!='granted'){toast('Alerts blocked in browser settings');return}}
+  const k=await fetch('/api/pushkey').then(r=>r.json());
+  if(!k.key){if(ask)toast('Alerts are not set up on the server yet');return}
+  const reg=await navigator.serviceWorker.ready;let s=await reg.pushManager.getSubscription();
+  if(s&&!(s.options&&s.options.applicationServerKey&&enc(new Uint8Array(s.options.applicationServerKey))==k.key)){await s.unsubscribe();s=null}
+  if(!s)s=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:dec(k.key)});
+  await A('pushsub',{endpoint:s.endpoint});
+  if(ask)toast('Alerts are on 🔔')}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a=ntf]');if(!b)return;e.stopPropagation();pushSync(true).catch(x=>toast(x.message||'Could not turn on alerts'))},true);
+const ap11=app;app=function(){ap11();pushSync(false).catch(()=>{})};
+const out0=out;let outing=false;
+out=async function(){if(outing)return out0();outing=true;
+  try{const r=await navigator.serviceWorker.ready,s=await r.pushManager.getSubscription();if(s)await A('pushoff',{endpoint:s.endpoint})}catch(e){}
+  out0()};
+
+/* ================= 2. THREADED COMMENTS ================= */
+let RPT=null;const OPEN=new Set();
+function rpn(){const b=$('#rpn'),i=$('#ci');if(!b||!i)return;
+  if(RPT){b.hidden=false;b.innerHTML='<small>Replying to <b>@'+E(RPT.n)+'</b></small><button data-a="rpc2" aria-label="Cancel reply">✕</button>';i.placeholder='Write a reply…'}
+  else{b.hidden=true;i.placeholder='Add a comment…'}}
+const shb=$('#sh .bar');if(shb&&!$('#rpn'))shb.insertAdjacentHTML('beforebegin','<div class="rpb" id="rpn" hidden></div>');
+const sh0=sheet;sheet=function(id){RPT=null;rpn();sh0(id)};
+const A11=A;
+A=async(p,b)=>{
+  if(p=='comment'&&b){if(RPT)b.parent=RPT.id;const r=await A11('comment3',b);if(RPT){OPEN.add(RPT.top);RPT=null;rpn()}return r}
+  return A11(p,b)};
+sl=function(){
+  const C=cur.C,ids=new Set(C.map(c=>c.ID).filter(Boolean)),kids={},tops=[];
+  C.forEach((c,i)=>{if(c.Parent&&ids.has(c.Parent))(kids[c.Parent]=kids[c.Parent]||[]).push(i);else tops.push(i)});
+  if(cur.PinC){const k=tops.findIndex(i=>C[i].ID==cur.PinC);if(k>0)tops.unshift(...tops.splice(k,1))}
+  const one=(i,rep)=>{const c=C[i],n=(c.Likes||[]).length,on=(c.Likes||[]).includes(ME.ID),mine=c.U.ID==ME.ID;
+    return `<div class="c${rep?' rpl':''}" data-ci="${i}">${AV(c.U)}<div class="cb"><div class="nm">${nm(c.U)}${!rep&&c.ID&&c.ID==cur.PinC?' <small>📌 Pinned</small>':''}</div><div>${tg(c.Text)}</div><small>${ago(c.TS)} </small><button class="rp" data-a="rpl" data-i="${i}">Reply</button>${!rep&&c.ID&&cur.U.ID==ME.ID?`<button class="rp" data-a="pnc" data-c="${c.ID}">${c.ID==cur.PinC?'Unpin':'Pin'}</button>`:''}${mine||cur.U.ID==ME.ID||ME.Admin?`<button class="rp" data-a="dcm" data-i="${i}">Delete</button>`:''}${mine?'':`<button class="rp" data-a="rcm" data-i="${i}">Report</button>`}</div><button class="cl${on?' on':''}" data-a="cl" data-i="${i}" aria-label="Like comment"><b>${on?'♥':'♡'}</b>${n||''}</button></div>`};
+  $('#sc').textContent=C.length+' comments';
+  $('#sl').innerHTML=tops.map(i=>{const c=C[i],k=kids[c.ID]||[],open=OPEN.has(c.ID);
+    return one(i,0)+(k.length?`<button class="vr" data-a="vrp" data-i="${c.ID}">${open?'Hide replies':'View '+k.length+' repl'+(k.length>1?'ies':'y')}</button>`+(open?`<div class="rps">${k.map(j=>one(j,1)).join('')}</div>`:''):'')}).join('')||'<p class="empty">No comments yet. Start the conversation.</p>'};
+$('#app').addEventListener('click',e=>{
+  const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,d=b.dataset;
+  if(a=='rpl'){const c=cur&&cur.C[+d.i];if(!c)return;if(!c.ID){toast('Refresh the app to reply');return}
+    RPT={id:c.ID,top:c.Parent||c.ID,n:c.U.Username||'user'};OPEN.add(RPT.top);rpn();sl();const i=$('#ci');i&&i.focus()}
+  else if(a=='rpc2'){RPT=null;rpn()}
+  else if(a=='vrp'){OPEN.has(d.i)?OPEN.delete(d.i):OPEN.add(d.i);sl()}});
+
+/* ================= 3. TAP A PROFILE PICTURE OR NAME TO OPEN THE PROFILE ================= */
+document.addEventListener('click',e=>{
+  const t=e.target;if(t.closest('button,a,input,textarea,label'))return;let id=null;
+  const hd=t.closest('.post header');
+  if(hd&&t.closest('.av,.nm')){const l=hd.closest('.post').querySelector('.lk'),p=l&&posts.find(x=>x.ID==l.dataset.i);id=p&&p.U.ID}
+  else if(t.closest('#sl .c')&&t.closest('.av,.nm')){const i=+t.closest('.c').dataset.ci;id=cur&&cur.C[i]&&cur.C[i].U.ID}
+  else if(t.closest('.reel')&&(t.closest('.ra .av')||t.closest('.info b'))){const l=t.closest('.reel').querySelector('.lk'),p=l&&posts.find(x=>x.ID==l.dataset.i);id=p&&p.U.ID}
+  if(!id)return;e.stopPropagation();$('#app').classList.remove('cs');closeM();opf(id)},true);
+
+/* ================= 4. PROFILE PHOTO CROPPER (drag and zoom inside a circle) ================= */
+function cropAv(file){return new Promise(async res=>{
+  let bm;try{bm=await createImageBitmap(file)}catch(e){toast('Could not read that photo');res(null);return}
+  const S=300,base=Math.max(S/bm.width,S/bm.height);let z=1,ox=(S-bm.width*base)/2,oy=(S-bm.height*base)/2;
+  const o=document.createElement('div');o.id='crp';
+  o.innerHTML='<div class="pgh"><button data-c="x" aria-label="Cancel">←</button><b>Crop photo</b><button class="ed" data-c="ok" style="margin-left:auto;padding:6px 16px">Done</button></div><div class="crw"><canvas id="crc" width="300" height="300"></canvas></div><p class="sub">Drag to move, slide to zoom</p><input type="range" id="crz" min="100" max="300" value="100" style="width:80%;max-width:320px">';
+  $('#app').appendChild(o);
+  const cv=o.querySelector('#crc'),cx=cv.getContext('2d');
+  const draw=()=>{const w=bm.width*base*z,h=bm.height*base*z;ox=Math.min(0,Math.max(S-w,ox));oy=Math.min(0,Math.max(S-h,oy));cx.fillStyle='#000';cx.fillRect(0,0,S,S);cx.drawImage(bm,ox,oy,w,h)};
+  draw();let dg=null;
+  cv.onpointerdown=e=>{cv.setPointerCapture(e.pointerId);dg=[e.clientX,e.clientY,ox,oy]};
+  cv.onpointermove=e=>{if(!dg)return;ox=dg[2]+(e.clientX-dg[0]);oy=dg[3]+(e.clientY-dg[1]);draw()};
+  cv.onpointerup=cv.onpointercancel=()=>{dg=null};
+  o.querySelector('#crz').oninput=e=>{const nz=e.target.value/100,k=nz/z,m=S/2;ox=m-(m-ox)*k;oy=m-(m-oy)*k;z=nz;draw()};
+  o.onclick=ev=>{const b=ev.target.closest('[data-c]');if(!b)return;ev.stopPropagation();
+    if(b.dataset.c=='x'){o.remove();res(null);return}
+    const c=document.createElement('canvas');c.width=c.height=512;const k=512/S;
+    c.getContext('2d').drawImage(bm,ox*k,oy*k,bm.width*base*z*k,bm.height*base*z*k);
+    c.toBlob(bl=>{o.remove();res(bl?new File([bl],'avatar.jpg',{type:'image/jpeg'}):null)},'image/jpeg',.88)}})}
+document.addEventListener('change',async e=>{
+  if(e.target.id!='avf')return;e.stopImmediatePropagation();
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  const c=await cropAv(f);if(!c)return;window.AVF=c;
+  const p=$('#pva');if(p)p.innerHTML=`<b class="av big" style="background:url('${URL.createObjectURL(c)}') center/cover"></b>`},true);
+const upf0=upf;upf=async function(id,old){if(id=='#avf'&&window.AVF){const f=window.AVF;window.AVF=null;return await up(f)}return upf0(id,old)};
+const ep0=editP;editP=function(){window.AVF=null;ep0()};
+
+/* ================= 5. LINK PREVIEWS ================= */
+const LPC=new Map();
+const lpGet=u=>{if(!LPC.has(u))LPC.set(u,A('preview?url='+encodeURIComponent(u)).catch(()=>null));return LPC.get(u)};
+function lpNode(d){
+  if(!d||!/^https?:\/\//.test(d.url))return null;
+  const a=document.createElement('a');a.className='lpc';a.href=d.url;a.target='_blank';a.rel='noopener noreferrer';
+  if(d.image&&/^https?:\/\//.test(d.image)){const i=document.createElement('i');i.className='lpi';i.style.backgroundImage='url('+JSON.stringify(d.image)+')';a.append(i)}
+  const w=document.createElement('div'),s=document.createElement('small'),b=document.createElement('b');
+  s.textContent=d.site||'';b.textContent=d.title||d.url;w.append(s,b);
+  if(d.desc){const p=document.createElement('span');p.textContent=d.desc;w.append(p)}
+  a.append(w);return a}
+const linkOf=el=>{const a=el&&el.querySelector('a.lnk2');if(a&&/^https?:/.test(a.href))return a.href;const m=el&&el.textContent.match(/https?:\/\/[^\s<>"']+/);return m?m[0].replace(/[.,!?;:)\]]+$/,''):''};
+async function lpPosts(){let n=0;
+  for(const el of document.querySelectorAll('.post:not([data-lp])')){
+    if(n>=6)break;const p=el.querySelector(':scope>p'),u=linkOf(p);el.dataset.lp=1;if(!u)continue;n++;
+    const d=await lpGet(u),nd=lpNode(d),f=el.querySelector('footer');if(nd&&f&&el.isConnected)f.insertAdjacentElement('beforebegin',(()=>{const w=document.createElement('div');w.append(nd);return w})())}}
+async function lpChat(){let n=0;
+  for(const el of document.querySelectorAll('#ms .m:not([data-lp])')){
+    if(n>=4)break;el.dataset.lp=1;const u=linkOf(el);if(!u)continue;n++;
+    const nd=lpNode(await lpGet(u));if(nd&&el.isConnected)el.append(nd)}}
+const pt11=paint;paint=function(){pt11();lpPosts().catch(()=>{})};
+const L11=L;L=async function(){await L11();lpChat().catch(()=>{})};
+/* tapping a link in a chat bubble should open the link, not the message menu */
+document.addEventListener('click',e=>{const a=e.target.closest('.m a');if(!a)return;try{if(new URL(a.href).origin!=location.origin)e.stopPropagation()}catch(x){}},true);
+
+/* ================= 6. MOTION HELPERS ================= */
+document.addEventListener('click',e=>{const b=e.target.closest('.lk');if(!b)return;b.classList.remove('bump');void b.offsetWidth;b.classList.add('bump');setTimeout(()=>b.classList.remove('bump'),450)},true);
+})();
+</script>
+
+<!-- ===== Amlink v12: video safety check, pinned comments, chat search ===== -->
+<style>
+.m.flash{outline:2px solid var(--fg);outline-offset:2px;animation:flashO 1.8s ease forwards}
+@keyframes flashO{to{outline-color:transparent}}
+#msb{border-bottom:1px solid var(--line);background:var(--bg)}
+#msres .sr{padding:12px 16px}
+@media(prefers-reduced-motion:reduce){.m.flash{animation:none}}
+</style>
+<script>
+(()=>{
+/* ================= 1. VIDEO SAFETY CHECK: 3 still frames are checked before upload ================= */
+async function scanVideo(f){
+  const v=document.createElement('video'),url=URL.createObjectURL(f);v.muted=true;v.playsInline=true;v.preload='auto';v.src=url;
+  const bad=()=>new Error('We could not check this video. Try an MP4 file.');
+  try{
+    await new Promise((res,rej)=>{v.onloadeddata=res;v.onerror=()=>rej(bad());setTimeout(()=>rej(bad()),15000)});
+    const d=v.duration&&isFinite(v.duration)?v.duration:1,c=document.createElement('canvas'),frames=[];
+    for(const p of [.1,.5,.9]){
+      await new Promise(r=>{v.onseeked=r;v.currentTime=Math.min(d*p,Math.max(0,d-.1));setTimeout(r,4000)});
+      const k=Math.min(1,640/Math.max(v.videoWidth||640,v.videoHeight||640));
+      c.width=Math.round((v.videoWidth||320)*k);c.height=Math.round((v.videoHeight||240)*k);
+      c.getContext('2d').drawImage(v,0,0,c.width,c.height);frames.push(c.toDataURL('image/jpeg',.7))}
+    const r=await fetch('/api/vscan',{method:'POST',headers:{'X-Token':T,'Content-Type':'application/json'},body:JSON.stringify({frames})}),j=await r.json();
+    if(j.error)throw new Error(j.error);return j.token||''}
+  finally{URL.revokeObjectURL(url)}}
+const up12=up;
+up=async function(f,type){
+  if(f.type&&f.type.startsWith('video/')){window.XSCAN=await scanVideo(f);try{return await up12(f,type)}finally{window.XSCAN=''}}
+  return up12(f,type)};
+
+/* ================= 2. CHAT: keep your place while reading old messages ================= */
+const L12=L;
+L=async function(){const b=$('#ms'),keep=b&&b.scrollHeight-b.scrollTop-b.clientHeight>120,top=b?b.scrollTop:0;
+  await L12();const nb=$('#ms');if(keep&&nb)nb.scrollTop=top};
+
+/* ================= 3. CHAT SEARCH ================= */
+const ch12=chat;
+chat=async function(u){await ch12(u);const h=$('.chh');if(h&&!$('#msr'))h.insertAdjacentHTML('beforeend','<button id="msr" data-a="msr" style="margin-left:auto;font-size:20px" aria-label="Search messages">🔍</button>')};
+function msbar(){
+  let b=$('#msb');if(b){b.remove();return}
+  b=document.createElement('div');b.id='msb';
+  b.innerHTML='<div class="sb" style="padding:8px 12px"><input id="msq" placeholder="Search this chat" autocomplete="off"></div><div id="msres" style="max-height:34vh;overflow:auto"></div>';
+  $('.chh').after(b);const inp=$('#msq');inp.focus();let t;
+  inp.oninput=()=>{clearTimeout(t);t=setTimeout(async()=>{const q=inp.value.trim(),box=$('#msres');if(!box)return;if(q.length<2){box.innerHTML='';return}
+    try{const r=await A('msearch?w='+peer.ID+'&q='+encodeURIComponent(q));
+      box.innerHTML=r.length?r.map(x=>`<button class="sr" data-a="mgo" data-id="${E(x.ID)}"><span>${E(x.Text)}<small style="display:block">${x.Me?'You':'Them'} · ${ago(x.TS)}</small></span></button>`).join(''):'<p class="empty" style="padding:16px">No messages found.</p>'}
+    catch(e){box.innerHTML='<p class="empty">'+E(e.message)+'</p>'}},300)}}
+
+/* ---- clicks ---- */
+$('#app').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,d=b.dataset;
+  try{
+    if(a=='pnc'){upd(await A('pinc',{id:cur.ID,cid:d.c}));sl()}
+    else if(a=='msr')msbar();
+    else if(a=='mgo'){const el=document.querySelector(`#ms .m[data-id="${d.id}"]`),bar=$('#msb');if(bar)bar.remove();
+      if(el){el.scrollIntoView({block:'center'});el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash')}else toast('Message not found')}
   }catch(x){toast(x.message)}});
 })();
 </script>
