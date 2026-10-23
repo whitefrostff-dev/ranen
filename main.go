@@ -56,6 +56,7 @@ type Post struct {
 	TS                          int64
 	Likes                       []string
 	Comments                    []Comment
+	Comm                        string
 }
 type Msg struct {
 	From, To, Text, Kind, Media string
@@ -64,6 +65,7 @@ type Msg struct {
 	ID, Reply                   string
 	Edited                      bool
 	React                       map[string]string
+	Exp                         int64
 }
 type Notif struct {
 	To, From, Type, Post string
@@ -297,7 +299,7 @@ func pv(p *Post) map[string]any {
 	for _, c := range p.Comments {
 		cs = append(cs, map[string]any{"ID": c.ID, "Parent": c.Parent, "U": uv(c.User), "Text": c.Text, "TS": c.TS, "Likes": c.Likes})
 	}
-	return map[string]any{"ID": p.ID, "U": uv(p.User), "Text": p.Text, "Media": p.Media, "Kind": p.Kind, "TS": p.TS, "Likes": p.Likes, "C": cs, "More": p.More, "Poll": p.Poll, "Sens": x().Sens[p.ID], "Rep": repOf(p.ID), "Views": x2().Views[p.ID], "PinC": x2().PinC[p.ID]}
+	return map[string]any{"ID": p.ID, "U": uv(p.User), "Text": p.Text, "Media": p.Media, "Kind": p.Kind, "TS": p.TS, "Likes": p.Likes, "C": cs, "More": p.More, "Poll": p.Poll, "Sens": x().Sens[p.ID], "Rep": repOf(p.ID), "Views": x2().Views[p.ID], "PinC": x2().PinC[p.ID], "Comm": p.Comm}
 }
 func fpOld(id string) *Post {
 	for _, p := range S.Posts {
@@ -592,6 +594,9 @@ func main() {
 			n = 60
 		}
 		for i := len(S.Posts) - 1; i >= 0 && len(out) < n; i-- {
+			if S.Posts[i].Comm != "" {
+				continue
+			}
 			if o := S.Users[S.Posts[i].User]; o != nil && (o.Banned || blk(u, o) || priv(u, o)) {
 				continue
 			}
@@ -866,7 +871,7 @@ func main() {
 		id := in(r)["id"]
 		for i, p := range S.Posts {
 			if p.ID == id {
-				if p.User != u.ID && !u.Admin {
+				if p.User != u.ID && !u.Admin && !commMod(p.Comm, u.ID) {
 					fail(w, 403, "Not allowed")
 					return
 				}
@@ -957,7 +962,7 @@ func main() {
 			}
 		}
 		for i := len(S.Posts) - 1; i >= 0; i-- {
-			if p := S.Posts[i]; p.User == id && !priv(u, o) {
+			if p := S.Posts[i]; p.User == id && p.Comm == "" && !priv(u, o) {
 				lk += len(p.Likes)
 				if len(ps) < 60 {
 					ps = append(ps, pv(p))
@@ -1198,6 +1203,9 @@ func main() {
 		out := []map[string]any{}
 		for i := len(S.Posts) - 1; i >= 0 && len(out) < 40; i-- {
 			p := S.Posts[i]
+			if p.Comm != "" {
+				continue
+			}
 			if o := S.Users[p.User]; o != nil && (o.Banned || blk(u, o) || priv(u, o)) {
 				continue
 			}
@@ -1565,7 +1573,7 @@ func extra(ok map[string]bool) {
 			http.Error(w, "no", 401)
 			return
 		}
-		ch := make(chan string, 16)
+		ch := make(chan string, 64)
 		mu.Lock()
 		hub[id] = append(hub[id], ch)
 		mu.Unlock()
@@ -1940,7 +1948,7 @@ func extra(ok map[string]bool) {
 		}
 		tags, cut7 := map[string]int{}, now()-7*86400
 		for _, p := range S.Posts {
-			if p.TS < cut7 || x().Priv[p.User] {
+			if p.TS < cut7 || p.Comm != "" || x().Priv[p.User] {
 				continue
 			}
 			seen := map[string]bool{}
@@ -2209,6 +2217,7 @@ func purgeMore(id string) {
 	delete(e.Born, id)
 	delete(e.Susp, id)
 	delete(S.X2.Push, id)
+	purgeComms(id)
 	for k, l := range e.Req {
 		e.Req[k] = del(l, id)
 	}
@@ -2251,7 +2260,7 @@ func extra2() {
 		l := []sp{}
 		t := float64(now())
 		for _, p := range S.Posts {
-			if (vid && p.Kind != "video") || hid(u, p.User) {
+			if p.Comm != "" || (vid && p.Kind != "video") || hid(u, p.User) {
 				continue
 			}
 			h := (t - float64(p.TS)) / 3600
@@ -2559,6 +2568,9 @@ type Ext2 struct {
 	Tags  map[string][]string // followed hashtags per user
 	Push  map[string][]string // web push endpoints per user
 	PinC  map[string]string   // post id -> pinned comment id
+	VReq  map[string]*VRq     // verification requests by user id
+	Comms []*Comm             // communities
+	Disap map[string]int64    // disappearing-message timer per chat (seconds)
 }
 
 var (
@@ -2574,6 +2586,7 @@ func init() {
 	vapidInit()
 	extra5()
 	extra6()
+	extra7()
 }
 
 func x2() *Ext2 {
@@ -2595,6 +2608,12 @@ func x2() *Ext2 {
 	}
 	if e.PinC == nil {
 		e.PinC = map[string]string{}
+	}
+	if e.VReq == nil {
+		e.VReq = map[string]*VRq{}
+	}
+	if e.Disap == nil {
+		e.Disap = map[string]int64{}
 	}
 	return e
 }
@@ -2856,7 +2875,7 @@ func extra4() {
 				rp = ""
 			}
 		}
-		S.Msgs = append(S.Msgs, Msg{From: u.ID, To: o.ID, Text: t, Kind: k, Media: b["media"], TS: now(), Reply: rp})
+		S.Msgs = append(S.Msgs, Msg{From: u.ID, To: o.ID, Text: t, Kind: k, Media: b["media"], TS: now(), Reply: rp, Exp: dexp(u.ID, o.ID)})
 		note(o.ID, u.ID, "msg", "")
 		save()
 		js(w, ok)
@@ -3010,7 +3029,7 @@ var (
 	pushLast  = map[string]int64{}
 	pushHosts = []string{"fcm.googleapis.com", ".push.services.mozilla.com", ".push.apple.com", ".notify.windows.com"}
 	pushCl    = &http.Client{Timeout: 10 * time.Second}
-	pushEv    = map[string]bool{"like": true, "comment": true, "reply": true, "follow": true, "msg": true, "mention": true, "freq": true, "facc": true, "repost": true, "mreact": true, "login": true, "warn": true, "susp": true}
+	pushEv    = map[string]bool{"like": true, "comment": true, "reply": true, "follow": true, "msg": true, "mention": true, "freq": true, "facc": true, "repost": true, "mreact": true, "login": true, "warn": true, "susp": true, "vok": true, "vno": true, "missed": true}
 )
 
 func b64(b []byte) string { return base64.RawURLEncoding.EncodeToString(b) }
@@ -3709,4 +3728,454 @@ func extra6() {
 		js(w, out)
 	})
 	_ = ok
+}
+
+// =====================================================================
+// ---------- v13: verification requests, communities, disappearing messages, calls ----------
+// =====================================================================
+
+type VRq struct {
+	Reason, Link, Status string
+	TS                   int64
+}
+type Comm struct {
+	ID, Name, Desc, Rules, Owner string
+	TS                           int64
+	Mods, Members, Banned        []string
+}
+
+func fcm(id string) *Comm {
+	for _, c := range S.X2.Comms {
+		if c.ID == id {
+			return c
+		}
+	}
+	return nil
+}
+func commMod(cid, uid string) bool {
+	if cid == "" {
+		return false
+	}
+	c := fcm(cid)
+	return c != nil && (c.Owner == uid || has(c.Mods, uid))
+}
+func dropCommPosts(cid string) {
+	var fs []string
+	ps := S.Posts[:0]
+	for _, p := range S.Posts {
+		if p.Comm == cid {
+			fs = append(fs, p.Media)
+			fs = append(fs, p.More...)
+			continue
+		}
+		ps = append(ps, p)
+	}
+	S.Posts = ps
+	dropFiles(fs...)
+}
+
+// purgeComms removes a deleted account from every community (call with mu held)
+func purgeComms(id string) {
+	delete(S.X2.VReq, id)
+	keep := S.X2.Comms[:0]
+	for _, c := range S.X2.Comms {
+		c.Members, c.Mods, c.Banned = del(c.Members, id), del(c.Mods, id), del(c.Banned, id)
+		if c.Owner == id {
+			if len(c.Mods) > 0 {
+				c.Owner = c.Mods[0]
+			} else if len(c.Members) > 0 {
+				c.Owner = c.Members[0]
+			} else {
+				dropCommPosts(c.ID)
+				continue
+			}
+		}
+		keep = append(keep, c)
+	}
+	S.X2.Comms = keep
+}
+
+func pairKey(a, b string) string {
+	if a > b {
+		a, b = b, a
+	}
+	return a + "|" + b
+}
+
+// dexp gives the expiry time for a new message in this chat (0 = never)
+func dexp(a, b string) int64 {
+	if s := x2().Disap[pairKey(a, b)]; s > 0 {
+		return now() + s
+	}
+	return 0
+}
+
+func extra7() {
+	ok := map[string]bool{"ok": true}
+	modPaths["/api/commcreate"], modPaths["/api/commpost"], modPaths["/api/vreq"] = "t", "p", "t"
+
+	// messages that reached their timer are removed every 30 seconds
+	go func() {
+		for range time.Tick(30 * time.Second) {
+			mu.Lock()
+			var fs []string
+			keep := S.Msgs[:0]
+			changed := false
+			for _, m := range S.Msgs {
+				if m.Exp > 0 && m.Exp <= now() {
+					fs = append(fs, m.Media)
+					changed = true
+					continue
+				}
+				keep = append(keep, m)
+			}
+			S.Msgs = keep
+			if changed {
+				save()
+			}
+			mu.Unlock()
+			dropFiles(fs...)
+		}
+	}()
+
+	// ---------- verification requests ----------
+	api("vreq", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		why, link := strings.TrimSpace(b["reason"]), strings.TrimSpace(b["link"])
+		if u.Verified {
+			fail(w, 400, "You are already verified")
+			return
+		}
+		if rn(why) < 10 || rn(why) > 300 {
+			fail(w, 400, "Write 10 to 300 characters about why you should be verified")
+			return
+		}
+		if link != "" && (len(link) > 200 || !(strings.HasPrefix(link, "https://") || strings.HasPrefix(link, "http://"))) {
+			fail(w, 400, "The link must start with http:// or https://")
+			return
+		}
+		e := x2()
+		if o := e.VReq[u.ID]; o != nil {
+			if o.Status == "pending" {
+				fail(w, 400, "Your request is already under review")
+				return
+			}
+			if o.Status == "rejected" && now()-o.TS < 7*86400 {
+				fail(w, 400, "You can apply again in a few days")
+				return
+			}
+		}
+		e.VReq[u.ID] = &VRq{why, link, "pending", now()}
+		save()
+		js(w, ok)
+	})
+	api("vstatus", func(u *User, w http.ResponseWriter, r *http.Request) {
+		st, wait := "none", int64(0)
+		if o := x2().VReq[u.ID]; o != nil {
+			st = o.Status
+			if st == "rejected" {
+				wait = 7*86400 - (now() - o.TS)
+				if wait < 0 {
+					wait = 0
+				}
+			}
+		}
+		js(w, map[string]any{"Status": st, "Wait": wait})
+	})
+	api("vreqs", func(u *User, w http.ResponseWriter, r *http.Request) {
+		if !u.Admin {
+			fail(w, 403, "Admins only")
+			return
+		}
+		type it struct {
+			id string
+			q  *VRq
+		}
+		l := []it{}
+		for id, q := range x2().VReq {
+			if q.Status == "pending" && S.Users[id] != nil {
+				l = append(l, it{id, q})
+			}
+		}
+		sort.Slice(l, func(a, b int) bool { return l[a].q.TS < l[b].q.TS })
+		out := []map[string]any{}
+		for _, i := range l {
+			out = append(out, map[string]any{"U": uv(i.id), "Reason": i.q.Reason, "Link": i.q.Link, "TS": i.q.TS})
+		}
+		js(w, out)
+	})
+	api("vact", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		o, e := S.Users[b["id"]], x2()
+		q := e.VReq[b["id"]]
+		if !u.Admin || o == nil || q == nil || q.Status != "pending" {
+			fail(w, 403, "Not allowed")
+			return
+		}
+		if b["v"] == "1" {
+			o.Verified = true
+			delete(e.VReq, o.ID)
+			note(o.ID, u.ID, "vok", "")
+			alog(u, "approved verification for @"+o.Username)
+		} else {
+			q.Status, q.TS = "rejected", now()
+			note(o.ID, u.ID, "vno", "")
+			alog(u, "rejected verification for @"+o.Username)
+		}
+		save()
+		js(w, ok)
+	})
+
+	// ---------- communities ----------
+	api("commcreate", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		n, d, ru := strings.TrimSpace(b["name"]), strings.TrimSpace(b["desc"]), strings.TrimSpace(b["rules"])
+		if rn(n) < 3 || rn(n) > 40 || rn(d) > 200 || rn(ru) > 500 {
+			fail(w, 400, "The name must be 3 to 40 characters")
+			return
+		}
+		owned := 0
+		for _, c := range S.X2.Comms {
+			if strings.EqualFold(c.Name, n) {
+				fail(w, 400, "That name is taken")
+				return
+			}
+			if c.Owner == u.ID {
+				owned++
+			}
+		}
+		if owned >= 5 {
+			fail(w, 400, "You can own up to 5 communities")
+			return
+		}
+		c := &Comm{ID: uid(), Name: n, Desc: d, Rules: ru, Owner: u.ID, TS: now(), Members: []string{u.ID}}
+		S.X2.Comms = append(S.X2.Comms, c)
+		save()
+		js(w, map[string]string{"id": c.ID})
+	})
+	api("comms", func(u *User, w http.ResponseWriter, r *http.Request) {
+		q := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
+		list := []*Comm{}
+		for _, c := range S.X2.Comms {
+			if q == "" || strings.Contains(strings.ToLower(c.Name), q) || strings.Contains(strings.ToLower(c.Desc), q) {
+				list = append(list, c)
+			}
+		}
+		sort.Slice(list, func(a, b int) bool { return len(list[a].Members) > len(list[b].Members) })
+		out := []map[string]any{}
+		for i := 0; i < len(list) && i < 60; i++ {
+			c := list[i]
+			out = append(out, map[string]any{"ID": c.ID, "Name": c.Name, "Desc": c.Desc, "N": len(c.Members), "Joined": has(c.Members, u.ID)})
+		}
+		js(w, out)
+	})
+	api("comm", func(u *User, w http.ResponseWriter, r *http.Request) {
+		c := fcm(r.URL.Query().Get("id"))
+		if c == nil {
+			fail(w, 404, "Community not found")
+			return
+		}
+		ps := []map[string]any{}
+		for i := len(S.Posts) - 1; i >= 0 && len(ps) < 60; i-- {
+			if p := S.Posts[i]; p.Comm == c.ID && !hid(u, p.User) {
+				ps = append(ps, pv(p))
+			}
+		}
+		mod := c.Owner == u.ID || has(c.Mods, u.ID)
+		res := map[string]any{"Name": c.Name, "Desc": c.Desc, "Rules": c.Rules, "N": len(c.Members), "Joined": has(c.Members, u.ID), "Owner": c.Owner == u.ID, "Mod": mod, "Posts": ps}
+		if mod {
+			m := []map[string]any{}
+			for _, id := range c.Members {
+				role := "member"
+				if id == c.Owner {
+					role = "owner"
+				} else if has(c.Mods, id) {
+					role = "mod"
+				}
+				m = append(m, map[string]any{"U": uv(id), "Role": role})
+			}
+			res["M"] = m
+		}
+		js(w, res)
+	})
+	api("commjoin", func(u *User, w http.ResponseWriter, r *http.Request) {
+		c := fcm(in(r)["id"])
+		if c == nil {
+			fail(w, 404, "Community not found")
+			return
+		}
+		if has(c.Banned, u.ID) {
+			fail(w, 403, "You were removed from this community")
+			return
+		}
+		if has(c.Members, u.ID) {
+			if c.Owner == u.ID {
+				fail(w, 400, "Owners cannot leave. Delete the community instead")
+				return
+			}
+			c.Members, c.Mods = del(c.Members, u.ID), del(c.Mods, u.ID)
+		} else {
+			c.Members = append(c.Members, u.ID)
+		}
+		save()
+		js(w, ok)
+	})
+	api("commpost", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		c := fcm(b["id"])
+		if c == nil || !has(c.Members, u.ID) {
+			fail(w, 403, "Join this community to post")
+			return
+		}
+		if x().NoVer[u.ID] {
+			fail(w, 403, "Verify your email first (check your inbox), then log in again")
+			return
+		}
+		t := strings.TrimSpace(b["text"])
+		var media []string
+		for _, m := range strings.Split(b["media"], ",") {
+			if m != "" {
+				if !okMedia(m) {
+					fail(w, 400, "Invalid post")
+					return
+				}
+				media = append(media, m)
+			}
+		}
+		if (t == "" && len(media) == 0) || rn(t) > 2000 || len(media) > 10 {
+			fail(w, 400, "Invalid post")
+			return
+		}
+		k := b["kind"]
+		if k != "image" && k != "video" {
+			k = ""
+		}
+		p := &Post{ID: uid(), User: u.ID, Text: t, Kind: k, TS: now(), Likes: []string{}, Comm: c.ID}
+		if len(media) > 0 {
+			p.Media, p.More = media[0], media[1:]
+		}
+		S.Posts = append(S.Posts, p)
+		mentions(u, t, p.ID)
+		save()
+		js(w, ok)
+	})
+	api("commact", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		c := fcm(b["id"])
+		if c == nil {
+			fail(w, 404, "Community not found")
+			return
+		}
+		owner := c.Owner == u.ID
+		mod := owner || has(c.Mods, u.ID)
+		id := b["uid"]
+		switch b["op"] {
+		case "edit":
+			d, ru := strings.TrimSpace(b["desc"]), strings.TrimSpace(b["rules"])
+			if !mod || rn(d) > 200 || rn(ru) > 500 {
+				fail(w, 403, "Not allowed")
+				return
+			}
+			c.Desc, c.Rules = d, ru
+		case "mod":
+			if !owner || id == c.Owner || !has(c.Members, id) {
+				fail(w, 403, "Not allowed")
+				return
+			}
+			if has(c.Mods, id) {
+				c.Mods = del(c.Mods, id)
+			} else {
+				c.Mods = append(c.Mods, id)
+			}
+		case "kick":
+			if !mod || id == c.Owner || id == u.ID || !has(c.Members, id) || (has(c.Mods, id) && !owner) {
+				fail(w, 403, "Not allowed")
+				return
+			}
+			c.Members, c.Mods = del(c.Members, id), del(c.Mods, id)
+			if len(c.Banned) < 200 {
+				c.Banned = append(c.Banned, id)
+			}
+		case "del":
+			if !owner && !u.Admin {
+				fail(w, 403, "Not allowed")
+				return
+			}
+			dropCommPosts(c.ID)
+			keep := S.X2.Comms[:0]
+			for _, h := range S.X2.Comms {
+				if h != c {
+					keep = append(keep, h)
+				}
+			}
+			S.X2.Comms = keep
+		default:
+			fail(w, 400, "Unknown action")
+			return
+		}
+		save()
+		js(w, ok)
+	})
+
+	// ---------- disappearing messages ----------
+	api("disap", func(u *User, w http.ResponseWriter, r *http.Request) {
+		js(w, map[string]int64{"Secs": x2().Disap[pairKey(u.ID, r.URL.Query().Get("w"))]})
+	})
+	api("disapset", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		o := S.Users[b["to"]]
+		secs, _ := strconv.ParseInt(b["secs"], 10, 64)
+		if o == nil || blk(u, o) || (secs != 0 && secs != 86400 && secs != 604800) {
+			fail(w, 400, "Invalid setting")
+			return
+		}
+		e, key, label := x2(), pairKey(u.ID, o.ID), "off"
+		if secs == 0 {
+			delete(e.Disap, key)
+		} else {
+			e.Disap[key] = secs
+			label = "24 hours"
+			if secs == 604800 {
+				label = "7 days"
+			}
+		}
+		S.Msgs = append(S.Msgs, Msg{From: u.ID, To: o.ID, Text: "⏱ Disappearing messages: " + label, TS: now()})
+		note(o.ID, u.ID, "msg", "")
+		save()
+		js(w, ok)
+	})
+
+	// ---------- voice and video calls (WebRTC): the server only passes the setup messages along ----------
+	api("callsig", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		o := S.Users[b["to"]]
+		t := b["type"]
+		if o == nil || o.Banned || blk(u, o) {
+			fail(w, 400, "You cannot call this person")
+			return
+		}
+		if !has(u.Following, o.ID) && !has(o.Following, u.ID) {
+			fail(w, 403, "Follow each other to call")
+			return
+		}
+		switch t {
+		case "offer", "answer", "ice", "end", "busy", "decline":
+		default:
+			fail(w, 400, "Invalid call message")
+			return
+		}
+		if len(b["data"]) > 20000 {
+			fail(w, 400, "Invalid call message")
+			return
+		}
+		msg, _ := json.Marshal(map[string]any{"from": u.ID, "type": t, "data": b["data"], "U": uv(u.ID)})
+		if t == "offer" && len(hub[o.ID]) == 0 {
+			note(o.ID, u.ID, "missed", "")
+		}
+		push(o.ID, "call:"+string(msg))
+		js(w, ok)
+	})
+	api("ice", func(u *User, w http.ResponseWriter, r *http.Request) {
+		js(w, map[string]string{"url": env("TURN_URL"), "user": env("TURN_USER"), "pass": env("TURN_PASS")})
+	})
 }
