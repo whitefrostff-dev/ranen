@@ -2,14 +2,21 @@ package main
 
 import (
 	"bytes"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
 	"io"
+	"log"
 	"math"
+	"math/big"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -37,6 +44,7 @@ type User struct {
 	Blocked                       []string
 }
 type Comment struct {
+	ID, Parent string
 	User, Text string
 	TS         int64
 	Likes      []string
@@ -152,7 +160,14 @@ func load() {
 	loaded := false
 	if env("DATABASE_URL") != "" {
 		neon("CREATE TABLE IF NOT EXISTS store(key text PRIMARY KEY, value jsonb NOT NULL)")
-		if loadParts() {
+		for _, t := range rowTables {
+			neon("CREATE TABLE IF NOT EXISTS " + t + "(n bigserial, id text PRIMARY KEY, ts bigint NOT NULL DEFAULT 0, data jsonb NOT NULL)")
+		}
+		if ok, err := loadTables(); err != nil {
+			log.Fatal("cannot read the database, refusing to start so no data is overwritten: ", err)
+		} else if ok {
+			loaded = true
+		} else if loadParts() {
 			loaded = true
 		} else if rows, e := neon("SELECT value::text AS v FROM store WHERE key='state'"); e == nil && len(rows) > 0 {
 			raw := rows[0]["v"]
@@ -280,9 +295,9 @@ func uv(id string) map[string]any {
 func pv(p *Post) map[string]any {
 	cs := []map[string]any{}
 	for _, c := range p.Comments {
-		cs = append(cs, map[string]any{"U": uv(c.User), "Text": c.Text, "TS": c.TS, "Likes": c.Likes})
+		cs = append(cs, map[string]any{"ID": c.ID, "Parent": c.Parent, "U": uv(c.User), "Text": c.Text, "TS": c.TS, "Likes": c.Likes})
 	}
-	return map[string]any{"ID": p.ID, "U": uv(p.User), "Text": p.Text, "Media": p.Media, "Kind": p.Kind, "TS": p.TS, "Likes": p.Likes, "C": cs, "More": p.More, "Poll": p.Poll, "Sens": x().Sens[p.ID], "Rep": repOf(p.ID), "Views": x2().Views[p.ID]}
+	return map[string]any{"ID": p.ID, "U": uv(p.User), "Text": p.Text, "Media": p.Media, "Kind": p.Kind, "TS": p.TS, "Likes": p.Likes, "C": cs, "More": p.More, "Poll": p.Poll, "Sens": x().Sens[p.ID], "Rep": repOf(p.ID), "Views": x2().Views[p.ID], "PinC": x2().PinC[p.ID]}
 }
 func fpOld(id string) *Post {
 	for _, p := range S.Posts {
@@ -369,6 +384,7 @@ func alog(u *User, s string) {
 func main() {
 	load()
 	fillIDs(true)
+	fillCIDs()
 	go writer()
 	go janitor()
 	go func() {
@@ -522,9 +538,17 @@ func main() {
 			fail(w, 400, "Only images and videos")
 			return
 		}
+		if !vidOK(u, ct, r.Header.Get("X-Scan")) {
+			fail(w, 400, "This video needs a safety check first. Refresh the app and try again.")
+			return
+		}
 		name := uid() + "." + ext
 		data, good := readUpload(w, r, ct)
 		if !good {
+			return
+		}
+		if scanMedia(ct, data) {
+			fail(w, 400, "This image breaks Amlink's content rules")
 			return
 		}
 		resp, e := sb("POST", "/storage/v1/object/media/"+name, bytes.NewReader(data), ct)
@@ -618,19 +642,6 @@ func main() {
 		js(w, pv(p))
 	})
 
-	_ = (func(u *User, w http.ResponseWriter, r *http.Request) {
-		b := in(r)
-		p, t := fp(b["id"]), strings.TrimSpace(b["text"])
-		if p == nil || t == "" || len(t) > 300 {
-			fail(w, 400, "Invalid comment")
-			return
-		}
-		p.Comments = append(p.Comments, Comment{User: u.ID, Text: t, TS: now()})
-		note(p.User, u.ID, "comment", p.ID)
-		save()
-		js(w, pv(p))
-	})
-
 	api("clike", func(u *User, w http.ResponseWriter, r *http.Request) {
 		b := in(r)
 		p := fp(b["id"])
@@ -647,22 +658,6 @@ func main() {
 		}
 		save()
 		js(w, pv(p))
-	})
-
-	_ = (func(u *User, w http.ResponseWriter, r *http.Request) {
-		id := in(r)["id"]
-		if id == u.ID || S.Users[id] == nil {
-			fail(w, 400, "Invalid user")
-			return
-		}
-		if has(u.Following, id) {
-			u.Following = del(u.Following, id)
-		} else {
-			u.Following = append(u.Following, id)
-			note(id, u.ID, "follow", "")
-		}
-		save()
-		js(w, u)
 	})
 
 	api("search", func(u *User, w http.ResponseWriter, r *http.Request) {
@@ -1393,6 +1388,7 @@ func x() *Extra {
 	return e
 }
 func push(to, ev string) {
+	webPushTo(to, ev)
 	for _, c := range hub[to] {
 		select {
 		case c <- ev:
@@ -1405,13 +1401,7 @@ func priv(v, o *User) bool {
 }
 
 var xfiles = map[string][2]string{
-	"/sw.js": {"text/javascript", `const C='amlink-v4';
-self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(C).then(c=>c.add('/')).catch(()=>{}))});
-self.addEventListener('activate',e=>e.waitUntil(clients.claim()));
-self.addEventListener('fetch',e=>{if(e.request.mode=='navigate')e.respondWith(fetch(e.request).catch(()=>caches.match('/')))});
-self.addEventListener('push',e=>{const d=e.data?e.data.json():{};e.waitUntil(self.registration.showNotification(d.title||'Amlink',{body:d.body||'',icon:'/icon.svg'}))});
-self.addEventListener('notificationclick',e=>{e.notification.close();e.waitUntil(clients.openWindow('/'))});
-`},
+	"/sw.js": {"text/javascript", swJS},
 	"/manifest.json": {"application/manifest+json", `{"name":"Amlink","short_name":"Amlink","start_url":"/","scope":"/","display":"standalone","background_color":"#000000","theme_color":"#000000","icons":[{"src":"/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}`},
 	"/icon.svg":      {"image/svg+xml", `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd978"/><stop offset=".35" stop-color="#8fe3ff"/><stop offset=".7" stop-color="#e3a6ff"/><stop offset="1" stop-color="#ffd978"/></linearGradient></defs><rect width="512" height="512" fill="#000"/><text x="256" y="350" font-family="Arial,sans-serif" font-size="300" font-weight="700" text-anchor="middle" fill="url(#g)">A</text></svg>`},
 }
@@ -1522,7 +1512,7 @@ func extra(ok map[string]bool) {
 			fail(w, 400, "Invalid comment")
 			return
 		}
-		p.Comments = append(p.Comments, Comment{User: u.ID, Text: t, TS: now()})
+		p.Comments = append(p.Comments, Comment{ID: uid(), User: u.ID, Text: t, TS: now()})
 		note(p.User, u.ID, "comment", p.ID)
 		mentions(u, t, p.ID)
 		save()
@@ -2218,6 +2208,7 @@ func purgeMore(id string) {
 	delete(e.NoVer, id)
 	delete(e.Born, id)
 	delete(e.Susp, id)
+	delete(S.X2.Push, id)
 	for k, l := range e.Req {
 		e.Req[k] = del(l, id)
 	}
@@ -2328,7 +2319,7 @@ func xdev(tok string, r *http.Request) {
 	}
 }
 
-var modPaths = map[string]string{"/api/post": "p", "/api/post2": "p", "/api/status": "p", "/api/chpost": "p", "/api/comment": "c", "/api/comment2": "c", "/api/msg": "m", "/api/gmsg": "m", "/api/bio": "t", "/api/editpost": "t", "/api/chcreate": "t", "/api/gcreate": "t"}
+var modPaths = map[string]string{"/api/post": "p", "/api/post2": "p", "/api/status": "p", "/api/chpost": "p", "/api/comment": "c", "/api/comment2": "c", "/api/comment3": "c", "/api/msg": "m", "/api/gmsg": "m", "/api/bio": "t", "/api/editpost": "t", "/api/chcreate": "t", "/api/gcreate": "t"}
 var modHits = map[string][]int64{}
 
 func modMW(next http.Handler) http.Handler {
@@ -2367,7 +2358,7 @@ func modCheck(r *http.Request, b []byte, cl string) (int, string) {
 	var m map[string]any
 	json.Unmarshal(b, &m)
 	for k, v := range m {
-		if s, ok := v.(string); ok && k != "media" && k != "avatar" && k != "cover" && k != "id" && k != "g" && k != "to" && k != "token" && badText(s, e.Words) {
+		if s, ok := v.(string); ok && k != "media" && k != "avatar" && k != "cover" && k != "id" && k != "g" && k != "to" && k != "token" && k != "parent" && badText(s, e.Words) {
 			return 400, "That contains words that are not allowed on Amlink"
 		}
 	}
@@ -2566,6 +2557,8 @@ type Ext2 struct {
 	MW    map[string][]string // muted words per user
 	Hid   map[string][]string // "not interested" post ids per user
 	Tags  map[string][]string // followed hashtags per user
+	Push  map[string][]string // web push endpoints per user
+	PinC  map[string]string   // post id -> pinned comment id
 }
 
 var (
@@ -2578,6 +2571,9 @@ var (
 
 func init() {
 	modPaths["/api/msg2"], modPaths["/api/gmsg2"], modPaths["/api/repost"], modPaths["/api/mact"] = "m", "m", "p", "t"
+	vapidInit()
+	extra5()
+	extra6()
 }
 
 func x2() *Ext2 {
@@ -2596,6 +2592,9 @@ func x2() *Ext2 {
 	}
 	if e.Tags == nil {
 		e.Tags = map[string][]string{}
+	}
+	if e.PinC == nil {
+		e.PinC = map[string]string{}
 	}
 	return e
 }
@@ -2692,27 +2691,40 @@ func flushParts() {
 		return
 	}
 	mu.Lock()
+	var us, ps, ms []rowT
+	for id, u := range S.Users {
+		b, _ := json.Marshal(u)
+		us = append(us, rowT{id, 0, b})
+	}
+	for _, p := range S.Posts {
+		b, _ := json.Marshal(p)
+		ps = append(ps, rowT{p.ID, p.TS, b})
+	}
+	for _, m := range S.Msgs {
+		b, _ := json.Marshal(m)
+		ms = append(ms, rowT{m.ID, m.TS, b})
+	}
 	r := S
 	r.Users, r.Posts, r.Msgs = nil, nil, nil
-	ps := map[string][]byte{}
-	ps["s_users"], _ = json.Marshal(S.Users)
-	ps["s_posts"], _ = json.Marshal(S.Posts)
-	ps["s_msgs"], _ = json.Marshal(S.Msgs)
-	ps["s_rest"], _ = json.Marshal(r)
+	rest, _ := json.Marshal(r)
 	mu.Unlock()
 	partMu.Lock()
 	defer partMu.Unlock()
-	all := true
-	for _, k := range []string{"s_users", "s_posts", "s_msgs", "s_rest"} {
-		h := sha256.Sum256(ps[k])
-		if partH[k] == h {
-			continue
-		}
-		if _, e := neon("INSERT INTO store(key,value) VALUES($1,$2::jsonb) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", k, string(ps[k])); e != nil {
+	all := syncTable("app_users", us, rowH["app_users"])
+	all = syncTable("app_posts", ps, rowH["app_posts"]) && all
+	all = syncTable("app_msgs", ms, rowH["app_msgs"]) && all
+	h := sha256.Sum256(rest)
+	if partH["s_rest"] != h {
+		if _, e := neon("INSERT INTO store(key,value) VALUES('s_rest',$1::jsonb) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", string(rest)); e != nil {
 			all = false
-			continue
+		} else {
+			partH["s_rest"] = h
 		}
-		partH[k] = h
+	}
+	if all && !rowsMarked { // marker last: only set once every table is safely written
+		if _, e := neon("INSERT INTO store(key,value) VALUES('rows_v1','1'::jsonb) ON CONFLICT (key) DO NOTHING"); e == nil {
+			rowsMarked = true
+		}
 	}
 	if all && !oldGone { // the old single-row copy is removed once the new rows are safe
 		if _, e := neon("DELETE FROM store WHERE key='state'"); e == nil {
@@ -2980,4 +2992,721 @@ func extra4() {
 		save()
 		js(w, map[string]any{"Tags": e.Tags[u.ID]})
 	})
+}
+
+// ---------- service worker (shows a notification for every push) ----------
+const swJS = `const C='amlink-v5';
+self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(C).then(c=>c.add('/')).catch(()=>{}))});
+self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!=C).map(x=>caches.delete(x)))).then(()=>clients.claim())));
+self.addEventListener('fetch',e=>{if(e.request.mode=='navigate')e.respondWith(fetch(e.request).catch(()=>caches.match('/')))});
+self.addEventListener('push',e=>{let d={};try{d=e.data?e.data.json():{}}catch(x){}e.waitUntil(self.registration.showNotification(d.title||'Amlink',{body:d.body||'You have new activity',icon:'/icon.svg',badge:'/icon.svg',tag:'amlink'}))});
+self.addEventListener('notificationclick',e=>{e.notification.close();e.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(l=>{for(const c of l){if('focus' in c)return c.focus()}return clients.openWindow('/')}))});
+`
+
+// ---------- web push (VAPID, no payload, so no extra library is needed) ----------
+var (
+	vKey      *ecdsa.PrivateKey
+	vPub      string
+	pushLast  = map[string]int64{}
+	pushHosts = []string{"fcm.googleapis.com", ".push.services.mozilla.com", ".push.apple.com", ".notify.windows.com"}
+	pushCl    = &http.Client{Timeout: 10 * time.Second}
+	pushEv    = map[string]bool{"like": true, "comment": true, "reply": true, "follow": true, "msg": true, "mention": true, "freq": true, "facc": true, "repost": true, "mreact": true, "login": true, "warn": true, "susp": true}
+)
+
+func b64(b []byte) string { return base64.RawURLEncoding.EncodeToString(b) }
+func pad32(b []byte) []byte {
+	if len(b) >= 32 {
+		return b
+	}
+	o := make([]byte, 32)
+	copy(o[32-len(b):], b)
+	return o
+}
+
+func vapidInit() {
+	if pb, e := base64.RawURLEncoding.DecodeString(env("VAPID_PRIVATE")); e == nil && len(pb) == 32 {
+		k := &ecdsa.PrivateKey{D: new(big.Int).SetBytes(pb)}
+		k.PublicKey.Curve = elliptic.P256()
+		k.PublicKey.X, k.PublicKey.Y = k.PublicKey.Curve.ScalarBaseMult(pb)
+		vKey = k
+	} else {
+		k, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		vKey = k
+		log.Println("VAPID_PRIVATE is not set. Add this to your Render environment so alerts keep working after a restart:")
+		log.Println("VAPID_PRIVATE=" + b64(pad32(k.D.Bytes())))
+	}
+	vPub = b64(elliptic.Marshal(elliptic.P256(), vKey.PublicKey.X, vKey.PublicKey.Y))
+}
+
+func pushOK(ep string) bool {
+	u, e := url.Parse(ep)
+	if e != nil || u.Scheme != "https" || u.User != nil || len(ep) > 600 {
+		return false
+	}
+	h := strings.ToLower(u.Hostname())
+	for _, s := range pushHosts {
+		if h == s || (strings.HasPrefix(s, ".") && strings.HasSuffix(h, s)) {
+			return true
+		}
+	}
+	return false
+}
+
+func vapidAuth(ep string) (string, error) {
+	u, e := url.Parse(ep)
+	if e != nil {
+		return "", e
+	}
+	sub := env("ADMIN_EMAIL")
+	if sub == "" {
+		sub = "admin@example.com"
+	}
+	cl, _ := json.Marshal(map[string]any{"aud": u.Scheme + "://" + u.Host, "exp": time.Now().Add(12 * time.Hour).Unix(), "sub": "mailto:" + sub})
+	signing := b64([]byte(`{"typ":"JWT","alg":"ES256"}`)) + "." + b64(cl)
+	sum := sha256.Sum256([]byte(signing))
+	r, s, e := ecdsa.Sign(rand.Reader, vKey, sum[:])
+	if e != nil {
+		return "", e
+	}
+	sig := append(pad32(r.Bytes()), pad32(s.Bytes())...)
+	return "vapid t=" + signing + "." + b64(sig) + ", k=" + vPub, nil
+}
+
+// webPushTo is called from push() while mu is held. Only users with no open app get a push.
+func webPushTo(to, ev string) {
+	if !pushEv[ev] || len(hub[to]) > 0 {
+		return
+	}
+	eps := S.X2.Push[to]
+	if len(eps) == 0 || now()-pushLast[to] < 15 {
+		return
+	}
+	pushLast[to] = now()
+	cp := append([]string(nil), eps...)
+	go func() {
+		for _, ep := range cp {
+			sendPush(to, ep)
+		}
+	}()
+}
+
+func sendPush(user, ep string) {
+	if !pushOK(ep) {
+		return
+	}
+	auth, e := vapidAuth(ep)
+	if e != nil {
+		return
+	}
+	req, e := http.NewRequest("POST", ep, nil)
+	if e != nil {
+		return
+	}
+	req.Header.Set("Authorization", auth)
+	req.Header.Set("TTL", "86400")
+	req.Header.Set("Urgency", "normal")
+	resp, e := pushCl.Do(req)
+	if e != nil {
+		return
+	}
+	io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
+	resp.Body.Close()
+	if resp.StatusCode == 404 || resp.StatusCode == 410 {
+		mu.Lock()
+		e2 := x2()
+		if e2.Push != nil {
+			e2.Push[user] = del(e2.Push[user], ep)
+		}
+		save()
+		mu.Unlock()
+	}
+}
+
+// ---------- comment ids (needed for replies) ----------
+func fillCIDs() {
+	for _, p := range S.Posts {
+		for i := range p.Comments {
+			if p.Comments[i].ID == "" {
+				p.Comments[i].ID = uid()
+			}
+		}
+	}
+}
+
+// ---------- link previews (safe against server-side request forgery) ----------
+type lpEnt struct {
+	d  map[string]string
+	ts int64
+}
+
+var (
+	lpMu    sync.Mutex
+	lpCache = map[string]lpEnt{}
+	metaRe  = regexp.MustCompile(`(?is)<meta\s[^>]*>`)
+	attrRe  = regexp.MustCompile(`(?is)([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')`)
+	titleRe = regexp.MustCompile(`(?is)<title[^>]*>(.*?)</title>`)
+	lpClean = strings.NewReplacer("'", "%27", "(", "%28", ")", "%29", "\"", "%22", "\\", "%5C", " ", "%20", "<", "%3C", ">", "%3E")
+)
+
+func publicIP(ip net.IP) bool {
+	if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsMulticast() || ip.IsUnspecified() {
+		return false
+	}
+	if v4 := ip.To4(); v4 != nil && v4[0] == 100 && v4[1] >= 64 && v4[1] <= 127 {
+		return false
+	}
+	return true
+}
+
+func lpClient() *http.Client {
+	d := &net.Dialer{Timeout: 5 * time.Second, Control: func(network, address string, c syscall.RawConn) error {
+		host, _, err := net.SplitHostPort(address)
+		if err != nil {
+			return err
+		}
+		ip := net.ParseIP(host)
+		if ip == nil || !publicIP(ip) {
+			return errors.New("blocked address")
+		}
+		return nil
+	}}
+	tr := &http.Transport{DialContext: d.DialContext, TLSHandshakeTimeout: 5 * time.Second, ResponseHeaderTimeout: 6 * time.Second, DisableKeepAlives: true}
+	return &http.Client{Timeout: 8 * time.Second, Transport: tr, CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		if len(via) >= 3 {
+			return errors.New("too many redirects")
+		}
+		return nil
+	}}
+}
+
+func parseMeta(body string) map[string]string {
+	m := map[string]string{}
+	for _, tag := range metaRe.FindAllString(body, -1) {
+		key, val := "", ""
+		for _, a := range attrRe.FindAllStringSubmatch(tag, -1) {
+			v := a[2]
+			if v == "" {
+				v = a[3]
+			}
+			switch strings.ToLower(a[1]) {
+			case "property", "name":
+				key = strings.ToLower(v)
+			case "content":
+				val = v
+			}
+		}
+		if key != "" && val != "" {
+			if _, k := m[key]; !k {
+				m[key] = html.UnescapeString(val)
+			}
+		}
+	}
+	return m
+}
+
+func first(m map[string]string, keys ...string) string {
+	for _, k := range keys {
+		if v := strings.TrimSpace(m[k]); v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+func fetchPreview(raw string) (map[string]string, error) {
+	u, e := url.Parse(raw)
+	if e != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || u.User != nil || len(raw) > 500 {
+		return nil, errors.New("bad url")
+	}
+	if p := u.Port(); p != "" && p != "80" && p != "443" {
+		return nil, errors.New("bad port")
+	}
+	req, _ := http.NewRequest("GET", u.String(), nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; AmlinkBot/1.0)")
+	req.Header.Set("Accept", "text/html,application/xhtml+xml")
+	resp, e := lpClient().Do(req)
+	if e != nil {
+		return nil, e
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode > 299 || !strings.Contains(strings.ToLower(resp.Header.Get("Content-Type")), "html") {
+		return nil, errors.New("no preview")
+	}
+	b, _ := io.ReadAll(io.LimitReader(resp.Body, 512<<10))
+	body := string(b)
+	m := parseMeta(body)
+	title := first(m, "og:title", "twitter:title")
+	if title == "" {
+		if t := titleRe.FindStringSubmatch(body); t != nil {
+			title = strings.TrimSpace(html.UnescapeString(t[1]))
+		}
+	}
+	desc := first(m, "og:description", "twitter:description", "description")
+	img := first(m, "og:image", "twitter:image")
+	final := resp.Request.URL
+	if img != "" {
+		if iu, e := final.Parse(img); e == nil && (iu.Scheme == "http" || iu.Scheme == "https") {
+			img = lpClean.Replace(iu.String())
+		} else {
+			img = ""
+		}
+	}
+	site := first(m, "og:site_name")
+	if site == "" {
+		site = strings.TrimPrefix(strings.ToLower(final.Hostname()), "www.")
+	}
+	if title == "" && desc == "" && img == "" {
+		return nil, errors.New("no preview")
+	}
+	return map[string]string{"url": final.String(), "title": trunc(title, 120), "desc": trunc(desc, 200), "image": img, "site": trunc(site, 60)}, nil
+}
+
+// ---------- safety scan (OpenAI moderation, free). Set OPENAI_API_KEY to turn on. ----------
+// modBlocked returns true when any of the images (data URLs) should be blocked.
+// If the key is missing or the check fails, nothing is blocked.
+func modBlocked(urls []string) bool {
+	key := env("OPENAI_API_KEY")
+	if key == "" || len(urls) == 0 {
+		return false
+	}
+	items := []any{}
+	for _, u := range urls {
+		items = append(items, map[string]any{"type": "image_url", "image_url": map[string]string{"url": u}})
+	}
+	body, _ := json.Marshal(map[string]any{"model": "omni-moderation-latest", "input": items})
+	req, _ := http.NewRequest("POST", "https://api.openai.com/v1/moderations", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+key)
+	resp, e := hc.Do(req)
+	if e != nil {
+		log.Println("scan failed:", e)
+		return false
+	}
+	defer resp.Body.Close()
+	var o struct {
+		Results []struct {
+			Categories map[string]bool    `json:"categories"`
+			Scores     map[string]float64 `json:"category_scores"`
+		} `json:"results"`
+	}
+	json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&o)
+	if resp.StatusCode != 200 || len(o.Results) == 0 {
+		log.Println("scan status:", resp.StatusCode)
+		return false
+	}
+	for _, r := range o.Results {
+		c, s := r.Categories, r.Scores
+		if c["sexual/minors"] || s["sexual/minors"] > 0.2 || c["sexual"] || s["sexual"] > 0.7 || c["violence/graphic"] || s["violence/graphic"] > 0.7 {
+			return true
+		}
+	}
+	return false
+}
+
+func scanMedia(ct string, data []byte) bool {
+	if env("OPENAI_API_KEY") == "" || len(data) > 15<<20 {
+		return false
+	}
+	switch ct {
+	case "image/jpeg", "image/png", "image/webp", "image/gif":
+	default:
+		return false
+	}
+	return modBlocked([]string{"data:" + ct + ";base64," + base64.StdEncoding.EncodeToString(data)})
+}
+
+// ---------- routes ----------
+func extra5() {
+	ok := map[string]bool{"ok": true}
+
+	http.HandleFunc("/api/pushkey", func(w http.ResponseWriter, r *http.Request) {
+		js(w, map[string]string{"key": vPub})
+	})
+
+	api("pushsub", func(u *User, w http.ResponseWriter, r *http.Request) {
+		ep := in(r)["endpoint"]
+		if !pushOK(ep) {
+			fail(w, 400, "This browser is not supported for alerts")
+			return
+		}
+		e := x2()
+		if e.Push == nil {
+			e.Push = map[string][]string{}
+		}
+		for k, l := range e.Push {
+			if k != u.ID && has(l, ep) {
+				e.Push[k] = del(l, ep)
+			}
+		}
+		if !has(e.Push[u.ID], ep) {
+			l := append(e.Push[u.ID], ep)
+			if len(l) > 5 {
+				l = l[len(l)-5:]
+			}
+			e.Push[u.ID] = l
+			save()
+		}
+		js(w, ok)
+	})
+
+	api("pushoff", func(u *User, w http.ResponseWriter, r *http.Request) {
+		e := x2()
+		if e.Push != nil {
+			e.Push[u.ID] = del(e.Push[u.ID], in(r)["endpoint"])
+			save()
+		}
+		js(w, ok)
+	})
+
+	// threaded replies: replies to a reply attach to the top comment (two levels, like Instagram)
+	api("comment3", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		p, t := fp(b["id"]), strings.TrimSpace(b["text"])
+		if p == nil || t == "" || rn(t) > 300 || hid(u, p.User) {
+			fail(w, 400, "Invalid comment")
+			return
+		}
+		fillCIDs()
+		c := Comment{ID: uid(), User: u.ID, Text: t, TS: now()}
+		replyTo := ""
+		if pr := b["parent"]; pr != "" {
+			for _, o := range p.Comments {
+				if o.ID == pr {
+					c.Parent = o.ID
+					if o.Parent != "" {
+						c.Parent = o.Parent
+					}
+					replyTo = o.User
+					break
+				}
+			}
+		}
+		p.Comments = append(p.Comments, c)
+		if ru := S.Users[replyTo]; replyTo != "" && ru != nil && !blk(u, ru) {
+			note(replyTo, u.ID, "reply", p.ID)
+			if p.User != replyTo {
+				note(p.User, u.ID, "comment", p.ID)
+			}
+		} else {
+			note(p.User, u.ID, "comment", p.ID)
+		}
+		mentions(u, t, p.ID)
+		save()
+		js(w, pv(p))
+	})
+
+	// link preview: the slow network fetch runs without holding the big lock
+	http.HandleFunc("/api/preview", func(w http.ResponseWriter, r *http.Request) {
+		if authUser(r) == nil {
+			fail(w, 429, "Slow down a little")
+			return
+		}
+		raw := strings.TrimSpace(r.URL.Query().Get("url"))
+		lpMu.Lock()
+		if c, k := lpCache[raw]; k && now()-c.ts < 6*3600 {
+			lpMu.Unlock()
+			if c.d == nil {
+				fail(w, 404, "No preview")
+				return
+			}
+			js(w, c.d)
+			return
+		}
+		lpMu.Unlock()
+		d, e := fetchPreview(raw)
+		lpMu.Lock()
+		if len(lpCache) > 500 {
+			lpCache = map[string]lpEnt{}
+		}
+		lpCache[raw] = lpEnt{d, now()}
+		lpMu.Unlock()
+		if e != nil {
+			fail(w, 404, "No preview")
+			return
+		}
+		js(w, d)
+	})
+}
+
+// =====================================================================
+// ---------- v12: row-per-item storage, video scan, pinned comments, chat search ----------
+// =====================================================================
+
+var (
+	rowTables  = []string{"app_users", "app_posts", "app_msgs"}
+	rowH       = map[string]map[string][32]byte{"app_users": {}, "app_posts": {}, "app_msgs": {}}
+	rowsMarked bool
+	vtMu       sync.Mutex
+	vToks      = map[string]vTokEnt{}
+)
+
+type rowT struct {
+	id string
+	ts int64
+	b  []byte
+}
+type vTokEnt struct {
+	user string
+	exp  int64
+}
+
+// pageRows reads a table in pages of 500 so one response never gets too big
+func pageRows(tbl string, each func(raw []byte) error) error {
+	last := "0"
+	for {
+		rows, e := neon("SELECT n::text AS n, data::text AS d FROM "+tbl+" WHERE n > $1::bigint ORDER BY n LIMIT 500", last)
+		if e != nil {
+			return e
+		}
+		for _, r := range rows {
+			if err := each(rawJSON(r["d"])); err != nil {
+				return err
+			}
+			last = string(rawJSON(r["n"]))
+		}
+		if len(rows) < 500 {
+			return nil
+		}
+	}
+}
+
+// loadTables returns (false, nil) when the database has not been moved to rows yet.
+func loadTables() (bool, error) {
+	m, e := neon("SELECT 1 AS x FROM store WHERE key='rows_v1'")
+	if e != nil {
+		return false, e
+	}
+	if len(m) == 0 {
+		return false, nil
+	}
+	rr, e := neon("SELECT value::text AS v FROM store WHERE key='s_rest'")
+	if e != nil || len(rr) == 0 {
+		return false, errors.New("the rest row is missing")
+	}
+	if err := json.Unmarshal(rawJSON(rr[0]["v"]), &S); err != nil {
+		return false, err
+	}
+	S.Users, S.Posts, S.Msgs = map[string]*User{}, nil, nil
+	if err := pageRows("app_users", func(b []byte) error {
+		var u User
+		if err := json.Unmarshal(b, &u); err != nil {
+			return err
+		}
+		S.Users[u.ID] = &u
+		return nil
+	}); err != nil {
+		return false, err
+	}
+	if err := pageRows("app_posts", func(b []byte) error {
+		var p Post
+		if err := json.Unmarshal(b, &p); err != nil {
+			return err
+		}
+		S.Posts = append(S.Posts, &p)
+		return nil
+	}); err != nil {
+		return false, err
+	}
+	if err := pageRows("app_msgs", func(b []byte) error {
+		var mm Msg
+		if err := json.Unmarshal(b, &mm); err != nil {
+			return err
+		}
+		S.Msgs = append(S.Msgs, mm)
+		return nil
+	}); err != nil {
+		return false, err
+	}
+	rowsMarked = true
+	primeRows()
+	return true, nil
+}
+
+// primeRows remembers what is already in the database so only changed rows are written
+func primeRows() {
+	for id, u := range S.Users {
+		b, _ := json.Marshal(u)
+		rowH["app_users"][id] = sha256.Sum256(b)
+	}
+	for _, p := range S.Posts {
+		b, _ := json.Marshal(p)
+		rowH["app_posts"][p.ID] = sha256.Sum256(b)
+	}
+	for _, m := range S.Msgs {
+		b, _ := json.Marshal(m)
+		rowH["app_msgs"][m.ID] = sha256.Sum256(b)
+	}
+}
+
+// syncTable writes only new or changed rows and deletes rows that no longer exist
+func syncTable(tbl string, rows []rowT, hs map[string][32]byte) bool {
+	type chg struct {
+		id   string
+		h    [32]byte
+		item map[string]any
+	}
+	cur := make(map[string]bool, len(rows))
+	var list []chg
+	for _, r := range rows {
+		if r.id == "" || cur[r.id] {
+			continue
+		}
+		cur[r.id] = true
+		h := sha256.Sum256(r.b)
+		if o, k := hs[r.id]; k && o == h {
+			continue
+		}
+		list = append(list, chg{r.id, h, map[string]any{"id": r.id, "ts": r.ts, "data": json.RawMessage(r.b)}})
+	}
+	good := true
+	for i := 0; i < len(list); i += 150 {
+		j := i + 150
+		if j > len(list) {
+			j = len(list)
+		}
+		items := make([]map[string]any, 0, j-i)
+		for _, c := range list[i:j] {
+			items = append(items, c.item)
+		}
+		b, _ := json.Marshal(items)
+		if _, e := neon("INSERT INTO "+tbl+"(id,ts,data) SELECT t.e->>'id', (t.e->>'ts')::bigint, t.e->'data' FROM jsonb_array_elements($1::jsonb) WITH ORDINALITY AS t(e,o) ORDER BY t.o ON CONFLICT (id) DO UPDATE SET ts=EXCLUDED.ts, data=EXCLUDED.data", string(b)); e != nil {
+			log.Println("save failed for", tbl, e)
+			good = false
+			break
+		}
+		for _, c := range list[i:j] {
+			hs[c.id] = c.h
+		}
+	}
+	var gone []string
+	for id := range hs {
+		if !cur[id] {
+			gone = append(gone, id)
+		}
+	}
+	for i := 0; i < len(gone); i += 400 {
+		j := i + 400
+		if j > len(gone) {
+			j = len(gone)
+		}
+		b, _ := json.Marshal(gone[i:j])
+		if _, e := neon("DELETE FROM "+tbl+" WHERE id IN (SELECT jsonb_array_elements_text($1::jsonb))", string(b)); e != nil {
+			good = false
+			break
+		}
+		for _, id := range gone[i:j] {
+			delete(hs, id)
+		}
+	}
+	return good
+}
+
+// vidOK: when the scan is on, a video upload needs a one-time token from /api/vscan
+func vidOK(u *User, ct, tok string) bool {
+	if !strings.HasPrefix(ct, "video/") || env("OPENAI_API_KEY") == "" {
+		return true
+	}
+	vtMu.Lock()
+	defer vtMu.Unlock()
+	e, k := vToks[tok]
+	if !k || e.user != u.ID || e.exp < now() {
+		return false
+	}
+	delete(vToks, tok)
+	return true
+}
+
+func extra6() {
+	ok := map[string]bool{"ok": true}
+
+	// the browser sends 3 still frames of the video; if they pass, it gets a one-time upload token
+	http.HandleFunc("/api/vscan", func(w http.ResponseWriter, r *http.Request) {
+		u := authUser(r)
+		if u == nil {
+			fail(w, 429, "Slow down a little")
+			return
+		}
+		var b struct{ Frames []string }
+		if json.NewDecoder(http.MaxBytesReader(w, r.Body, 3<<20)).Decode(&b) != nil || len(b.Frames) < 1 || len(b.Frames) > 4 {
+			fail(w, 400, "We could not check this video")
+			return
+		}
+		for _, f := range b.Frames {
+			if !strings.HasPrefix(f, "data:image/jpeg;base64,") || len(f) > 700000 {
+				fail(w, 400, "We could not check this video")
+				return
+			}
+		}
+		if modBlocked(b.Frames) {
+			fail(w, 400, "This video breaks Amlink's content rules")
+			return
+		}
+		tok := uid() + uid()
+		vtMu.Lock()
+		for t, e := range vToks {
+			if e.exp < now() {
+				delete(vToks, t)
+			}
+		}
+		vToks[tok] = vTokEnt{u.ID, now() + 600}
+		vtMu.Unlock()
+		js(w, map[string]string{"token": tok})
+	})
+
+	// pin one top-level comment on your own post
+	api("pinc", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		p := fp(b["id"])
+		if p == nil || p.User != u.ID {
+			fail(w, 400, "Only the post owner can pin a comment")
+			return
+		}
+		fillCIDs()
+		found := false
+		for _, c := range p.Comments {
+			if c.ID == b["cid"] {
+				if c.Parent != "" {
+					fail(w, 400, "Pin a main comment, not a reply")
+					return
+				}
+				found = true
+				break
+			}
+		}
+		if !found {
+			fail(w, 404, "Comment not found")
+			return
+		}
+		e := x2()
+		if e.PinC[p.ID] == b["cid"] {
+			delete(e.PinC, p.ID)
+		} else {
+			e.PinC[p.ID] = b["cid"]
+		}
+		save()
+		js(w, pv(p))
+	})
+
+	// search inside one conversation
+	api("msearch", func(u *User, w http.ResponseWriter, r *http.Request) {
+		p := r.URL.Query().Get("w")
+		q := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
+		out := []map[string]any{}
+		o := S.Users[p]
+		if rn(q) < 2 || o == nil || blk(u, o) {
+			js(w, out)
+			return
+		}
+		for i := len(S.Msgs) - 1; i >= 0 && len(out) < 40; i-- {
+			m := S.Msgs[i]
+			if !((m.From == u.ID && m.To == p) || (m.From == p && m.To == u.ID)) {
+				continue
+			}
+			if strings.Contains(strings.ToLower(m.Text), q) {
+				out = append(out, map[string]any{"ID": m.ID, "Me": m.From == u.ID, "TS": m.TS, "Text": trunc(m.Text, 120)})
+			}
+		}
+		js(w, out)
+	})
+	_ = ok
 }
