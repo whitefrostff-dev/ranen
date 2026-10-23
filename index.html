@@ -1569,5 +1569,200 @@ $('#app').addEventListener('click',async e=>{
 })();
 </script>
 
+<!-- ===== Amlink v13: verification requests, communities, disappearing messages, calls ===== -->
+<style>
+.cjb{border:1.5px solid var(--fg);color:var(--fg);padding:3px 12px;font-size:13px;border-radius:18px;background:none;font-weight:600}
+.cjb.on{background:var(--fg);color:var(--bg)}
+#call{position:absolute;inset:0;z-index:60;background:#0b0b0e;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;animation:pgin .28s ease}
+#call #rv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;opacity:0}
+#call.vid #rv{opacity:1}
+#call #lv{position:absolute;right:12px;top:calc(env(safe-area-inset-top,0px) + 12px);width:96px;aspect-ratio:3/4;object-fit:cover;border-radius:12px;border:2px solid #fff4;background:#000;display:none;z-index:2}
+#call.vid #lv{display:block}
+#call .cin{position:relative;z-index:1;display:grid;justify-items:center;gap:8px;text-align:center;text-shadow:0 1px 6px #000}
+#call.vid.on .cin{opacity:0;pointer-events:none}
+#call .cbt{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 28px);display:flex;gap:18px;z-index:2}
+.cb2{width:60px;height:60px;border-radius:50%;border:0;background:#ffffff26;color:#fff;font-size:24px}
+.cb2.ok{background:#31a24c}.cb2.no{background:#f02849}.cb2.off{opacity:.45}
+</style>
+<script>
+(()=>{
+Object.assign(TXT,{vok:'approved your verification request ✔',vno:'did not approve your verification request',missed:'tried to call you'});
+
+/* ---- expired disappearing messages are hidden at once ---- */
+const A13=A;
+A=async(p,b)=>{const r=await A13(p,b);
+  if(typeof p=='string'&&p.startsWith('msgs?')&&Array.isArray(r))return r.filter(x=>!x.Exp||x.Exp>Date.now()/1000);
+  return r};
+
+/* ================= 1. VERIFICATION REQUESTS ================= */
+async function vrq(){
+  if(ME.Verified){modal('<h3>Verification</h3><p>Your account is verified ✔</p><button class="pri" data-a="mc">Close</button>');return}
+  const s=await A('vstatus');
+  if(s.Status=='pending'){modal('<h3>Verification</h3><p>Your request is under review. We will notify you when it is decided.</p><button class="pri" data-a="mc">Close</button>');return}
+  if(s.Status=='rejected'&&s.Wait>0){const d=Math.ceil(s.Wait/86400);modal(`<h3>Verification</h3><p>Your last request was not approved. You can apply again in ${d} day${d==1?'':'s'}.</p><button class="pri" data-a="mc">Close</button>`);return}
+  modal('<h3>Request verification</h3><p class="sub">Tell us who you are and why you should get the blue badge. Add a link that proves it, like your website, a social profile or a news article.</p><label class="fl2">Why should you be verified?<textarea id="vr1" maxlength="300"></textarea></label><label class="fl2">Proof link (optional)<input id="vr2" type="url" placeholder="https://" maxlength="200" autocapitalize="none"></label><p class="er" id="er"></p><button class="pri" id="vrs">Send request</button>');
+  $('#vrs').onclick=async()=>{const b=$('#vrs');b.disabled=true;
+    try{await A('vreq',{reason:$('#vr1').value,link:$('#vr2').value});closeM();toast('Request sent')}
+    catch(e){$('#er').textContent=e.message;b.disabled=false}}}
+async function vad(){
+  const l=await A('vreqs');
+  modal('<h3>Verification requests</h3>'+(l.map(r=>`<div class="cd" style="padding:12px;display:grid;gap:8px"><div>${nm(r.U)} <small>${ago(r.TS)}</small></div><p style="white-space:pre-wrap">${E(r.Reason)}</p>${r.Link?`<a class="lnk2" href="${E(r.Link)}" target="_blank" rel="noopener noreferrer">${E(r.Link)}</a>`:''}<div class="act"><button class="ed" data-a="vac" data-i="${r.U.ID}" data-v="1">Approve</button><button class="ed" data-a="vac" data-i="${r.U.ID}" data-v="0">Reject</button></div></div>`).join('')||'<p class="empty">No pending requests.</p>'))}
+
+/* ================= 2. COMMUNITIES ================= */
+let CM=null;
+async function cms(q){
+  clearInterval(poll);closeM();$('#app').classList.remove('cs','fs','dro');tab='cm';
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));
+  $('#main').innerHTML='<div class="ch2"><b>Communities</b><button data-a="cmn" aria-label="Create community">＋</button></div><div class="sb"><input id="cmq" placeholder="Search communities" value="'+E(q||'')+'" autocomplete="off"></div><div id="cml"></div>';
+  const inp=$('#cmq');let t;inp.oninput=()=>{clearTimeout(t);t=setTimeout(()=>cmlist(inp.value.trim()),300)};
+  await cmlist(q||'')}
+async function cmlist(q){const box=$('#cml');if(!box)return;
+  try{const l=await A('comms?q='+encodeURIComponent(q));
+    box.innerHTML=l.map(c=>`<div class="pr"><b class="av" style="border-radius:14px">${E(c.Name[0].toUpperCase())}</b><button class="di" style="flex:1;padding:0" data-a="cmo" data-i="${c.ID}"><span>${E(c.Name)}<small>${c.N} member${c.N==1?'':'s'}${c.Desc?' · '+E(c.Desc.slice(0,50)):''}</small></span></button><button class="cjb${c.Joined?' on':''}" data-a="cmj" data-i="${c.ID}">${c.Joined?'Joined':'Join'}</button></div>`).join('')||'<p class="empty">No communities yet. Tap ＋ to start one.</p>'}
+  catch(e){box.innerHTML='<p class="empty">'+E(e.message)+'</p>'}}
+async function cmo(id){
+  clearInterval(poll);tab='cm';$('#app').classList.add('fs');
+  const c=await A('comm?id='+id);CM=Object.assign(c,{id});posts=c.Posts;
+  $('#main').innerHTML=`<div class="chh"><button data-a="cmb" aria-label="Back">‹</button><b>${E(c.Name)}</b>${c.Mod?'<button data-a="cmg" style="margin-left:auto;font-size:20px" aria-label="Manage">⚙</button>':''}</div>`+
+    `<div style="padding:12px 16px;display:grid;gap:8px"><p>${c.Desc?E(c.Desc):'<small>No description yet.</small>'}</p><small>${c.N} member${c.N==1?'':'s'}</small><div class="act" style="justify-content:flex-start"><button class="cjb${c.Joined?' on':''}" data-a="cmj2" data-i="${id}">${c.Joined?'Joined':'Join'}</button>${c.Rules?'<button class="ed" data-a="cmr">Rules</button>':''}${c.Joined?'<button class="ed" data-a="cmp">＋ Post</button>':''}</div></div>`+
+    (posts.map(postH).join('')||'<p class="empty">No posts yet.</p>');
+  paint();
+  if(c.Mod)document.querySelectorAll('#main .post').forEach(el=>{const l=el.querySelector('.lk'),p=l&&posts.find(x=>x.ID==l.dataset.i);if(p&&p.U.ID!=ME.ID)el.querySelector('header').insertAdjacentHTML('beforeend',`<button class="dl" data-a="cdp" data-i="${p.ID}">Remove</button>`)})}
+function cmnew(){
+  modal('<h3>New community</h3><label class="fl2">Name<input id="cn1" maxlength="40" placeholder="e.g. Lagos Foodies"></label><label class="fl2">What is it about?<textarea id="cn2" maxlength="200"></textarea></label><label class="fl2">Rules (optional)<textarea id="cn3" maxlength="500"></textarea></label><p class="er" id="er"></p><button class="pri" id="cnb">Create community</button>');
+  $('#cnb').onclick=async()=>{const b=$('#cnb');b.disabled=true;
+    try{const j=await A('commcreate',{name:$('#cn1').value,desc:$('#cn2').value,rules:$('#cn3').value});closeM();cmo(j.id)}
+    catch(e){$('#er').textContent=e.message;b.disabled=false}}}
+function cmpost(){XF=[];
+  modal(`<h3>Post in ${E(CM.Name)}</h3><textarea id="tx" placeholder="Share with the community… use @name or #tag" maxlength="2000"></textarea><div class="pvg" id="pvg"></div><label class="fb">📷 Add photos or a video<input id="fi" type="file" accept="image/*,video/*" multiple hidden></label><p class="er" id="er"></p><button class="pri" id="pub">Post</button>`);
+  $('#fi').onchange=()=>{XF=[...XF,...$('#fi').files].slice(0,10);$('#fi').value='';xpv()};
+  $('#pub').onclick=async()=>{const b=$('#pub');$('#er').textContent='';b.disabled=true;
+    try{if(XF.length>1&&XF.some(f=>!f.type.startsWith('image')))throw new Error('Several files must all be photos');
+      const urls=[];for(let i=0;i<XF.length;i++){b.textContent='Uploading '+(i+1)+'/'+XF.length+'…';urls.push(await up(XF[i]))}
+      b.textContent='Posting…';
+      await A('commpost',{id:CM.id,text:$('#tx').value,media:urls.join(','),kind:XF[0]?(XF[0].type.startsWith('video')?'video':'image'):''});
+      closeM();cmo(CM.id)}
+    catch(e){$('#er').textContent=e.message;b.disabled=false;b.textContent='Post'}}}
+function cmg(){const c=CM;
+  modal(`<h3>Manage community</h3><label class="fl2">Description<textarea id="cde" maxlength="200">${E(c.Desc)}</textarea></label><label class="fl2">Rules<textarea id="cru" maxlength="500">${E(c.Rules)}</textarea></label><button class="pri" data-a="cse">Save</button><p class="sg" style="padding:0">Members</p>`+
+  (c.M||[]).map(m=>`<div class="pr">${AV(m.U)}<div class="nm">${nm(m.U)}<br><small>${m.Role}</small></div>`+(m.Role!='owner'&&m.U.ID!=ME.ID&&(c.Owner||m.Role=='member')?`<button data-a="cka" data-o="kick" data-i="${m.U.ID}">Remove</button>`:'')+(c.Owner&&m.Role!='owner'?`<button data-a="cka" data-o="mod" data-i="${m.U.ID}">${m.Role=='mod'?'Demote':'Make mod'}</button>`:'')+'</div>').join('')+
+  (c.Owner?'<button class="pri sec" data-a="cka" data-o="del">Delete community</button>':''))}
+const hm13=home;
+home=function(){hm13();const a=$('#main .atb');if(a)a.insertAdjacentHTML('beforeend','<button data-a="cms">🏘 Communities</button>')};
+const od13=openDr;
+openDr=function(){od13();$('#dr').insertAdjacentHTML('beforeend','<p class="sg">Community and trust</p><div class="cd"><button class="sr" data-a="cms"><i>🏘</i>Communities<em>›</em></button>'+(ME.Verified?'':'<button class="sr" data-a="vrq"><i>✔</i>Request verification<em>›</em></button>')+(ME.Admin?'<button class="sr" data-a="vad"><i>🪪</i>Verification requests<em>›</em></button>':'')+'</div>')};
+
+/* ================= 3. DISAPPEARING MESSAGES ================= */
+async function dsp(){
+  const j=await A('disap?w='+peer.ID),o=(s,l)=>`<button class="sr" data-a="dss" data-s="${s}"><span>${l}</span>${j.Secs==s?'<em style="color:var(--fg)">✓</em>':''}</button>`;
+  modal('<h3>Disappearing messages</h3><p class="sub">New messages in this chat delete themselves after the time you choose. It applies to both of you.</p><div class="cd">'+o(0,'Off')+o(86400,'24 hours')+o(604800,'7 days')+'</div>')}
+
+/* ================= 4. VOICE AND VIDEO CALLS ================= */
+let CALL=null,RING=null;
+const iceCfg=async()=>{const s=[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}];
+  try{const t=await A('ice');if(t&&t.url)s.push({urls:t.url.split(','),username:t.user,credential:t.pass})}catch(e){}
+  return{iceServers:s}};
+const sig=(to,type,data)=>A('callsig',{to,type,data:data==null?'':JSON.stringify(data)});
+const sigq=(to,type,data)=>sig(to,type,data).catch(()=>{});
+function callUI(){
+  let o=$('#call');if(!o){o=document.createElement('div');o.id='call';$('#app').appendChild(o)}
+  const c=CALL,ring=c.incoming&&c.status=='Incoming call…';
+  o.className=(c.vid?'vid ':'')+(c.on?'on':'');
+  o.innerHTML=`<video id="rv" autoplay playsinline></video><video id="lv" autoplay playsinline muted></video><div class="cin">${AV(c.peer,'big')}<h3>${nm(c.peer)}</h3><p id="cst">${E(c.status)}</p></div><div class="cbt">`+
+   (ring?'<button class="cb2 ok" data-a="cac" aria-label="Answer">📞</button><button class="cb2 no" data-a="cdc" aria-label="Decline">✕</button>':'<button class="cb2" data-a="cmt" aria-label="Mute">🎤</button>'+(c.vid?'<button class="cb2" data-a="ccm" aria-label="Camera">📷</button>':'')+'<button class="cb2 no" data-a="cen" aria-label="End call">✕</button>')+'</div>';
+  if(c.remote)$('#rv').srcObject=c.remote;if(c.local)$('#lv').srcObject=c.local}
+function callSt(t){if(CALL)CALL.status=t;const e=$('#cst');if(e)e.textContent=t}
+const mmss=ms=>{const s=Math.floor(ms/1000);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+function wire(pc){
+  pc.onicecandidate=e=>{if(!e.candidate||!CALL)return;const c=e.candidate.toJSON?e.candidate.toJSON():e.candidate;if(CALL.ready)sigq(CALL.peer.ID,'ice',c);else CALL.out.push(c)};
+  pc.ontrack=e=>{if(!CALL)return;CALL.remote=e.streams[0];const r=$('#rv');if(r){r.srcObject=CALL.remote;r.play&&r.play().catch(()=>{})}};
+  pc.onconnectionstatechange=()=>{if(!CALL)return;const s=pc.connectionState;
+    if(s=='connected'){clearTimeout(CALL.to);CALL.on=true;CALL.t0=Date.now();const o=$('#call');o&&o.classList.add('on');callSt('0:00');clearInterval(CALL.tm);CALL.tm=setInterval(()=>callSt(mmss(Date.now()-CALL.t0)),1000)}
+    else if(s=='failed'){toast('The call could not connect. Check your network.');endCall(true)}}}
+function flushQ(){const c=CALL;if(!c||!c.pc)return;while(c.q.length)c.pc.addIceCandidate(c.q.shift()).catch(()=>{})}
+async function startCall(p,vid){
+  if(CALL){toast('You are already in a call');return}
+  if(!navigator.mediaDevices||!window.RTCPeerConnection){toast('Calls are not supported on this browser');return}
+  CALL={peer:p,vid,status:'Calling…',incoming:false,q:[],out:[],ready:false};
+  try{CALL.local=await navigator.mediaDevices.getUserMedia({audio:true,video:vid?{facingMode:'user'}:false})}
+  catch(e){CALL=null;toast('Allow the microphone'+(vid?' and camera':'')+' to call');return}
+  callUI();
+  try{
+    const pc=CALL.pc=new RTCPeerConnection(await iceCfg());wire(pc);
+    CALL.local.getTracks().forEach(t=>pc.addTrack(t,CALL.local));
+    await pc.setLocalDescription(await pc.createOffer());
+    await sig(p.ID,'offer',{sdp:pc.localDescription,vid});
+    CALL.ready=true;CALL.out.splice(0).forEach(c=>sigq(p.ID,'ice',c));
+    CALL.to=setTimeout(()=>{if(CALL&&!CALL.on){toast('No answer');endCall(true)}},45000)}
+  catch(e){toast(e.message||'Could not start the call');endCall(false)}}
+async function acceptCall(){
+  const c=CALL;if(!c)return;ringStop();
+  try{c.local=await navigator.mediaDevices.getUserMedia({audio:true,video:c.vid?{facingMode:'user'}:false})}
+  catch(e){sigq(c.peer.ID,'decline');toast('Allow the microphone to answer');endCall(false);return}
+  c.status='Connecting…';callUI();
+  try{
+    const pc=c.pc=new RTCPeerConnection(await iceCfg());wire(pc);
+    c.local.getTracks().forEach(t=>pc.addTrack(t,c.local));
+    await pc.setRemoteDescription(c.offer);flushQ();
+    await pc.setLocalDescription(await pc.createAnswer());
+    await sig(c.peer.ID,'answer',pc.localDescription)}
+  catch(e){toast(e.message||'Could not answer the call');endCall(true)}}
+function endCall(notify){
+  const c=CALL;if(!c)return;if(notify)sigq(c.peer.ID,'end');
+  ringStop();clearTimeout(c.to);clearInterval(c.tm);
+  c.local&&c.local.getTracks().forEach(t=>t.stop());c.pc&&c.pc.close();CALL=null;
+  const o=$('#call');o&&o.remove()}
+function ringStart(){ringStop();RING=setInterval(()=>{beep();navigator.vibrate&&navigator.vibrate(200)},1500);beep()}
+function ringStop(){clearInterval(RING);RING=null}
+async function onCall(raw){
+  let m,d=null;try{m=JSON.parse(raw);d=m.data?JSON.parse(m.data):null}catch(e){return}
+  if(m.type=='offer'){
+    if(CALL){sigq(m.from,'busy');return}
+    CALL={peer:m.U,vid:!!(d&&d.vid),status:'Incoming call…',incoming:true,offer:d&&d.sdp,q:[],out:[],ready:true};callUI();ringStart();return}
+  if(!CALL||CALL.peer.ID!=m.from)return;
+  if(m.type=='answer'){try{await CALL.pc.setRemoteDescription(d);flushQ()}catch(e){}}
+  else if(m.type=='ice'){if(CALL.pc&&CALL.pc.remoteDescription)CALL.pc.addIceCandidate(d).catch(()=>{});else CALL.q.push(d)}
+  else if(m.type=='end'){toast('Call ended');endCall(false)}
+  else if(m.type=='decline'){toast('Call declined');endCall(false)}
+  else if(m.type=='busy'){toast('They are on another call');endCall(false)}}
+const ap13=app;
+app=function(){ap13();if(typeof es!='undefined'&&es&&!es._c){es._c=1;es.addEventListener('message',ev=>{if(ev.data.startsWith('call:'))onCall(ev.data.slice(5))})}};
+const ch13=chat;
+chat=async function(u){await ch13(u);const h=$('.chh');
+  if(h&&$('#msr')&&!$('#dsp'))$('#msr').insertAdjacentHTML('afterend','<button id="dsp" data-a="dsp" style="font-size:20px" aria-label="Disappearing messages">⏱</button><button data-a="cvo" style="font-size:20px" aria-label="Voice call">📞</button><button data-a="cvi" style="font-size:20px" aria-label="Video call">🎥</button>')};
+
+/* ---- clicks ---- */
+$('#app').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,i=b.dataset.i,d=b.dataset;
+  try{
+    if(a=='vrq')vrq();
+    else if(a=='vad')vad();
+    else if(a=='vac'){await A('vact',{id:i,v:d.v});vad()}
+    else if(a=='cms')cms('');
+    else if(a=='cmn')cmnew();
+    else if(a=='cmo')cmo(i);
+    else if(a=='cmb')cms('');
+    else if(a=='cmj'){await A('commjoin',{id:i});cmlist(($('#cmq')||{}).value||'')}
+    else if(a=='cmj2'){await A('commjoin',{id:i});cmo(i)}
+    else if(a=='cmr')modal('<h3>Community rules</h3><p style="white-space:pre-wrap">'+E(CM.Rules)+'</p><button class="pri" data-a="mc">Close</button>');
+    else if(a=='cmp')cmpost();
+    else if(a=='cmg')cmg();
+    else if(a=='cse'){await A('commact',{id:CM.id,op:'edit',desc:$('#cde').value,rules:$('#cru').value});closeM();toast('Saved');cmo(CM.id)}
+    else if(a=='cka'){if(d.o=='del'){if(!confirm('Delete this community and all its posts?'))return;await A('commact',{id:CM.id,op:'del'});closeM();cms('')}
+      else{await A('commact',{id:CM.id,op:d.o,uid:i});await cmo(CM.id);cmg()}}
+    else if(a=='cdp'){if(confirm('Remove this post from the community?')){await A('delpost',{id:i});cmo(CM.id)}}
+    else if(a=='dsp')dsp();
+    else if(a=='dss'){await A('disapset',{to:peer.ID,secs:d.s});closeM();toast(d.s=='0'?'Disappearing messages are off':'Disappearing messages are on');L()}
+    else if(a=='cvo')startCall(peer,false);
+    else if(a=='cvi')startCall(peer,true);
+    else if(a=='cac')acceptCall();
+    else if(a=='cdc'){sigq(CALL.peer.ID,'decline');endCall(false)}
+    else if(a=='cen')endCall(true);
+    else if(a=='cmt'){const t=CALL&&CALL.local&&CALL.local.getAudioTracks()[0];if(t){t.enabled=!t.enabled;b.classList.toggle('off',!t.enabled)}}
+    else if(a=='ccm'){const t=CALL&&CALL.local&&CALL.local.getVideoTracks()[0];if(t){t.enabled=!t.enabled;b.classList.toggle('off',!t.enabled)}}
+  }catch(x){toast(x.message)}});
+})();
+</script>
+
 </body>
 </html>
