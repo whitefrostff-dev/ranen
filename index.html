@@ -1764,5 +1764,362 @@ $('#app').addEventListener('click',async e=>{
 })();
 </script>
 
+
+<!-- ===== Amlink v14: shiny classic look, TikTok-style reels, reel and post studios ===== -->
+<style>
+/* ---- shiny classic look ---- */
+:root{--rd:#fe2c55;--gl:linear-gradient(180deg,#ffffff1f,#ffffff00 46%)}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(900px 420px at 15% -8%,#ffd9782b,transparent 62%),radial-gradient(760px 420px at 92% 2%,#8fe3ff26,transparent 62%),radial-gradient(760px 420px at 55% 112%,#e3a6ff24,transparent 62%)}
+.post,.skc,.stc,.cd,.comp,.pst{background-image:var(--gl)}
+.post{border-radius:20px;box-shadow:inset 0 1px 0 #ffffff40,0 10px 26px -16px #0006}
+.post header .av{box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px #e3a6ff88}
+.pri{position:relative;overflow:hidden;box-shadow:inset 0 1px 0 #fff9,inset 0 -2px 0 #0002,0 8px 18px -8px #8fe3ffaa}
+.pri::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 38%,#ffffffb0 50%,transparent 62%);transform:translateX(-130%);animation:sheen 4s ease-in-out infinite;pointer-events:none}
+.pri.sec::after{display:none}
+@keyframes sheen{55%,100%{transform:translateX(130%)}}
+#tb{background:color-mix(in srgb,var(--bg) 80%,transparent);backdrop-filter:blur(14px)}
+nav button.on{color:var(--rd)}nav button.on svg{fill:currentColor}
+.brand,.nsearch,.nx,.rvm{display:none}
+.rnm{display:flex;align-items:center;gap:10px}.rnm b{font-size:16px;cursor:pointer}
+.rfb{border:1.5px solid #fff;background:none;color:#fff;border-radius:6px;padding:3px 12px;font-weight:700;font-size:13px}
+.rcp{font-size:14px;line-height:1.35;max-height:5.4em;overflow:hidden;white-space:pre-wrap}.rcp .ht{color:#fff}
+.rmu{font-size:13px;opacity:.9}
+.rbar{cursor:pointer}
+
+@media(min-width:900px){
+ nav{border-right:1px solid var(--line)}
+ nav .brand{display:block;font-size:30px;font-weight:800;letter-spacing:-1.2px;padding:6px 16px 12px;background:var(--sh) 0 0/200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 6s linear infinite}
+ nav .nsearch{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:24px;padding:11px 16px;margin:0 6px 10px;color:var(--mut);font-weight:600;font-size:15px}
+ nav .nsearch svg{width:20px;height:20px}
+ nav .nx{display:flex}
+ nav button{font-weight:700;border-radius:14px}
+ nav .pl2{padding:0 18px;width:auto}
+ nav .pl2::after{content:"Create";font-size:16px;margin-left:8px;font-weight:800}
+ /* reels: rounded 9:16 card with the action buttons beside it */
+ .rl,.reel{background:var(--bg)}
+ .rl .empty{color:var(--mut)!important}
+ .reel{container-type:size}
+ .reel video{position:absolute;left:50%;top:2cqh;width:54cqh;height:96cqh;transform:translateX(-50%);border-radius:18px;object-fit:contain;background:#000;box-shadow:0 18px 44px -18px #0008}
+ .reel .shade{inset:2cqh auto auto 50%;width:54cqh;height:96cqh;transform:translateX(-50%);border-radius:18px}
+ .reel .info{left:calc(50% - 27cqh + 16px);right:auto;width:calc(54cqh - 32px);bottom:5cqh;color:#fff;text-shadow:0 1px 6px #000}
+ .reel .rail{left:calc(50% + 27cqh + 14px);right:auto;bottom:6cqh}
+ .reel .rail button{background:var(--card);color:var(--fg);text-shadow:none;border-radius:26px;padding:10px 0;width:54px;font-size:22px;border:1px solid var(--line)}
+ .reel .rail button.lk.on{color:var(--rd)}
+ .reel .rbar{inset:auto auto 2cqh 50%;transform:translateX(-50%);width:54cqh;height:5px;border-radius:0 0 18px 18px}
+ .reel .rbar:hover{height:9px}
+ .rvm{display:block;position:absolute;left:calc(50% - 27cqh + 12px);top:calc(2cqh + 12px);background:#0007;border:0;color:#fff;border-radius:50%;width:38px;height:38px;font-size:18px;z-index:4}
+}
+
+/* ---- create menu ---- */
+.ctl{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ctl button{display:grid;gap:6px;justify-items:start;text-align:left;padding:18px;border-radius:20px;border:1px solid var(--line);background:var(--card);background-image:var(--gl);font-weight:800;font-size:17px;min-height:118px}
+.ctl button i{font-style:normal;font-size:30px}.ctl button small{font-weight:500}
+.ctl button:active{transform:scale(.98)}
+.ctl .big{grid-column:1/-1;background:var(--sh) 0 0/200% 100%;animation:shine 8s linear infinite;color:#000;border-color:transparent}
+.ctl .big small{color:#000b}
+
+/* ---- studio (reel and post) ---- */
+#stu{position:absolute;inset:0;z-index:35;background:var(--bg);display:flex;flex-direction:column;animation:pgin .3s cubic-bezier(.2,.8,.2,1)}
+#stu .pgh{max-width:none}
+.stb{flex:1;overflow-y:auto;display:grid;gap:20px;padding:16px;align-content:start;width:100%;max-width:980px;margin:0 auto}
+@media(min-width:760px){.stb{grid-template-columns:minmax(260px,340px) 1fr;align-items:start}.stl{position:sticky;top:0}}
+.stl{display:grid;gap:10px;justify-items:center;min-width:0}
+.phf{position:relative;width:min(100%,300px);aspect-ratio:9/16;max-height:66vh;border-radius:26px;overflow:hidden;background:linear-gradient(135deg,#0b0b0e,#2a2a30);box-shadow:0 0 0 6px var(--line),0 24px 50px -20px #0007;display:grid;place-items:center;color:#fff}
+.phf.sq{aspect-ratio:4/5;border-radius:20px;width:min(100%,360px)}
+.phf.drag{box-shadow:0 0 0 6px var(--fg)}
+.phf video,.phf>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.phf .cvov{z-index:1}
+.phf .ov{position:absolute;left:0;right:0;bottom:0;padding:40px 12px 14px;background:linear-gradient(transparent,#000a);display:grid;gap:4px;font-size:14px;text-shadow:0 1px 4px #000;z-index:2;white-space:pre-wrap;overflow-wrap:anywhere}
+.phf .rl2{position:absolute;right:8px;bottom:80px;display:grid;gap:14px;font-size:22px;text-shadow:0 1px 4px #000;z-index:2}
+.phf .chg{position:absolute;top:10px;right:10px;z-index:3;border:0;border-radius:50%;width:32px;height:32px;background:#000a;color:#fff}
+.dz{border:2px dashed var(--line);border-radius:22px;display:grid;gap:10px;place-items:center;text-align:center;padding:26px 14px;cursor:pointer;width:100%;height:100%;background:var(--card);color:var(--fg)}
+.dz b{font-size:18px}.dz small{font-size:12px;line-height:1.5}
+.cvs{display:flex;gap:6px;overflow-x:auto;padding:4px 0;scrollbar-width:none;max-width:100%}
+.cvs button{flex:none;width:58px;aspect-ratio:9/16;border-radius:10px;overflow:hidden;border:2px solid transparent;padding:0;background:#000}
+.cvs button.on{border-color:var(--fg)}
+.cvs button img{width:100%;height:100%;object-fit:cover;display:block}
+.cvs .pvi{flex:none;width:64px;cursor:pointer;border:2px solid transparent}.cvs .pvi.on{border-color:var(--fg)}
+.cvs .addm{display:grid;place-items:center;font-size:26px;color:var(--mut);background:var(--card)}
+#stcv{display:grid;gap:4px;justify-items:center;max-width:100%}
+.str{display:grid;gap:14px;min-width:0}
+.str textarea,.str input:not([type=checkbox]):not([type=datetime-local]){width:100%;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:14px;padding:12px 14px;font:inherit}
+.str textarea{min-height:110px;resize:vertical}
+.chips{display:flex;gap:6px;flex-wrap:wrap}.chips button{border:1px solid var(--line);background:var(--card);border-radius:16px;padding:5px 12px;font-weight:700;font-size:13px}
+.sdr{display:grid}
+.srow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;border-top:1px solid var(--line)}
+.srow:first-child{border-top:0}.srow small{display:block}
+.srow select,.srow input[type=datetime-local]{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:8px;font:inherit;font-size:16px}
+.ubar{height:5px;background:var(--line);border-radius:3px;overflow:hidden}
+.ubar i{display:block;height:100%;width:40%;background:var(--sh) 0 0/200% 100%;animation:ub 1.1s ease-in-out infinite alternate}
+@keyframes ub{from{margin-left:0}to{margin-left:60%}}
+#mnb{position:fixed;z-index:80;background:var(--bg);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px #0004;max-height:220px;overflow:auto;min-width:200px}
+#mnb button{display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;background:none;border:0;text-align:left;font-weight:600}
+#mnb button:hover{background:var(--card)}
+#shs{position:absolute;inset:0;z-index:50}#shs .mb{position:absolute;inset:0;background:#0008;animation:fin .2s ease}
+#shs .mc{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:18px 18px 0 0;padding:14px 12px calc(14px + env(safe-area-inset-bottom,0px));display:grid;gap:4px;animation:pgin .25s cubic-bezier(.2,.8,.2,1)}
+@media(min-width:900px){#shs .mc{left:50%;right:auto;width:420px;transform:translateX(-50%);bottom:12vh;border-radius:20px}}
+@media(prefers-reduced-motion:reduce){.pri::after,.ubar i,.ctl .big{animation:none}}
+</style>
+<script>
+(()=>{
+const $$=s=>[...document.querySelectorAll(s)];
+const LS=(k,d)=>{try{return JSON.parse(localStorage.getItem(k)||d)}catch(e){return JSON.parse(d)}},SS=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const z2=n=>String(n).padStart(2,'0');
+const loc=d=>d.getFullYear()+'-'+z2(d.getMonth()+1)+'-'+z2(d.getDate())+'T'+z2(d.getHours())+':'+z2(d.getMinutes());
+const dur=s=>Math.floor(s/60)+':'+z2(Math.floor(s%60)),mb=n=>(n/1048576).toFixed(1)+' MB',plink=id=>location.origin+'/?p='+id;
+const when=t=>new Date(t).toLocaleString([],{dateStyle:'medium',timeStyle:'short'});
+const OU=new WeakMap(),ou=f=>{if(!OU.has(f))OU.set(f,URL.createObjectURL(f));return OU.get(f)};
+
+/* first visit: light theme, like TikTok on the web */
+try{if(!localStorage.getItem('th')){th='light';document.documentElement.dataset.t='light'}}catch(e){}
+
+/* ================= 1. SIDEBAR (desktop) ================= */
+const nav=$('nav');
+if(nav&&!nav.querySelector('.brand')){
+  nav.insertAdjacentHTML('afterbegin','<div class="brand">Amlink</div><button class="nsearch" data-a="xp"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>Search</button>');
+  const h=nav.querySelector('[data-t=feed]');
+  if(h)h.insertAdjacentHTML('afterend','<button class="nx" data-a="xp"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>Explore</button><button class="nx" data-a="fwg"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M19 8v6M16 11h6"/></svg>Following</button><button class="nx" data-t="reels"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M10 9l5 3-5 3z"/></svg>Reels</button>');
+}
+function navMark(){
+  $$('nav button').forEach(b=>{const t=b.dataset.t;if(t==='feed')b.classList.toggle('on',tab=='feed'&&xfeed!='fwg');else if(t==='reels')b.classList.toggle('on',tab=='reels')});
+  const f=$('nav [data-a=fwg]');if(f)f.classList.toggle('on',tab=='feed'&&xfeed=='fwg')}
+const go14=go;go=async function(t){const r=await go14(t);navMark();return r};
+
+/* ================= 2. FOLLOWING FEED ================= */
+const A14=A;
+A=async(p,b)=>{const r=await A14(p,b);
+  if(Array.isArray(r)&&typeof p=='string'&&p.split('?')[0]=='feed'&&tab=='feed'&&xfeed=='fwg')return r.filter(x=>x.U&&(x.U.ID==ME.ID||(ME.Following||[]).includes(x.U.ID)));
+  return r};
+const hm14=home;
+home=function(){hm14();const a=$('#main .atb');
+  if(a&&!a.querySelector('[data-a=fwg]'))a.insertAdjacentHTML('beforeend',`<button data-a="fwg" class="${xfeed=='fwg'?'on':''}">Following</button>`);
+  if(xfeed=='fwg'&&!posts.length){const e=$('#main .empty');if(e)e.textContent='Follow people to see their posts here.'}};
+
+/* ================= 3. TIKTOK-STYLE REELS ================= */
+const rl14=reels;
+reels=function(){rl14();
+  $$('.reel').forEach(r=>{
+    const l=r.querySelector('.lk'),p=l&&posts.find(x=>x.ID==l.dataset.i);if(!p)return;
+    const v=r.querySelector('video');if(v&&p.Opt&&p.Opt.Poster)v.poster=p.Opt.Poster;
+    const inf=r.querySelector('.info');
+    if(inf)inf.innerHTML=`<div class="rnm"><b>@${E(p.U.Username)}${p.U.Verified?VB:''}</b>${p.U.ID==ME.ID||(ME.Following||[]).includes(p.U.ID)?'':`<button class="rfb" data-a="rfol" data-i="${p.U.ID}">Follow</button>`}</div>${p.Text?`<p class="rcp">${tg(p.Text)}</p>`:''}<div class="rmu">🎵 Original sound · @${E(p.U.Username)}</div>`;
+    r.insertAdjacentHTML('afterbegin',`<button class="rvm" data-a="mu" aria-label="Sound">${mut?'🔇':'🔊'}</button>`)})};
+const curReel=()=>$$('.reel').map(r=>[Math.abs(r.getBoundingClientRect().top),r]).sort((a,b)=>a[0]-b[0]).map(x=>x[1])[0];
+addEventListener('keydown',e=>{
+  if(tab!='reels'||/INPUT|TEXTAREA|SELECT/.test((e.target||{}).tagName||'')||$('#stu')||!$('#md').hidden)return;
+  const rl=$('.rl');if(!rl)return;const r=curReel(),v=r&&r.querySelector('video');
+  if(e.key=='ArrowDown'||e.key=='ArrowUp'){e.preventDefault();rl.scrollBy({top:(e.key=='ArrowDown'?1:-1)*rl.clientHeight,behavior:'smooth'})}
+  else if(e.key==' '){e.preventDefault();if(v)v.paused?v.play():v.pause()}
+  else if(e.key=='m'||e.key=='M'){const b=$('.rvm');b&&b.click()}
+  else if(e.key=='l'||e.key=='L'){const b=r&&r.querySelector('.lk');b&&b.click()}});
+document.addEventListener('click',e=>{const bar=e.target.closest('.rbar');if(!bar)return;
+  const v=bar.closest('.reel').querySelector('video'),rc=bar.getBoundingClientRect();
+  if(v&&v.duration)v.currentTime=Math.max(0,Math.min(1,(e.clientX-rc.left)/rc.width))*v.duration;e.stopPropagation()},true);
+
+/* covers, alt text */
+function decorate(){
+  $$('.post').forEach(el=>{const l=el.querySelector('footer .lk'),p=l&&posts.find(x=>x.ID==l.dataset.i);if(!p||!p.Opt)return;
+    if(p.Opt.Alt)el.querySelectorAll('img').forEach(i=>{if(!i.alt)i.alt=p.Opt.Alt});
+    if(p.Opt.Poster)el.querySelectorAll('video:not([poster])').forEach(v=>v.poster=p.Opt.Poster)});
+  $$('.tl[data-i]').forEach(t=>{const p=posts.find(x=>x.ID==t.dataset.i),v=t.querySelector('video');if(p&&p.Opt&&p.Opt.Poster&&v&&!v.poster)v.poster=p.Opt.Poster})}
+const pt14=paint;paint=function(){pt14();decorate()};
+
+/* ================= 4. CREATE MENU ================= */
+plus=function(){modal('<h3>Create</h3><div class="ctl"><button class="big" data-a="rn"><i>🎬</i>Reel<small>Up to 60 seconds. Pick a cover, add tags, post.</small></button><button data-a="new"><i>📷</i>Post<small>Photos, video, polls</small></button><button data-a="sa"><i>⭕</i>Moment<small>Gone in 24 hours</small></button><button data-a="schl"><i>🕒</i>Scheduled<small>Your queued posts</small></button></div>')};
+reelNew=function(){openStu('reel')};
+newPost=function(){openStu('post')};
+
+/* ================= 5. STUDIO (reel + post) ================= */
+let ST={};
+const stuHTML=k=>{const R=k=='reel';return `<div class="pgh"><button data-a="stux" aria-label="Close">←</button><b>${R?'New reel':'New post'}</b><button class="ed" id="stup" data-a="stup" style="margin-left:auto;padding:8px 22px;background:var(--sh) 0 0/200% 100%;color:#000">${R?'Post reel':'Share'}</button></div>
+<div class="stb"><div class="stl"><div class="phf${R?'':' sq'}" id="stpv"></div><div id="stcv" hidden></div><small class="sub" id="stmeta"></small></div>
+<div class="str"><label class="fl2"><span>${R?'Description':'Caption'} <small id="stn">0/${R?300:2000}</small></span><textarea id="stc" maxlength="${R?300:2000}" placeholder="Write something… use @name and #tags"></textarea></label><div class="chips" id="sth"></div>
+${R?'':'<label class="fl2">Alt text<input id="sta" maxlength="200" placeholder="Describe the photo for people who cannot see it (optional)"></label>'}
+<div class="cd sdr"><div class="srow"><div>Who can comment<small>Control the conversation</small></div><select id="stcm"><option value="0">Everyone</option><option value="1">People I follow</option><option value="2">No one</option></select></div>
+<div class="srow"><div>Sensitive content<small>Blurred until someone taps it</small></div><label class="sw"><input type="checkbox" id="stse"><span></span></label></div>
+${R?'':'<div class="srow"><div>Add a poll<small>2 to 4 options</small></div><label class="sw"><input type="checkbox" id="stpo"><span></span></label></div><div class="srow" id="stpr" hidden style="display:grid;gap:8px"><input class="stp1" maxlength="40" placeholder="Option 1"><input class="stp1" maxlength="40" placeholder="Option 2"><input class="stp1" maxlength="40" placeholder="Option 3 (optional)"><input class="stp1" maxlength="40" placeholder="Option 4 (optional)"></div>'}
+<div class="srow"><div>Schedule<small id="stsm">Post right now</small></div><label class="sw"><input type="checkbox" id="stsc"><span></span></label></div><div class="srow" id="stsr" hidden><div>Date and time</div><input type="datetime-local" id="stdt"></div></div>
+${R?'':'<div class="act"><button class="ed" data-a="stdr">💾 Save draft</button><button class="ed" data-a="stdl">📂 Drafts</button></div><div id="stdls"></div>'}
+<p class="er" id="ster"></p><div class="ubar" id="stub" hidden><i></i></div><small class="sub" id="stst"></small></div></div>`};
+function openStu(k){
+  closeM();$('#app').classList.remove('cs','dro');const old=$('#stu');if(old)old.remove();
+  ST={k,f:null,cvs:[],cuu:[],ci:0,i:0,dur:0};XF=[];
+  const o=document.createElement('div');o.id='stu';o.innerHTML=stuHTML(k);$('#app').appendChild(o);
+  stuPv();tagChips();
+  const c=$('#stc');c.oninput=()=>{$('#stn').textContent=c.value.length+'/'+c.maxLength;const v=$('#stov');if(v)v.textContent=c.value};
+  $('#stsc').onchange=e=>{$('#stsr').hidden=!e.target.checked;
+    if(e.target.checked){$('#stdt').min=loc(new Date(Date.now()+120e3));$('#stdt').value=loc(new Date(Date.now()+3600e3));schedLbl()}else $('#stsm').textContent='Post right now'};
+  $('#stdt').onchange=schedLbl;
+  const po=$('#stpo');if(po)po.onchange=e=>{$('#stpr').hidden=!e.target.checked};
+  const z=$('#stpv');
+  z.ondragover=e=>{e.preventDefault();z.classList.add('drag')};z.ondragleave=()=>z.classList.remove('drag');
+  z.ondrop=e=>{e.preventDefault();z.classList.remove('drag');stuFiles([...e.dataTransfer.files])}}
+function schedLbl(){const v=$('#stdt').value;$('#stsm').textContent=v?'Goes live '+when(v):'Pick a time'}
+async function tagChips(){const b=$('#sth');if(!b)return;let t=[];try{t=((await A('discover')).Tags||[]).map(x=>x.T)}catch(e){}
+  t=[...new Set([...t,'#fyp','#amlink','#trending'])].slice(0,8);if($('#sth'))$('#sth').innerHTML=t.map(x=>`<button type="button" data-a="stht" data-t="${E(x)}">${E(x)}</button>`).join('')}
+async function stuFiles(fs){
+  if(!fs.length)return;
+  if(ST.k=='reel'){const f=fs.find(x=>x.type.startsWith('video/'));if(!f){toast('Choose a video');return}
+    if(f.size>25*1048576){toast('Video is too big (max 25 MB)');return}
+    ST.f=f;ST.cvs=[];ST.cuu=[];ST.ci=0;ST.dur=0;stuPv();makeCovers();return}
+  const imgs=fs.filter(x=>x.type.startsWith('image/')),vid=fs.find(x=>x.type.startsWith('video/'));
+  if(vid&&(imgs.length||XF.length)){toast('A post can have photos or one video, not both');return}
+  if(vid){if(vid.size>25*1048576){toast('Video is too big (max 25 MB)');return}XF=[vid]}
+  else{if(XF.some(x=>x.type.startsWith('video/')))XF=[];XF=[...XF,...imgs].slice(0,10)}
+  ST.i=Math.min(ST.i,Math.max(0,XF.length-1));stuPv()}
+function stuPv(){
+  const z=$('#stpv'),R=ST.k=='reel';if(!z)return;
+  const f=R?ST.f:XF[ST.i];
+  if(!f){
+    z.innerHTML=`<label class="dz"><b>${R?'Select video to upload':'Select photos or a video'}</b><small>${R?'Or drag and drop it here<br>MP4 or WebM · up to 60 seconds · 25 MB max<br>Vertical 9:16 works best':'Or drag and drop them here<br>Up to 10 photos, or one video<br>Or just write a caption and share a text post'}</small><span class="ed">Select ${R?'video':'files'}</span><input type="file" id="stf" accept="${R?'video/*':'image/*,video/*'}" ${R?'':'multiple'} hidden></label>`;
+    $('#stf').onchange=e=>{stuFiles([...e.target.files]);e.target.value=''};
+    thumbs();meta();return}
+  const cap=E(($('#stc')||{}).value||'');
+  z.innerHTML=(f.type.startsWith('video/')?`<video src="${ou(f)}" autoplay loop muted playsinline data-a="stpp"></video>`:`<img src="${ou(f)}" alt="">`)+(R?`<div class="ov"><b>@${E(ME.Username||'you')}</b><span id="stov">${cap}</span></div><div class="rl2"><span>♥</span><span>💬</span><span>↪</span></div>`:'')+'<button class="chg" data-a="stuch" aria-label="Remove">✕</button>';
+  thumbs();meta();if(R)showCv()}
+function thumbs(){const b=$('#stcv');if(!b)return;
+  if(ST.k=='reel'){
+    if(!ST.f){b.hidden=true;return}b.hidden=false;
+    b.innerHTML=ST.cuu.length?'<small class="sub">Choose a cover</small><div class="cvs">'+ST.cuu.map((u,i)=>`<button data-a="cvp" data-i="${i}" class="${i==ST.ci?'on':''}"><img src="${u}" alt=""></button>`).join('')+'</div>':'<small class="sub">Creating cover options…</small>';return}
+  if(!XF.length){b.hidden=true;return}b.hidden=false;
+  b.innerHTML='<div class="cvs">'+XF.map((f,i)=>`<div class="pvi${i==ST.i?' on':''}" data-a="stsel" data-i="${i}">${f.type.startsWith('video/')?`<video src="${ou(f)}" muted playsinline preload="metadata"></video>`:`<img src="${ou(f)}" alt="">`}<button data-a="xrm" data-i="${i}" aria-label="Remove">✕</button>${f.type.startsWith('image/')?`<button class="ped" data-a="ped" data-i="${i}" aria-label="Edit photo">✎</button>`:''}</div>`).join('')+(XF.length<10&&!XF[0].type.startsWith('video/')?'<label class="pvi addm">＋<input type="file" id="stf2" accept="image/*" multiple hidden></label>':'')+'</div>';
+  const m=$('#stf2');if(m)m.onchange=e=>{stuFiles([...e.target.files]);e.target.value=''}}
+function meta(){const m=$('#stmeta');if(!m)return;const f=ST.k=='reel'?ST.f:XF[ST.i];m.textContent=f?(ST.dur?dur(ST.dur)+' · ':'')+mb(f.size):''}
+async function frames(file,n){
+  const v=document.createElement('video'),url=URL.createObjectURL(file);v.muted=true;v.playsInline=true;v.preload='auto';v.src=url;
+  try{
+    await new Promise((res,rej)=>{v.onloadeddata=res;v.onerror=()=>rej(new Error('x'));setTimeout(()=>rej(new Error('t')),10000)});
+    const d=isFinite(v.duration)?v.duration:0,w=v.videoWidth||360,h=v.videoHeight||640,k=Math.min(1,480/Math.max(w,h)),c=document.createElement('canvas');
+    c.width=Math.round(w*k);c.height=Math.round(h*k);const x=c.getContext('2d'),fr=[];
+    for(let i=0;i<n;i++){
+      await new Promise(r=>{v.onseeked=r;v.currentTime=Math.min(Math.max(0,d*(i+.5)/n),Math.max(0,d-.05));setTimeout(r,2500)});
+      x.drawImage(v,0,0,c.width,c.height);fr.push(await new Promise(r=>c.toBlob(r,'image/jpeg',.82)))}
+    return{d,fr:fr.filter(Boolean)}}
+  finally{URL.revokeObjectURL(url)}}
+async function makeCovers(){
+  const f=ST.f;if(!f)return;thumbs();let r=null;try{r=await frames(f,7)}catch(e){}
+  if(f!==ST.f)return;
+  if(!r||!r.fr.length){ST.cuu=[];const b=$('#stcv');if(b)b.hidden=true;return}
+  if(r.d>61){toast('Reels can be up to 60 seconds');ST.f=null;ST.cvs=[];ST.cuu=[];stuPv();return}
+  ST.dur=r.d;ST.cvs=r.fr;ST.cuu=r.fr.map(x=>URL.createObjectURL(x));ST.ci=0;thumbs();meta();showCv()}
+function showCv(){const z=$('#stpv'),v=z&&z.querySelector('video');if(!z||!v)return;let i=z.querySelector('.cvov');const u=ST.cuu[ST.ci];
+  if(!u){if(i)i.remove();return}
+  if(!i){i=document.createElement('img');i.className='cvov';i.alt='';i.dataset.a='stpp';z.insertBefore(i,z.querySelector('.ov')||z.querySelector('.chg'))}
+  i.src=u;v.pause()}
+function stuClose(ask){
+  const c=$('#stc');if(ask&&(ST.f||XF.length||(c&&c.value.trim()))&&!confirm('Discard this post?'))return;
+  const o=$('#stu');if(o)o.remove();ST={};XF=[]}
+function drafts(tgl){const b=$('#stdls');if(!b)return;if(tgl&&b.dataset.o){b.innerHTML='';b.dataset.o='';return}b.dataset.o='1';
+  const l=LS('dr9','[]');b.innerHTML=l.map((d,k)=>`<div class="pr"><div class="nm"><small>${E(d.t.slice(0,80))}</small></div><button class="ed" data-a="stdu" data-k="${k}">Use</button><button class="ed" data-a="stdd" data-k="${k}" aria-label="Delete draft">✕</button></div>`).join('')||'<small class="sub">No drafts yet.</small>'}
+async function stuPost(){
+  const R=ST.k=='reel',b=$('#stup'),er=$('#ster'),text=$('#stc').value.trim(),st=t=>{const s=$('#stst');if(s)s.textContent=t};er.textContent='';
+  const sch=$('#stsc').checked;let at=0;
+  if(sch){const v=$('#stdt').value;at=v?Math.floor(new Date(v).getTime()/1000):0;if(!at||at<Date.now()/1000+120){er.textContent='Pick a time at least 2 minutes from now.';return}}
+  let poll='';const po=$('#stpo');
+  if(po&&po.checked){poll=$$('.stp1').map(x=>x.value.trim()).filter(Boolean).join('|');if(poll.split('|').length<2){er.textContent='A poll needs at least 2 options.';return}}
+  if(R&&!ST.f){er.textContent='Choose a video first.';return}
+  if(!R&&!XF.length&&!text&&!poll){er.textContent='Write something or add a photo or video.';return}
+  b.disabled=true;$('#stub').hidden=false;
+  try{
+    const files=R?[ST.f]:XF,urls=[];
+    for(let i=0;i<files.length;i++){st(files[i].type.startsWith('video/')?'Checking and uploading video…':'Uploading '+(i+1)+' of '+files.length+'…');urls.push(await up(files[i]))}
+    let poster='';if(R&&ST.cvs[ST.ci]){st('Saving your cover…');try{poster=await up(new File([ST.cvs[ST.ci]],'cover.jpg',{type:'image/jpeg'}))}catch(e){poster=''}}
+    st(sch?'Scheduling…':'Posting…');
+    const kind=files[0]?(files[0].type.startsWith('video/')?'video':'image'):'';
+    const r=await A('post4',{text,media:urls.join(','),kind,poll,sens:$('#stse').checked?'1':'',poster,alt:($('#sta')||{}).value||'',cm:$('#stcm').value,at:at||''});
+    stuClose(false);
+    if(r.scheduled)toast('Scheduled for '+when(r.scheduled*1000));
+    else{toast(R?'Your reel is live 🎬':'Posted');go(R?'reels':'feed')}}
+  catch(e){er.textContent=e.message;b.disabled=false;$('#stub').hidden=true;st('')}}
+const xp14=xpv;xpv=function(){xp14();if($('#stu')&&ST.k=='post'){ST.i=Math.min(ST.i,Math.max(0,XF.length-1));stuPv()}};
+
+/* ================= 6. @MENTION AUTOCOMPLETE ================= */
+let mnT;
+const mnClose=()=>{const b=$('#mnb');if(b)b.remove()};
+document.addEventListener('input',e=>{const el=e.target;if(!['stc','ci','mi','tx'].includes(el.id))return;
+  const pos=el.selectionStart,m=/(^|\s)@(\w{0,20})$/.exec(el.value.slice(0,pos));if(!m){mnClose();return}
+  clearTimeout(mnT);mnT=setTimeout(()=>mnShow(el,m[2],pos-m[2].length-1),180)});
+async function mnShow(el,q,start){
+  let l=[];try{l=await A('search?q='+encodeURIComponent(q))}catch(e){return}
+  if(!l.length){mnClose();return}
+  let b=$('#mnb');if(!b){b=document.createElement('div');b.id='mnb';document.body.appendChild(b)}
+  const r=el.getBoundingClientRect();b.style.left=Math.max(8,r.left)+'px';b.style.bottom=(innerHeight-r.top+6)+'px';
+  b.innerHTML=l.slice(0,6).map(u=>`<button type="button" data-un="${E(u.Username)}">${AV(u)}<span>${nm(u)}</span></button>`).join('');
+  b.onmousedown=ev=>ev.preventDefault();
+  b.onclick=ev=>{const x=ev.target.closest('[data-un]');if(!x)return;const v=el.value,end=el.selectionStart;
+    el.value=v.slice(0,start)+'@'+x.dataset.un+' '+v.slice(end);const p=start+x.dataset.un.length+2;el.focus();el.setSelectionRange(p,p);el.dispatchEvent(new Event('input',{bubbles:true}));mnClose()}}
+document.addEventListener('click',e=>{if(!e.target.closest('#mnb'))mnClose()});
+
+/* ================= 7. SHARE SHEET, COLLECTIONS, SCHEDULED LIST ================= */
+function sheet14(h,t){let s=$('#shs');if(!s){s=document.createElement('div');s.id='shs';$('#app').appendChild(s)}s.hidden=false;s.innerHTML='<div class="mb" data-a="shx"></div><div class="mc">'+(t?'<b style="text-align:center;padding:4px">'+t+'</b>':'')+h+'</div>'}
+const shut=()=>{const s=$('#shs');if(s)s.hidden=true};
+function shareSheet(id){sheet14(`<button class="sr" data-a="shf" data-i="${id}"><i>💬</i>Send to a friend<em>›</em></button><button class="sr" data-a="shc" data-i="${id}"><i>🔗</i>Copy link<em>›</em></button>${navigator.share?`<button class="sr" data-a="shn" data-i="${id}"><i>📤</i>Share via…<em>›</em></button>`:''}<button class="sr" data-a="shl" data-i="${id}"><i>📁</i>Save to a collection<em>›</em></button>`,'Share')}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a=spost],[data-a=sh]');if(!b||!b.dataset.i)return;e.stopPropagation();e.preventDefault();shareSheet(b.dataset.i)},true);
+async function friendPick(id){const l=await A('friends');
+  modal('<h3>Send to a friend</h3>'+(l.map(u=>`<div class="pr">${AV(u)}<div class="nm">${nm(u)}</div><button class="ed" data-a="shs" data-i="${id}" data-u="${u.ID}">Send</button></div>`).join('')||'<p class="empty">Follow people to send them posts.</p>'))}
+async function colPick(id){const l=await A('coll?id='+id);
+  modal('<h3>Save to collection</h3>'+l.map(c=>`<button class="sr" data-a="cpk" data-i="${id}" data-n="${E(c.Name)}"><i>${c.Has?'✅':'📁'}</i>${E(c.Name)} <small>${c.N}</small><em>›</em></button>`).join('')+`<div style="display:flex;gap:8px"><input id="cnn" maxlength="30" placeholder="New collection name"><button class="ed" data-a="cnw" data-i="${id}">Create</button></div>`)}
+async function cols(){const l=await A('coll');
+  modal('<h3>Collections</h3>'+(l.length?'<div class="gr">'+l.map(c=>`<button class="tl" data-a="cget" data-n="${E(c.Name)}">${c.Cover?`<img src="${E(c.Cover)}" alt="">`:'<span class="tt">📁</span>'}<span class="tp" style="font-size:14px;font-weight:700">${E(c.Name)} · ${c.N}</span></button>`).join('')+'</div>':'<p class="empty">No collections yet. Tap Share on any post and choose Save to a collection.</p>'))}
+async function cget(n){const l=await A('collget?name='+encodeURIComponent(n));posts=l;
+  modal('<h3>'+E(n)+'</h3>'+(l.map(postH).join('')||'<p class="empty">Empty collection.</p>')+`<button class="pri sec" data-a="cdel" data-n="${E(n)}">Delete collection</button>`);paint()}
+async function schl(){const l=await A('sched');
+  modal('<h3>Scheduled posts</h3>'+(l.map(s=>`<div class="cd" style="padding:12px;display:grid;gap:6px"><b>${when(s.At*1000)}</b><span>${E((s.Text||(s.Kind=='video'?'🎬 Video':s.Media?'🖼 Photo':'')).slice(0,100))}</span><button class="ed" data-a="scdl" data-i="${s.ID}">Delete</button></div>`).join('')||'<p class="empty">Nothing scheduled. Turn on Schedule when you create a post.</p>'))}
+const od14=openDr;
+openDr=function(){od14();$('#dr').insertAdjacentHTML('beforeend','<p class="sg">Your content</p><div class="cd"><button class="sr" data-a="cols"><i>📁</i>Collections<em>›</em></button><button class="sr" data-a="schl"><i>🕒</i>Scheduled posts<em>›</em></button></div>')};
+
+/* ================= 8. PIN AND ARCHIVE CHATS (press and hold a chat) ================= */
+const al14=alerts;
+alerts=async function(){await al14();chatPrefs()};
+function chatPrefs(){
+  const pin=LS('cpin','[]'),arc=LS('carc','[]'),rows=$$('#main .pr[data-a=dm]');
+  rows.forEach(r=>{if(pin.includes(r.dataset.i)){const n=r.querySelector('.nm');if(n&&!n.dataset.p){n.dataset.p=1;n.insertAdjacentHTML('afterbegin','📌 ')}}});
+  const top=rows.find(r=>!pin.includes(r.dataset.i)&&!arc.includes(r.dataset.i));
+  if(top)rows.filter(r=>pin.includes(r.dataset.i)).forEach(r=>top.before(r));
+  const ar=rows.filter(r=>arc.includes(r.dataset.i));ar.forEach(r=>{r.hidden=true});
+  if(ar.length){const last=rows.filter(r=>!ar.includes(r)).pop()||ar[0];last.insertAdjacentHTML('afterend',`<button class="sr" data-a="arv"><span>🗃 Archived chats (${ar.length})</span><em>›</em></button>`)}}
+function chatSheet(id){const pin=LS('cpin','[]').includes(id),arc=LS('carc','[]').includes(id);
+  sheet14(`<button class="sr" data-a="cpn" data-i="${id}"><i>📌</i>${pin?'Unpin chat':'Pin chat'}<em>›</em></button><button class="sr" data-a="cam" data-i="${id}"><i>🗃</i>${arc?'Unarchive':'Archive chat'}<em>›</em></button>`,'Chat options')}
+let lpT=null;
+document.addEventListener('pointerdown',e=>{const r=e.target.closest('#main .pr[data-a=dm]');if(!r)return;clearTimeout(lpT);lpT=setTimeout(()=>{r.dataset.lp='1';chatSheet(r.dataset.i)},550)},true);
+['pointerup','pointercancel','pointermove'].forEach(t=>document.addEventListener(t,()=>clearTimeout(lpT),true));
+document.addEventListener('contextmenu',e=>{const r=e.target.closest('#main .pr[data-a=dm]');if(r){e.preventDefault();chatSheet(r.dataset.i)}});
+document.addEventListener('click',e=>{const r=e.target.closest('#main .pr[data-a=dm]');if(r&&r.dataset.lp){delete r.dataset.lp;e.stopPropagation();e.preventDefault()}},true);
+
+/* ================= clicks ================= */
+$('#app').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,d=b.dataset;
+  try{
+    if(a=='fwg'){xfeed='fwg';try{localStorage.setItem('xf',xfeed)}catch(x){}go('feed')}
+    else if(a=='stux')stuClose(true);
+    else if(a=='stup')stuPost();
+    else if(a=='stuch'){if(ST.k=='reel'){ST.f=null;ST.cvs=[];ST.cuu=[];ST.dur=0}else{XF.splice(ST.i,1);ST.i=0}stuPv()}
+    else if(a=='stsel'){ST.i=+d.i;stuPv()}
+    else if(a=='cvp'){ST.ci=+d.i;thumbs();showCv()}
+    else if(a=='stpp'){const z=$('#stpv'),v=z&&z.querySelector('video'),i=z&&z.querySelector('.cvov');if(!v)return;if(i){i.remove();v.play()}else v.paused?v.play():v.pause()}
+    else if(a=='stht'){const c=$('#stc');c.value=(c.value&&!/\s$/.test(c.value)?c.value+' ':c.value)+d.t+' ';c.dispatchEvent(new Event('input'));c.focus()}
+    else if(a=='stdr'){const t=$('#stc').value.trim();if(!t){toast('Write something first');return}SS('dr9',[{t,ts:Date.now()},...LS('dr9','[]')].slice(0,20));toast('Draft saved');drafts()}
+    else if(a=='stdl')drafts(true);
+    else if(a=='stdu'){const l=LS('dr9','[]'),x=l[+d.k];if(x){const c=$('#stc');c.value=x.t;c.dispatchEvent(new Event('input'));l.splice(+d.k,1);SS('dr9',l);drafts()}}
+    else if(a=='stdd'){const l=LS('dr9','[]');l.splice(+d.k,1);SS('dr9',l);drafts()}
+    else if(a=='schl'){schl()}
+    else if(a=='scdl'){await A('schedel',{id:d.i});schl()}
+    else if(a=='cols'){cols()}
+    else if(a=='cget')cget(d.n);
+    else if(a=='cdel'){if(confirm('Delete this collection? The posts stay.')){await A('colldel',{name:d.n});cols()}}
+    else if(a=='shx')shut();
+    else if(a=='shf'){shut();friendPick(d.i)}
+    else if(a=='shc'){shut();try{await navigator.clipboard.writeText(plink(d.i));toast('Link copied')}catch(x){prompt('Copy this link',plink(d.i))}}
+    else if(a=='shn'){shut();navigator.share({title:'Amlink',text:'Check this out on Amlink',url:plink(d.i)}).catch(()=>{})}
+    else if(a=='shl'){shut();colPick(d.i)}
+    else if(a=='shs'){await A('msg',{to:d.u,text:plink(d.i)});b.textContent='Sent ✓';b.disabled=true}
+    else if(a=='cpk'){const j=await A('colladd',{name:d.n,id:d.i});toast(j.Has?'Saved to '+d.n:'Removed from '+d.n);colPick(d.i)}
+    else if(a=='cnw'){const n=$('#cnn').value.trim();if(!n)return;await A('colladd',{name:n,id:d.i});toast('Saved to '+n);closeM()}
+    else if(a=='cpn'||a=='cam'){const k=a=='cpn'?'cpin':'carc',l=LS(k,'[]'),i=l.indexOf(d.i);if(i<0)l.push(d.i);else l.splice(i,1);SS(k,l);shut();alerts()}
+    else if(a=='arv')$$('#main .pr[data-a=dm]').forEach(r=>{if(LS('carc','[]').includes(r.dataset.i))r.hidden=!r.hidden});
+  }catch(x){toast(x.message)}});
+})();
+</script>
+
 </body>
 </html>
