@@ -2121,5 +2121,203 @@ $('#app').addEventListener('click',async e=>{
 })();
 </script>
 
+<!-- ===== Amlink Batch 1: rewards hub, daily spin, challenges, leaderboards, arcade ===== -->
+<script>
+(()=>{
+const BD={first_post:'✍️ First post',first_reel:'🎬 First reel',chatty:'💬 Chatty',streak7:'🔥 7-day streak',level5:'⭐ Level 5'};
+const od=openDr;
+openDr=function(){od();$('#dr').insertAdjacentHTML('beforeend','<p class="sg">Rewards and games</p><div class="cd"><button class="sr" data-a="gh"><i>🏆</i>Rewards hub<em>›</em></button><button class="sr" data-a="gar"><i>🎮</i>Arcade<em>›</em></button><button class="sr" data-a="glb"><i>📊</i>Leaderboards<em>›</em></button></div>')};
+
+async function ghub(){
+  const j=await A('gme'),p=Math.max(0,Math.min(100,(j.XP-j.From)/(j.Next-j.From)*100));
+  modal(`<h3>Rewards hub</h3><div class="stg" style="padding:0"><div class="stc"><b>Lv ${j.Level}</b><small>${j.XP} XP</small></div><div class="stc"><b>🪙 ${j.Coins}</b><small>Coins</small></div><div class="stc"><b>🔥 ${j.Streak}</b><small>Day streak (best ${j.Best})</small></div></div>
+  <div class="ubar" style="height:8px"><i style="width:${p}%;animation:none;margin:0"></i></div><small class="sub">${j.Next-j.XP} XP to level ${j.Level+1}</small>
+  <button class="pri" data-a="gclaim" ${j.Claim?'':'disabled'}>${j.Claim?'🎁 Spin your daily reward':'Come back tomorrow'}</button>
+  <p class="sg" style="padding:0">Daily challenges</p>`+j.Chal.map(c=>`<div class="cd" style="padding:12px;display:flex;justify-content:space-between"><span>${c.Done?'✅':'⬜'} ${E(c.T)}</span><small>${c.Have}/${c.N} · +${c.XP} XP</small></div>`).join('')+
+  `<p class="sg" style="padding:0">Badges</p><div class="chips">${j.Badges.map(b=>`<button>${E(BD[b]||b)}</button>`).join('')||'<small class="sub">No badges yet. Post, comment and keep your streak.</small>'}</div>`)}
+
+function arcade(){modal('<h3>Arcade</h3><div class="ctl"><button data-a="gplay" data-g="snake"><i>🐍</i>Snake<small>Eat, grow, do not crash</small></button><button data-a="gplay" data-g="memory"><i>🧠</i>Memory Match<small>Fewer moves, higher score</small></button></div>')}
+
+async function lboards(){
+  const [x,s,m]=await Promise.all([A('gboard?g=xp'),A('gboard?g=snake'),A('gboard?g=memory')]);
+  const sec=(t,l)=>`<p class="sg" style="padding:0">${t}</p>`+(l.map((r,i)=>`<div class="pr"><b>${i+1}</b>${AV(r.U)}<div class="nm">${nm(r.U)}</div><b>${r.V}</b></div>`).join('')||'<small class="sub">No scores yet</small>');
+  modal('<h3>Leaderboards</h3>'+sec('⭐ Top XP',x)+sec('🐍 Snake',s)+sec('🧠 Memory',m))}
+
+async function submit(g,s){try{const j=await A('gscore',{game:g,score:s});toast(j.New?'New best: '+j.Best+' 🎉':'Score '+s+' · best '+j.Best)}catch(e){toast(e.message)}}
+
+function snake(){
+  modal('<h3>Snake</h3><canvas id="snc" width="300" height="300" style="width:100%;max-width:300px;margin:0 auto;display:block;background:#000;border-radius:12px;touch-action:none"></canvas><p id="sn1" class="sub" style="text-align:center">Score 0 · swipe or use arrow keys</p><div class="act" style="justify-content:center"><button class="ed" data-a="sdir" data-d="-1,0">◀</button><button class="ed" data-a="sdir" data-d="0,-1">▲</button><button class="ed" data-a="sdir" data-d="0,1">▼</button><button class="ed" data-a="sdir" data-d="1,0">▶</button></div>');
+  const c=$('#snc'),x=c.getContext('2d'),N=15,Z=20;
+  let sn=[[7,7],[6,7],[5,7]],d=[1,0],nd=d,sc=0,f,t;
+  const pl=()=>{let p;do p=[Math.random()*N|0,Math.random()*N|0];while(sn.some(s=>s[0]==p[0]&&s[1]==p[1]));return p};f=pl();
+  const dir=(a,b)=>{if(!(a==-d[0]&&b==-d[1]))nd=[a,b]};window.SDIR=dir;
+  const kd=e=>{const m={ArrowLeft:[-1,0],ArrowUp:[0,-1],ArrowDown:[0,1],ArrowRight:[1,0]}[e.key];if(m){e.preventDefault();dir(...m)}};
+  document.addEventListener('keydown',kd);
+  let sx,sy;c.ontouchstart=e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY};
+  c.ontouchend=e=>{const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;Math.abs(dx)>Math.abs(dy)?dir(dx>0?1:-1,0):dir(0,dy>0?1:-1)};
+  const stop=()=>{clearInterval(t);document.removeEventListener('keydown',kd)};
+  t=setInterval(()=>{
+    if(!$('#snc')){stop();return}
+    d=nd;const h=[sn[0][0]+d[0],sn[0][1]+d[1]];
+    if(h[0]<0||h[1]<0||h[0]>=N||h[1]>=N||sn.some(s=>s[0]==h[0]&&s[1]==h[1])){stop();$('#sn1').textContent='Game over · score '+sc;if(sc>0)submit('snake',sc);return}
+    sn.unshift(h);if(h[0]==f[0]&&h[1]==f[1]){sc+=10;f=pl();$('#sn1').textContent='Score '+sc}else sn.pop();
+    x.fillStyle='#000';x.fillRect(0,0,300,300);x.fillStyle='#fe2c55';x.fillRect(f[0]*Z,f[1]*Z,Z-2,Z-2);
+    x.fillStyle='#8fe3ff';sn.forEach(s=>x.fillRect(s[0]*Z,s[1]*Z,Z-2,Z-2))},120)}
+
+function memory(){
+  const em=['🍎','🚀','🎧','🔥','🐱','⚽'],cards=[...em,...em].sort(()=>Math.random()-.5),done=new Set();let op=[],mv=0,lock=false;const t0=Date.now();
+  modal('<h3>Memory Match</h3><p id="mmv" class="sub" style="text-align:center">Moves 0</p><div id="mg" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px"></div>');
+  const draw=()=>{const g=$('#mg');if(!g)return;g.innerHTML=cards.map((e,i)=>`<button class="ed" data-i="${i}" style="font-size:30px;height:72px">${done.has(i)||op.includes(i)?e:'❓'}</button>`).join('');$('#mmv').textContent='Moves '+mv};
+  draw();
+  $('#mg').onclick=e=>{const b=e.target.closest('button');if(!b||lock)return;const i=+b.dataset.i;if(done.has(i)||op.includes(i))return;op.push(i);draw();
+    if(op.length==2){mv++;lock=true;setTimeout(()=>{if(cards[op[0]]==cards[op[1]]){done.add(op[0]);done.add(op[1])}op=[];lock=false;draw();
+      if(done.size==12){const s=Math.max(50,1000-mv*30-Math.floor((Date.now()-t0)/1000)*5);toast('Done in '+mv+' moves');submit('memory',s)}},600)}}}
+
+$('#app').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;
+  try{
+    if(a=='gh')ghub();
+    else if(a=='gar')arcade();
+    else if(a=='glb')lboards();
+    else if(a=='gplay')b.dataset.g=='snake'?snake():memory();
+    else if(a=='sdir'){const [x,y]=b.dataset.d.split(',').map(Number);window.SDIR&&window.SDIR(x,y)}
+    else if(a=='gclaim'){const j=await A('gclaim',{});toast('You won 🪙 '+j.Won+'!');ghub()}
+  }catch(x){toast(x.message)}});
+})();
+</script>
+
+<!-- ===== Amlink Batch A: live-stream reconnect, links, highlights, insights, notification settings, chat menu ===== -->
+<script>
+(()=>{
+const st=document.createElement('style');
+st.textContent='.vw{cursor:pointer;text-decoration:underline dotted}.post{content-visibility:auto;contain-intrinsic-size:auto 480px}';
+document.head.appendChild(st);
+
+/* live stream with a one-time ticket and automatic reconnect */
+live=function(){
+  if(es||!window.EventSource)return;
+  const px=new EventTarget();es=px;let dly=1000,down=false,real=null;
+  px.addEventListener('message',e=>{const d=e.data;
+    if(d.startsWith('typing:')){if(peer&&d.slice(7)==peer.ID&&$('#mic')){const s=$('.chh small');if(s){s.textContent='typing…';clearTimeout(live.t);live.t=setTimeout(()=>s.textContent=stat(peer),3000)}}return}
+    bell();if(d=='msg'){if($('#mic'))L().catch(()=>{});else if($('#ms'))gload().catch(()=>{})}
+    if(document.hidden&&window.Notification&&Notification.permission=='granted'&&TXT[d]&&navigator.serviceWorker)navigator.serviceWorker.ready.then(r=>r.showNotification('Amlink',{body:TXT[d],icon:'/icon.svg'}))});
+  const retry=()=>{down=true;setTimeout(open,dly);dly=Math.min(dly*2,30000)};
+  const open=async()=>{
+    if(!T)return;
+    try{
+      const k=await A('streamticket',{});
+      real=new EventSource('/api/stream?k='+encodeURIComponent(k.k));
+      real.onopen=()=>{dly=1000;if(down){down=false;bell();if($('#mic'))L().catch(()=>{})}};
+      real.onmessage=e=>px.dispatchEvent(new MessageEvent('message',{data:e.data}));
+      real.onerror=()=>{real.close();retry()};
+    }catch(e){retry()}};
+  open();
+};
+
+/* lighter media */
+const pt7=paint;
+paint=function(){pt7();
+  document.querySelectorAll('#main img:not([decoding])').forEach(i=>{i.decoding='async';if(!i.loading)i.loading='lazy'});
+  document.querySelectorAll('.post video[poster]').forEach(v=>{v.preload='none'})};
+
+/* shareable links: /u/name, /tag/name, /p/id */
+(function(){const m=location.pathname.match(/^\/(u|tag|p)\/(\w+)\/?$/);if(!m)return;
+  const w=setInterval(async()=>{if(!ME)return;clearInterval(w);
+    try{history.replaceState(null,'','/');
+      if(m[1]=='u'){const j=await A('byname',{u:m[2]});opf(j.id)}
+      else if(m[1]=='tag')explore('#'+m[2]);
+      else{const p=await A('onep?id='+m[2]);posts=[p];modal(postH(p)+'<button class="pri" data-a="mc">Close</button>');paint()}
+    }catch(e){toast(e.message)}},500)})();
+const cp=l=>navigator.clipboard?navigator.clipboard.writeText(l).then(()=>toast('Link copied')):prompt('Copy link',l);
+document.addEventListener('click',e=>{
+  if(e.target.closest('[data-a=plink]')){e.stopPropagation();e.preventDefault();cp(location.origin+'/u/'+PF.U.Username)}
+  else if(e.target.closest('[data-a=psh]')){e.stopPropagation();e.preventDefault();shr('@'+PF.U.Username+' on Amlink','/u/'+PF.U.Username)}},true);
+const xr=xres;
+xres=async function(q){await xr(q);const b=$('#xr');
+  if(b&&q&&q[0]=='#'){const t=(q.match(/^#\w+/)||[''])[0].slice(1);if(t)b.insertAdjacentHTML('afterbegin',`<div style="padding:8px 16px"><button class="ed" data-a="tgl" data-t="${E(t)}">🔗 Copy link to #${E(t)}</button></div>`)}};
+
+/* highlights */
+const HLC={};
+const pf=pfDraw;
+pfDraw=function(){pf();const id=PF.U.ID,me=PF.IsMe;
+  A('hlist?id='+id).then(l=>{
+    if(!PF||PF.U.ID!=id)return;const pt=$('#main .pt');if(!pt||$('#main .hlr'))return;if(!l.length&&!me)return;HLC[id]=l;
+    pt.insertAdjacentHTML('beforebegin','<div class="ms2 hlr">'+(me?'<button class="mo" data-a="hln"><b class="av">＋</b><span>New</span></button>':'')+
+      l.map(h=>`<button class="mo" data-a="hlo" data-i="${h.ID}"><b class="av"${h.Cover?` style="background:url('${E(h.Cover)}') center/cover"`:''}>${h.Cover?'':'★'}</b><span>${E(h.Title)}</span></button>`).join('')+'</div>')}).catch(()=>{})};
+function hview(pid,hid){
+  const h=(HLC[pid]||[]).find(x=>x.ID==hid);if(!h||!h.Items.length)return;let i=0;
+  const show=()=>{const s=h.Items[i];
+    modal(`<h3>${E(h.Title)}</h3><div style="display:grid;gap:10px">${mediaH(s)}${s.Text?`<p style="font-size:18px;white-space:pre-wrap">${E(s.Text)}</p>`:''}<small class="sub">${i+1}/${h.Items.length}</small><button class="pri" id="hnx">${i+1<h.Items.length?'Next':'Close'}</button>${PF&&PF.IsMe?`<button class="pri sec" data-a="hld" data-i="${h.ID}">Delete highlight</button>`:''}</div>`);
+    $('#hnx').onclick=()=>{i++;i<h.Items.length?show():closeM()}};
+  show()}
+async function hln(){
+  const l=(await A('statuses')).filter(s=>s.U.ID==ME.ID);
+  if(!l.length){toast('Share a moment first. Highlights are made from your active moments.');return}
+  modal(`<h3>New highlight</h3><label class="fl2">Title<input id="hlt" maxlength="20" placeholder="e.g. Trip"></label><div class="gr">${l.map(s=>`<label class="tl" style="display:block"><input type="checkbox" class="hlc" value="${s.ID}" style="position:absolute;top:6px;left:6px;z-index:2;width:22px;height:22px">${s.Media?(s.Kind=='video'?`<video src="${E(s.Media)}#t=0.1" muted playsinline preload="metadata"></video>`:`<img src="${E(s.Media)}" alt="">`):`<span class="tt">${E((s.Text||'').slice(0,60))}</span>`}</label>`).join('')}</div><p class="er" id="er"></p><button class="pri" id="hls">Save highlight</button>`);
+  $('#hls').onclick=async()=>{const ids=[...document.querySelectorAll('.hlc:checked')].map(x=>x.value).join(',');
+    try{await A('hladd',{title:$('#hlt').value,ids});closeM();opf(ME.ID)}catch(e){$('#er').textContent=e.message}}}
+
+/* post insights: tap the 👁 number on your own post */
+document.addEventListener('click',async e=>{
+  const v=e.target.closest('.vw');if(!v)return;e.stopPropagation();
+  const id=v.closest('.post').dataset.pid;
+  try{const j=await A('pstats?id='+id),er=j.Reach?((j.Likes+j.Comments+j.Saves)/j.Reach*100).toFixed(1)+'%':'-';
+    modal('<h3>Post insights</h3><div class="stg" style="padding:0">'+[['Views',j.Views],['Reach',j.Reach],['Likes',j.Likes],['Comments',j.Comments],['Saves',j.Saves],['Reposts',j.Reposts]].map(x=>`<div class="stc"><b>${x[1]}</b><small>${x[0]}</small></div>`).join('')+`</div><p class="sub">Engagement rate: ${er}${j.Votes?` · ${j.Votes} poll votes`:''}</p><small class="sub">Reach counts unique viewers and is approximate.</small><button class="pri" data-a="mc">Close</button>`)
+  }catch(x){toast(x.message)}},true);
+
+/* notification and privacy settings */
+async function nset(){
+  const j=await A('nsget'),r=(k,t,s,on)=>`<div class="row"><div>${t}<small>${s}</small></div><label class="sw"><input type="checkbox" data-a="nst" data-k="${k}"${on?' checked':''}><span></span></label></div>`;
+  modal('<h3>Notifications and privacy</h3><p class="sub">Choose what Amlink alerts you about. Safety and account notices are always on.</p>'+
+    r('likes','Likes and reactions','Likes on your posts, reactions to your moments',!j.Off.likes)+
+    r('comments','Comments and replies','On your posts and your comments',!j.Off.comments)+
+    r('follows','Follows and requests','New followers and follow requests',!j.Off.follows)+
+    r('messages','Message alerts','Badge, sound and push for new messages',!j.Off.messages)+
+    r('mentions','Mentions','When someone tags you',!j.Off.mentions)+
+    r('reposts','Reposts','When someone reposts you',!j.Off.reposts)+
+    '<p class="sg" style="padding:0">Privacy</p>'+r('RR','Read receipts','Show ✓✓ when you read messages. If off, you will not see other people’s receipts either.',j.RR))}
+const gl=gload;
+gload=async function(){await gl();
+  try{const j=await A('gseen?g='+gid),mine=document.querySelectorAll('#ms .m.me'),last=mine[mine.length-1];
+    if(last&&j.By&&j.By.length)last.insertAdjacentHTML('afterend','<small style="align-self:flex-end;color:var(--mut)">Seen by '+j.By.map(u=>E(u.Username)).join(', ')+'</small>')}catch(e){}};
+
+/* chat menu (mute, block, report) and report a message */
+const ch=chat;
+chat=async function(u){await ch(u);const h=$('.chh');if(h&&!$('#cmn'))h.insertAdjacentHTML('beforeend','<button id="cmn" data-a="cmn" style="font-size:22px" aria-label="More">⋮</button>')};
+async function cmenu(){await xm();const u=peer,m=(XM.Muted||[]).includes(u.ID);
+  modal(`<h3>${E(u.Username)}</h3><button class="sr" data-a="cmu" data-i="${u.ID}"><i>🔕</i>${m?'Unmute':'Mute'} notifications<em>›</em></button><button class="sr" data-a="cbk" data-i="${u.ID}"><i>🚫</i>Block ${E(u.Username)}<em>›</em></button><button class="sr" data-a="rus" data-i="${u.ID}"><i>⚑</i>Report user<em>›</em></button>`)}
+document.addEventListener('click',e=>{
+  const m=e.target.closest('[data-a=mm]');if(!m||m.classList.contains('me'))return;const id=m.dataset.id;
+  setTimeout(()=>{const c=$('#msh .mc');if(c&&!c.querySelector('[data-a=mrpt]'))c.insertAdjacentHTML('beforeend',`<button class="sr" data-a="mrpt" data-id="${id}">⚑ Report message</button>`)},0)},true);
+
+/* admin downloads and menu entries */
+async function dlf(path,name){
+  const r=await fetch('/api/'+path,{headers:{'X-Token':T}});
+  if(!r.ok){let m='Download failed';try{m=(await r.json()).error||m}catch(e){}throw new Error(m)}
+  const u=URL.createObjectURL(await r.blob()),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),5000)}
+const od=openDr;
+openDr=function(){od();
+  $('#dr').insertAdjacentHTML('beforeend','<p class="sg">Notifications</p><div class="cd"><button class="sr" data-a="nset"><i>🔔</i>Notifications and privacy<em>›</em></button></div>'+
+    (ME.Admin?'<p class="sg">Data (admin)</p><div class="cd"><button class="sr" data-a="bkp"><i>💾</i>Download backup<em>›</em></button><button class="sr" data-a="alg"><i>📜</i>Export audit log<em>›</em></button></div>':''))};
+
+$('#app').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,d=b.dataset,i=d.i;
+  try{
+    if(a=='nset')nset();
+    else if(a=='nst'){try{await A('nsset',{k:d.k,on:b.checked?'1':'0'});toast('Saved')}catch(x){b.checked=!b.checked;throw x}}
+    else if(a=='hln')hln();
+    else if(a=='hlo')hview(PF.U.ID,i);
+    else if(a=='hld'){if(confirm('Delete this highlight?')){await A('hldel',{id:i});closeM();opf(ME.ID)}}
+    else if(a=='tgl')cp(location.origin+'/tag/'+d.t);
+    else if(a=='cmn')cmenu();
+    else if(a=='cmu'){const j=await A('mute',{id:i});toast(j.Muted?'Muted':'Unmuted');closeM()}
+    else if(a=='cbk'){if(confirm('Block this person? You will not see each other.')){ME=await A('block',{id:i});closeM();toast('Blocked');go('people')}}
+    else if(a=='mrpt'){const s=$('#msh');if(s)s.hidden=true;const r=prompt('Why are you reporting this message?');if(r!==null){await A('mreport',{id:d.id,reason:r});toast('Thanks, we will review it')}}
+    else if(a=='bkp'){await dlf('backup','amlink-backup.json');toast('Backup downloaded')}
+    else if(a=='alg'){await dlf('auditlog','amlink-audit-log.json')}
+  }catch(x){toast(x.message)}});
+})();
+</script>
+
 </body>
 </html>
