@@ -283,9 +283,10 @@ const closeM=()=>$('#md').hidden=true;
 $('#md').onclick=e=>{if(e.target.id=='md'&&!e.target.dataset.k)closeM()};
 
 async function boot(){
-  let c={};try{c=await A('config')}catch(e){}
+  let c={};for(let n=0;n<3&&!c.Fb;n++){try{c=await A('config')}catch(e){await new Promise(r=>setTimeout(r,1200))}}
   try{if(window.firebase&&c.Fb&&c.Fb.apiKey){firebase.initializeApp(c.Fb);FB=firebase.auth()}}catch(e){}
   if(T){try{ME=await A('me');return app()}catch(e){}}
+  if(!c.Client){const g=$('#gbtn');if(g)g.hidden=true;if(!c.Fb||!c.Fb.apiKey)$('#le').textContent='The server is not set up for sign-in yet. Check the environment settings on Render.';return}
   if(!window.google){$('#le').textContent='Google sign-in could not load. Check your connection and refresh.';return}
   google.accounts.id.initialize({client_id:c.Client,callback:async r=>{try{const j=await A('login',{credential:r.credential});T=j.token;try{localStorage.setItem('tk',T)}catch(e){}ME=j.me;app()}catch(e){$('#le').textContent=e.message}}});
   google.accounts.id.renderButton($('#gbtn'),{theme:'outline',size:'large',shape:'pill'});
