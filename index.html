@@ -253,7 +253,7 @@ input,textarea{font-size:16px!important}
   <div id="login"><h1 class="lg" aria-label="Amlink"><span style="--i:0">A</span><span style="--i:1">m</span><span style="--i:2">l</span><span style="--i:3">i</span><span style="--i:4">n</span><span style="--i:5">k</span></h1><p>Share, chat and connect.</p><div id="gbtn" style="justify-self:center"></div><button class="pri" data-a="su">Create account with email</button><button class="pri sec" data-a="li">Log in with email</button><p class="er" id="le"></p></div>
   <div id="tb"><b>Amlink</b><div class="seg"><button data-a="nv" data-t="feed">Feed</button><button data-a="nv" data-t="reels">Reels</button></div><button data-a="dr" aria-label="Settings and privacy">☰</button></div>
   <div id="main"></div>
-  <nav><button data-t="feed"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1z"/></svg>Home</button><button data-t="people"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c2.8 0 4.5 1.8 4.5 4.5"/></svg>Friends</button><button class="pl2" data-a="plus" aria-label="Create">+</button><button data-t="alerts"><svg viewBox="0 0 24 24"><path d="M4 4h16v12H9l-5 4z"/></svg>Inbox<b id="nb" hidden></b></button><button data-t="me"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>Profile</button></nav>
+  <nav><button data-t="feed"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1z"/></svg>Home</button><button data-t="people"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c2.8 0 4.5 1.8 4.5 4.5"/></svg>Friends</button><button data-t="games"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 10v5M4.5 12.5h5M16 11.5h.01M18.5 14h.01"/></svg>Games</button><button class="pl2" data-a="plus" aria-label="Create">+</button><button data-t="alerts"><svg viewBox="0 0 24 24"><path d="M4 4h16v12H9l-5 4z"/></svg>Inbox<b id="nb" hidden></b></button><button data-t="me"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>Profile</button></nav>
   <div id="scrim" data-a="cs"></div>
   <section id="sh" aria-label="Comments">
     <div class="top"><span id="sc">Comments</span><button data-a="cs" aria-label="Close comments">×</button></div>
@@ -273,7 +273,7 @@ let T=null,ME,tab='feed',posts=[],cur,ppl=[],peer,poll,th='dark',gid,mut=true,rf
 try{T=localStorage.getItem('tk');th=localStorage.getItem('th')||th}catch(e){}
 document.documentElement.dataset.t=th;
 let CS={snd:1,pop:1,con:1};try{CS=Object.assign(CS,JSON.parse(localStorage.getItem('cs')||'{}'))}catch(e){}
-const nm=u=>E(u.Username||'user')+(u.Verified?VB:'');
+const nm=u=>(u.Nc?'<span class="'+E(u.Nc)+'">'+E(u.Username||'user')+'</span>':E(u.Username||'user'))+(u.Verified?VB:'');
 const ago=t=>{const m=(Date.now()/1000-t)/60|0;return m<1?'now':m<60?m+'m':m<1440?(m/60|0)+'h':(m/1440|0)+'d'};
 async function A(p,b){const r=await fetch('/api/'+p,{method:b?'POST':'GET',headers:{'X-Token':T||'','Content-Type':'application/json'},body:b?JSON.stringify(b):undefined});const j=await r.json();if(r.status==401&&T)out();if(j&&j.error)throw new Error(j.error);return j}
 function toast(m){const t=$('#ts');t.textContent=m;t.hidden=false;clearTimeout(t.x);t.x=setTimeout(()=>t.hidden=true,2200)}
@@ -305,27 +305,10 @@ async function go(t){
 }
 document.querySelector('nav').onclick=e=>{const b=e.target.closest('button');if(b&&b.dataset.t)go(b.dataset.t)};
 
-function openDr(){
-  const r=(a,i,t,x)=>`<button class="sr" data-a="${a}"${x||''}><i>${i}</i>${t}<em>›</em></button>`,nv=(t,i,l)=>r('nv',i,l,` data-t="${t}"`);
-  $('#dr').innerHTML='<div class="dt"><button data-a="dc" aria-label="Close">←</button><span>Settings and privacy</span></div>'+
-  '<p class="sg">Account</p><div class="cd">'+r('ep','👤','Edit profile')+r('un','✏️','Change username')+'</div>'+
-  '<p class="sg">Content &amp; display</p><div class="cd">'+r('cset','🔔','Chat settings')+r('th','🌓','Display')+nv('circles','👥','Circles')+r('gn','➕','Create group chat')+nv('bc','📢','Broadcasts')+nv('reels','🎬','Reels')+'</div>'+
-  '<p class="sg">Support and about</p><div class="cd">'+r('ab','ℹ️','About me')+r('lt','📄','Terms and Conditions')+r('lp','🔒','Privacy Policy')+'</div>'+
-  (ME.Admin?'<p class="sg">Admin</p><div class="cd">'+r('adm','🛡️','Admin panel')+'</div>':'')+
-  '<p class="sg">Login</p><div class="cd">'+r('out','🚪','Log out')+'</div>';
-  $('#app').classList.add('dro');
-}
 
 var mediaH=p=>p.Media?(p.Kind=='video'?`<video src="${E(p.Media)}" controls playsinline preload="metadata"></video>`:`<img src="${E(p.Media)}" loading="lazy" alt="">`):'';
 const folB=u=>u.ID==ME.ID?'':`<button class="fl" data-a="fol" data-i="${u.ID}"></button>`;
 var postH=p=>`<article class="post"><header>${AV(p.U)}<div><div class="nm">${nm(p.U)}</div><small>${ago(p.TS)}</small></div>${folB(p.U)}${p.U.ID==ME.ID||ME.Admin?`<button class="dl" data-a="delp" data-i="${p.ID}">Delete</button>`:''}</header>${p.Text?`<p>${tg(p.Text)}</p>`:''}${mediaH(p)}<footer><button class="lk" data-a="like" data-i="${p.ID}">♥ <span></span></button><button class="cm" data-a="cm" data-i="${p.ID}">💬 <span></span></button></footer></article>`;
-function paint(){
-  posts.forEach(p=>{
-    document.querySelectorAll(`.lk[data-i="${p.ID}"]`).forEach(b=>{b.classList.toggle('on',(p.Likes||[]).includes(ME.ID));b.querySelector('span').textContent=(p.Likes||[]).length||''});
-    document.querySelectorAll(`.cm[data-i="${p.ID}"] span`).forEach(s=>s.textContent=p.C.length||'');
-  });
-  document.querySelectorAll('.fl').forEach(b=>{const f=(ME.Following||[]).includes(b.dataset.i);b.textContent=f?'Following':'Follow';b.classList.toggle('on',f)});
-}
 function upd(p){posts=posts.map(x=>x.ID==p.ID?p:x);if(cur&&cur.ID==p.ID)cur=p;paint()}
 function home(){$('#main').innerHTML=`<div class="comp" data-a="new">What’s on your mind, ${E(ME.Username)}?</div>`+(posts.map(postH).join('')||'<p class="empty">No posts yet. Be the first to share something.</p>');paint();strip()}
 
@@ -365,11 +348,6 @@ function reels(){
 
 /* Comments */
 function sheet(id){cur=posts.find(p=>p.ID==id);$('#app').classList.add('cs');sl()}
-function sl(){
-  $('#sc').textContent=cur.C.length+' comments';
-  $('#sl').innerHTML=cur.C.map((c,i)=>{const n=(c.Likes||[]).length,on=(c.Likes||[]).includes(ME.ID);
-    return `<div class="c"><b class="av">${E((c.U.Username||'?')[0])}</b><div class="cb"><div class="nm">${nm(c.U)}</div><div>${E(c.Text)}</div><small>${ago(c.TS)} </small><button class="rp" data-a="rp" data-n="${E(c.U.Username)}">Reply</button></div><button class="cl${on?' on':''}" data-a="cl" data-i="${i}" aria-label="Like comment"><b>${on?'♥':'♡'}</b>${n||''}</button></div>`}).join('')||'<p class="empty">No comments yet. Start the conversation.</p>';
-}
 
 const stat=u=>u.On?'Online':u.Seen?'Last seen '+(ago(u.Seen)=='now'?'just now':ago(u.Seen)+' ago'):'';
 function people(){
@@ -384,7 +362,6 @@ function drawP(){
   $('#pl').innerHTML=(ppl.length?'':'<p class="empty">Search a username to find people. People you follow and anyone online show up here.</p>')+(q?ppl.map(row).join(''):h('Online now',on.length)+on.map(row).join('')+h('Offline',off.length)+off.map(row).join(''));
   paint();
 }
-async function L(){const m=await A('msgs?w='+peer.ID),b=$('#ms');if(!b)return;b.innerHTML=m.map(x=>`<div class="m ${x.From==ME.ID?'me':''}">${msgM(x)}${E(x.Text)}</div>`).join('');b.scrollTop=b.scrollHeight}
 async function chat(u){
   peer=u;$('#main').innerHTML=`<div class="ch"><div class="chh"><button data-a="back" aria-label="Back">‹</button><div><b>${nm(u)}</b><br><small>${stat(u)}</small></div></div><div class="ms" id="ms"></div><div class="bar"><label class="at" aria-label="Attach photo or video">📎<input id="mf" type="file" accept="image/*,video/*" hidden></label><input id="mi" placeholder="Message…" autocomplete="off"><button data-a="mic" id="mic" aria-label="Record voice note">🎤</button><button data-a="send">Send</button></div></div>`;
   $('#mi').onkeydown=e=>{if(e.key=='Enter')send()};$('#mf').onchange=()=>sendFile($('#mf').files[0]);
@@ -437,23 +414,7 @@ async function profile(id){
   pfDraw();
 }
 function opf(id){tab='pf';clearInterval(poll);document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));$('#main').innerHTML='';profile(id).catch(e=>toast(e.message))}
-function pfDraw(){
-  const j=PF,u=j.U,me=j.IsMe,L=j.Posts.filter(p=>ptab=='p'||p.Kind=='video');
-  const tb=(v,svg)=>`<button class="${ptab==v?'on':''}" data-a="pt" data-v="${v}" aria-label="${v=='p'?'Posts':'Reels'}">${svg}</button>`;
-  const tile=p=>`<button class="tl" data-a="pv" data-i="${p.ID}">${p.Media?(p.Kind=='video'?`<video src="${E(p.Media)}#t=0.1" muted playsinline preload="metadata"></video><span class="tp">▶</span>`:`<img src="${E(p.Media)}" loading="lazy" alt="">`):`<span class="tt">${E((p.Text||'').slice(0,90))}</span>`}</button>`;
-  $('#main').innerHTML=`<div class="pfh"><span class="avw">${AV(u,'big')}${u.On?'<i class="od big"></i>':''}</span><h2>${E(j.Name||u.Username)}${u.Verified?VB:''}</h2><small>@${E(u.Username)}${me?'':stat(u)?' · '+stat(u):''}</small>`+
-  `<div class="act">${me?'<button class="ed" data-a="ep">Edit</button>':`<button class="fl" data-a="fol" data-i="${u.ID}"></button><button class="ed" data-a="dm" data-i="${u.ID}">Message</button>`}</div>`+
-  `<div class="st"><div><b>${j.Following}</b><small>Following</small></div><div><b>${j.Followers}</b><small>Followers</small></div><div><b>${j.Likes}</b><small>Likes</small></div></div>`+
-  (j.Bio?`<p class="bio">${E(j.Bio)}</p>`:me?'<button class="lnk" data-a="ep">Add a bio</button>':'')+`</div>`+
-  `<div class="pt">${tb('p','<svg viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg>')}${tb('r','<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M10 9l5 3-5 3z"/></svg>')}</div>`+
-  (L.length?'<div class="gr">'+L.map(tile).join('')+'</div>':'<p class="empty">Nothing here yet.</p>');
-  paint();
-}
 function pview(id){const p=PF.Posts.find(x=>x.ID==id);if(!p)return;modal(`<div style="display:grid;gap:8px">${mediaH(p)}${p.Text?`<p style="white-space:pre-wrap">${E(p.Text)}</p>`:''}<small>${ago(p.TS)} · ♥ ${(p.Likes||[]).length} · 💬 ${p.C.length}</small>${PF.IsMe||ME.Admin?`<button class="dl" data-a="delp" data-i="${p.ID}">Delete</button>`:''}</div>`)}
-function editP(){
-  modal(`<h3>Edit profile</h3><textarea id="bio" maxlength="120" placeholder="Write a short bio">${E(ME.Bio||'')}</textarea><p class="er" id="er"></p><button class="pri" id="sbio">Save</button><button class="lnk" data-a="un">Change username</button>`);
-  $('#sbio').onclick=async()=>{try{ME=await A('bio',{bio:$('#bio').value});closeM();go('me')}catch(e){$('#er').textContent=e.message}};
-}
 /* Create (plus button) */
 function plus(){
   modal(`<h3>Create</h3><button class="di" data-a="rn"><i style="background:#ec4899">🎬</i><span>Post a reel<small>Share a video</small></span></button><button class="di" data-a="new"><i style="background:#1877f2">✍️</i><span>Create a post<small>Text, photo or video</small></span></button><button class="di" data-a="sa"><i style="background:#7c5cff">⭕</i><span>Add a moment<small>Disappears in 24 hours</small></span></button>`);
@@ -477,12 +438,10 @@ async function mic(){
     rec.start();$('#mic').textContent='⏹'}catch(e){toast('Microphone not allowed')}
 }
 const TXT={like:'liked your post',comment:'commented on your post',follow:'started following you',msg:'sent you a message'};
-async function alerts(){const j=await A('notifs');$('#nb').hidden=true;$('#main').innerHTML='<div class="ch2"><b>Inbox</b></div><div style="padding:8px 12px"><button class="di" data-a="nv" data-t="circles"><i style="background:#7c5cff">👥</i><span>Circles<small>Group chats</small></span></button><button class="di" data-a="nv" data-t="bc"><i style="background:#ff7a1a">📢</i><span>Broadcasts<small>Channels you follow</small></span></button></div>'+(j.L.length?j.L.map(x=>`<div class="pr${x.New?' nw':''}"><b class="av">${E((x.U.Username||'?')[0])}</b><div class="nm">${nm(x.U)} <small>${TXT[x.Type]||''}, ${ago(x.TS)}</small></div></div>`).join(''):'<p class="empty">No notifications yet.</p>')}
 async function bell(){if(!T||!ME)return;try{const j=await A('notifs?c=1'),b=$('#nb');b.textContent=j.N;b.hidden=!j.N||tab=='alerts';if((j.M||0)>(bell.m||0)){if(CS.snd)beep();if(CS.pop)toast('New message')}bell.m=j.M||0}catch(e){}}
 function beep(){try{const a=new AudioContext(),o=a.createOscillator();o.connect(a.destination);o.frequency.value=880;o.start();o.stop(a.currentTime+.12)}catch(e){}}
 function cset(){const r=(k,t,s,on)=>`<div class="row"><div>${t}<small>${s}</small></div><label class="sw"><input type="checkbox" data-a="tg" data-k="${k}"${on?' checked':''}><span></span></label></div>`;modal('<h3>Chat settings</h3><small>Customise your Amlink experience.</small>'+r('snd','Message sounds','Play a sound for new messages',CS.snd)+r('pop','Pop up new messages','Show a notice when a message arrives',CS.pop)+r('con','Show contacts','List the people you follow',CS.con)+r('act','Active status','Let people see when you are online',!ME.Hide))}
 setInterval(bell,15000);
-async function admin(){const j=await A('admin');$('#main').innerHTML=`<div class="prof"><h2>Admin panel</h2><p>${j.Users} users, ${j.Posts} posts, ${j.Msgs} messages</p></div>`+j.L.map(u=>`<div class="pr"><b class="av">${E((u.Username||'?')[0])}</b><div class="nm">${nm(u)}<br><small>${E(u.Email)}</small></div><button data-a="ver" data-i="${u.ID}">${u.Verified?'Unverify':'Verify'}</button><button data-a="ban" data-i="${u.ID}">${u.Banned?'Unban':'Ban'}</button></div>`).join('')}
 function newPost(){
   modal(`<h3>Create post</h3><textarea id="tx" placeholder="Share something…" maxlength="2000"></textarea><input id="fi" type="file" accept="image/*,video/*"><p class="er" id="er"></p><button class="pri" id="pub">Post</button>`);
   $('#pub').onclick=async()=>{
@@ -618,7 +577,7 @@ function pfDraw(){
  const L=ptab=='p'?ps:ptab=='m'?ps.filter(p=>p.Media&&p.Kind!='video'):ptab=='r'?ps.filter(p=>p.Kind=='video'):(j.S||[]);
  posts=[...ps,...(j.S||[])];
  const tb=(v,t)=>`<button class="${ptab==v?'on':''}" data-a="pt" data-v="${v}">${t}</button>`;
- const tile=p=>`<button class="tl" data-a="pv" data-i="${p.ID}">${p.Kind=='video'?`<video src="${E(p.Media)}#t=0.1" muted playsinline preload="metadata"></video><span class="tp">▶</span>`:`<img src="${E(p.Media)}" loading="lazy" alt="">`}</button>`;
+ const tile=p=>`<button class="tl" data-a="pv" data-i="${p.ID}">${p.Kind=='video'?`<video src="${E(p.Media)}#t=0.1" muted playsinline preload="metadata"></video><span class="tp">▶</span>`:`<img src="${E((p.Opt&&p.Opt.Poster)||p.Media)}" loading="lazy" alt="">`}</button>`;
  $('#main').innerHTML=`<div class="cov"${j.Cover?` style="background:url('${E(j.Cover)}') center/cover"`:''}></div><div class="pfc"><span class="rng avw">${AV(u,'big')}${u.On?'<i class="od big"></i>':''}</span><div class="pfn"><h2>${E(j.Name||u.Username)}${u.Verified?VB:''}</h2><small>@${E(u.Username)}${me?'':stat(u)?' · '+stat(u):''}</small></div>`+
  (j.Bio?`<p class="bio">${E(j.Bio)}</p>`:me?'<button class="lnk" data-a="ep">Add a bio</button>':'')+
  `<div class="act">${me?'<button class="ed" data-a="ep">Edit profile</button>':`<button class="fl" data-a="fol" data-i="${u.ID}"></button><button class="ed" data-a="dm" data-i="${u.ID}">Message</button>`}<button class="ed" data-a="psh">Share</button>${me?'':`<button class="ed" data-a="blk" data-i="${u.ID}">${j.Blocked?'Unblock':'Block'}</button>`}</div>`+
@@ -661,7 +620,7 @@ async function nt(){if(!T)return;try{const c=await A('config');let b=$('#ann');i
 setTimeout(nt,2500);setInterval(nt,60000);
 
 /* v3: profile photos, inbox, post links, lists, explore, block, edit and more */
-const AV=(u,c)=>u.Av?`<b class="av ${c||''}" style="background:url('${E(u.Av)}') center/cover"></b>`:`<b class="av ${c||''}">${E((u.Username||'?')[0])}</b>`;
+const AV=(u,c)=>u.Av?`<b class="av ${c||''} ${E(u.Fr||'')}" style="background:url('${E(u.Av)}') center/cover"></b>`:`<b class="av ${c||''} ${E(u.Fr||'')}">${E((u.Username||'?')[0])}</b>`;
 var tg=t=>E(t).replace(/#(\w+)/g,'<a class="ht" data-a="tag" data-q="#$1">#$1</a>');
 async function upf(id,old){const f=$(id).files[0];return f?await up(f):(old||'')}
 async function L(){const m=await A('msgs?w='+peer.ID),b=$('#ms');if(!b)return;b.innerHTML=m.map(x=>`<div class="m ${x.From==ME.ID?'me':''}">${msgM(x)}${E(x.Text)}${x.From==ME.ID?`<small> ${x.Read?'✓✓':'✓'}</small>`:''}</div>`).join('');b.scrollTop=b.scrollHeight}
@@ -875,7 +834,7 @@ xmn.addEventListener('touchend',()=>{if(xpy==null)return;const hit=ptr.v>40;ptr(
 /* reels: progress bar, double-tap like, preload, sound after first tap */
 const rl0=reels;
 reels=function(){rl0();const rl=$('.rl');if(!rl)return;
-  rl.querySelectorAll('.reel').forEach(r=>{r.insertAdjacentHTML('beforeend','<div class="rbar"><i></i></div><div class="hrt">♥</div>');const v=r.querySelector('video'),b=r.querySelector('.rbar i');v.addEventListener('timeupdate',()=>{if(v.duration)b.style.width=v.currentTime/v.duration*100+'%'})});
+  rl.querySelectorAll('.reel').forEach(r=>{r.insertAdjacentHTML('beforeend','<div class="rbar"><i></i></div><div class="hrt">♥</div>');const v=r.querySelector('video'),b=r.querySelector('.rbar i');v.addEventListener('timeupdate',()=>{const du=window.rdur?rdur(v):v.duration;if(du)b.style.width=Math.min(100,v.currentTime/du*100)+'%'})});
   rl.addEventListener('dblclick',e=>{const r=e.target.closest('.reel');if(!r)return;const l=r.querySelector('.lk');if(l&&!l.classList.contains('on'))l.click();const h=r.querySelector('.hrt'),bx=r.getBoundingClientRect();h.style.left=(e.clientX-bx.left-40)+'px';h.style.top=(e.clientY-bx.top-40)+'px';h.classList.remove('go');void h.offsetWidth;h.classList.add('go')});
   rl.addEventListener('click',e=>{if(xsnd||e.target.closest('button'))return;xsnd=true;if(mut){mut=false;document.querySelectorAll('.reel video').forEach(v=>v.muted=false);document.querySelectorAll('[data-a=mu]').forEach(m=>m.textContent='🔊')}e.stopPropagation()},true);
   const io2=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){const n=e.target.nextElementSibling,nv=n&&n.querySelector('video');if(nv)nv.preload='auto'}}),{threshold:.7,root:rl});
@@ -907,7 +866,7 @@ sview=function(id){
   show()};
 
 /* explore: search everything, trending, suggested, photo grid */
-const xtile=p=>`<button class="tl" data-a="xop" data-i="${p.ID}">${p.Kind=='video'?`<video src="${E(p.Media)}#t=0.1" muted playsinline preload="metadata"></video><span class="tp">▶</span>`:`<img src="${E(p.Media)}" loading="lazy" alt="">`}${p.More&&p.More.length?'<span class="tp" style="left:auto;right:6px;top:6px;bottom:auto">❐</span>':''}</button>`;
+const xtile=p=>`<button class="tl" data-a="xop" data-i="${p.ID}">${p.Kind=='video'?`<video src="${E(p.Media)}#t=0.1" muted playsinline preload="metadata"></video><span class="tp">▶</span>`:`<img src="${E((p.Opt&&p.Opt.Poster)||p.Media)}" loading="lazy" alt="">`}${p.More&&p.More.length?'<span class="tp" style="left:auto;right:6px;top:6px;bottom:auto">❐</span>':''}</button>`;
 explore=async function(q){clearInterval(poll);closeM();$('#app').classList.remove('cs','fs','dro');tab='xp';q=q||'';
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));
   $('#main').innerHTML=`<div class="sb"><input id="xq" placeholder="Search people, #hashtags, posts" value="${E(q)}" autocomplete="off"></div><div id="xr"></div>`;
@@ -1052,7 +1011,7 @@ xcomp=async function(f){
 xvid=async function(f){
   if(f.size>25*1024*1024)throw new Error('Video is too big (max 25 MB). Trim it or lower its quality first.');
   const d=await new Promise(res=>{const v=document.createElement('video');v.preload='metadata';v.onloadedmetadata=()=>{URL.revokeObjectURL(v.src);res(v.duration)};v.onerror=()=>res(0);v.src=URL.createObjectURL(f)});
-  if(d>60)throw new Error('Videos can be up to 60 seconds')};
+  if(isFinite(d)&&d>61)throw new Error('Videos can be up to 60 seconds')};
 
 /* ---- api: new endpoints + hide muted words / not interested ---- */
 const hid9=p=>p.U&&p.U.ID!=ME.ID&&(V9.Hid.includes(p.ID)||V9.W.some(w=>(p.Text||'').toLowerCase().includes(w)));
@@ -1270,7 +1229,7 @@ async function onb(){
   let ppl2=[];try{ppl2=(await A('discover')).People||[]}catch(e){}
   modal(`<h3>Welcome to Amlink 👋</h3><p class="sub">Let’s set you up in 20 seconds.</p><p class="sg" style="padding:0">1. Follow a few people</p>`+
    (ppl2.length?ppl2.map(u=>`<div class="pr"><span>${AV(u)}</span><div class="nm">${nm(u)}</div><button class="fl" data-a="fol" data-i="${u.ID}"></button></div>`).join(''):'<p class="empty" style="padding:12px">No suggestions yet. You are one of the first here!</p>')+
-   `<p class="sg" style="padding:0">2. Make it yours</p><button class="fb" data-a="ep">📷 Add a profile photo and bio</button><button class="fb" data-a="ntf">🔔 Turn on alerts</button><button class="pri" data-a="mc">Start exploring</button>`);
+   `<p class="sg" style="padding:0">2. Make it yours</p><button class="fb" data-a="ep">📷 Add a profile photo and bio</button><button class="fb" data-a="ntf">🔔 Turn on alerts</button>${window.XINTH?XINTH([]):''}<button class="pri" data-a="mc">Start exploring</button>`);
   paint()}
 const go10=go;
 go=async function(t){const r=go10(t);if(window.XOB&&t=='feed'){window.XOB=0;try{if(localStorage.getItem('ob10'))return r;localStorage.setItem('ob10','1')}catch(e){}setTimeout(onb,700)}return r};
@@ -1526,7 +1485,7 @@ async function scanVideo(f){
   const bad=()=>new Error('We could not check this video. Try an MP4 file.');
   try{
     await new Promise((res,rej)=>{v.onloadeddata=res;v.onerror=()=>rej(bad());setTimeout(()=>rej(bad()),15000)});
-    const d=v.duration&&isFinite(v.duration)?v.duration:1,c=document.createElement('canvas'),frames=[];
+    const d=v.duration&&isFinite(v.duration)?v.duration:(f.xdur||1),c=document.createElement('canvas'),frames=[];
     for(const p of [.1,.5,.9]){
       await new Promise(r=>{v.onseeked=r;v.currentTime=Math.min(d*p,Math.max(0,d-.1));setTimeout(r,4000)});
       const k=Math.min(1,640/Math.max(v.videoWidth||640,v.videoHeight||640));
@@ -1901,7 +1860,7 @@ const rl14=reels;
 reels=function(){rl14();
   $$('.reel').forEach(r=>{
     const l=r.querySelector('.lk'),p=l&&posts.find(x=>x.ID==l.dataset.i);if(!p)return;
-    const v=r.querySelector('video');if(v&&p.Opt&&p.Opt.Poster)v.poster=p.Opt.Poster;
+    const v=r.querySelector('video');if(v&&p.Opt&&p.Opt.Poster)v.poster=p.Opt.Poster;if(v)v.dataset.dur=(p.Opt&&p.Opt.Dur)||0;
     const inf=r.querySelector('.info');
     if(inf)inf.innerHTML=`<div class="rnm"><b>@${E(p.U.Username)}${p.U.Verified?VB:''}</b>${p.U.ID==ME.ID||(ME.Following||[]).includes(p.U.ID)?'':`<button class="rfb" data-a="rfol" data-i="${p.U.ID}">Follow</button>`}</div>${p.Text?`<p class="rcp">${tg(p.Text)}</p>`:''}<div class="rmu">🎵 Original sound · @${E(p.U.Username)}</div>`;
     r.insertAdjacentHTML('afterbegin',`<button class="rvm" data-a="mu" aria-label="Sound">${mut?'🔇':'🔊'}</button>`)})};
@@ -1915,7 +1874,7 @@ addEventListener('keydown',e=>{
   else if(e.key=='l'||e.key=='L'){const b=r&&r.querySelector('.lk');b&&b.click()}});
 document.addEventListener('click',e=>{const bar=e.target.closest('.rbar');if(!bar)return;
   const v=bar.closest('.reel').querySelector('video'),rc=bar.getBoundingClientRect();
-  if(v&&v.duration)v.currentTime=Math.max(0,Math.min(1,(e.clientX-rc.left)/rc.width))*v.duration;e.stopPropagation()},true);
+  const du=v&&(window.rdur?rdur(v):v.duration);if(v&&du)v.currentTime=Math.max(0,Math.min(1,(e.clientX-rc.left)/rc.width))*du;e.stopPropagation()},true);
 
 /* covers, alt text */
 function decorate(){
@@ -1933,7 +1892,7 @@ newPost=function(){openStu('post')};
 /* ================= 5. STUDIO (reel + post) ================= */
 let ST={};
 const stuHTML=k=>{const R=k=='reel';return `<div class="pgh"><button data-a="stux" aria-label="Close">←</button><b>${R?'New reel':'New post'}</b><button class="ed" id="stup" data-a="stup" style="margin-left:auto;padding:8px 22px;background:var(--sh) 0 0/200% 100%;color:#000">${R?'Post reel':'Share'}</button></div>
-<div class="stb"><div class="stl"><div class="phf${R?'':' sq'}" id="stpv"></div><div id="stcv" hidden></div><small class="sub" id="stmeta"></small></div>
+<div class="stb"><div class="stl"><div class="phf${R?'':' sq'}" id="stpv"></div><div id="stcv" hidden></div><small class="sub" id="stmeta"></small>${R?'<button class="ed" id="stedit" data-a="vedit" hidden>✂️ Trim, crop &amp; filters</button>':''}</div>
 <div class="str"><label class="fl2"><span>${R?'Description':'Caption'} <small id="stn">0/${R?300:2000}</small></span><textarea id="stc" maxlength="${R?300:2000}" placeholder="Write something… use @name and #tags"></textarea></label><div class="chips" id="sth"></div>
 ${R?'':'<label class="fl2">Alt text<input id="sta" maxlength="200" placeholder="Describe the photo for people who cannot see it (optional)"></label>'}
 <div class="cd sdr"><div class="srow"><div>Who can comment<small>Control the conversation</small></div><select id="stcm"><option value="0">Everyone</option><option value="1">People I follow</option><option value="2">No one</option></select></div>
@@ -1985,12 +1944,12 @@ function thumbs(){const b=$('#stcv');if(!b)return;
   if(!XF.length){b.hidden=true;return}b.hidden=false;
   b.innerHTML='<div class="cvs">'+XF.map((f,i)=>`<div class="pvi${i==ST.i?' on':''}" data-a="stsel" data-i="${i}">${f.type.startsWith('video/')?`<video src="${ou(f)}" muted playsinline preload="metadata"></video>`:`<img src="${ou(f)}" alt="">`}<button data-a="xrm" data-i="${i}" aria-label="Remove">✕</button>${f.type.startsWith('image/')?`<button class="ped" data-a="ped" data-i="${i}" aria-label="Edit photo">✎</button>`:''}</div>`).join('')+(XF.length<10&&!XF[0].type.startsWith('video/')?'<label class="pvi addm">＋<input type="file" id="stf2" accept="image/*" multiple hidden></label>':'')+'</div>';
   const m=$('#stf2');if(m)m.onchange=e=>{stuFiles([...e.target.files]);e.target.value=''}}
-function meta(){const m=$('#stmeta');if(!m)return;const f=ST.k=='reel'?ST.f:XF[ST.i];m.textContent=f?(ST.dur?dur(ST.dur)+' · ':'')+mb(f.size):''}
+function meta(){const m=$('#stmeta');if(!m)return;const eb=$('#stedit');if(eb)eb.hidden=!(ST.k=='reel'&&ST.f);const f=ST.k=='reel'?ST.f:XF[ST.i];m.textContent=f?(ST.dur?dur(ST.dur)+' · ':'')+mb(f.size):''}
 async function frames(file,n){
   const v=document.createElement('video'),url=URL.createObjectURL(file);v.muted=true;v.playsInline=true;v.preload='auto';v.src=url;
   try{
     await new Promise((res,rej)=>{v.onloadeddata=res;v.onerror=()=>rej(new Error('x'));setTimeout(()=>rej(new Error('t')),10000)});
-    const d=isFinite(v.duration)?v.duration:0,w=v.videoWidth||360,h=v.videoHeight||640,k=Math.min(1,480/Math.max(w,h)),c=document.createElement('canvas');
+    const d=isFinite(v.duration)?v.duration:(file.xdur||0),w=v.videoWidth||360,h=v.videoHeight||640,k=Math.min(1,480/Math.max(w,h)),c=document.createElement('canvas');
     c.width=Math.round(w*k);c.height=Math.round(h*k);const x=c.getContext('2d'),fr=[];
     for(let i=0;i<n;i++){
       await new Promise(r=>{v.onseeked=r;v.currentTime=Math.min(Math.max(0,d*(i+.5)/n),Math.max(0,d-.05));setTimeout(r,2500)});
@@ -2001,7 +1960,7 @@ async function makeCovers(){
   const f=ST.f;if(!f)return;thumbs();let r=null;try{r=await frames(f,7)}catch(e){}
   if(f!==ST.f)return;
   if(!r||!r.fr.length){ST.cuu=[];const b=$('#stcv');if(b)b.hidden=true;return}
-  if(r.d>61){toast('Reels can be up to 60 seconds');ST.f=null;ST.cvs=[];ST.cuu=[];stuPv();return}
+  if(r.d>61&&!f.xdur){ST.dur=r.d;toast('Trim your video to 60 seconds or less');thumbs();meta();if(window.XVE)XVE.open(f);return}
   ST.dur=r.d;ST.cvs=r.fr;ST.cuu=r.fr.map(x=>URL.createObjectURL(x));ST.ci=0;thumbs();meta();showCv()}
 function showCv(){const z=$('#stpv'),v=z&&z.querySelector('video');if(!z||!v)return;let i=z.querySelector('.cvov');const u=ST.cuu[ST.ci];
   if(!u){if(i)i.remove();return}
@@ -2019,15 +1978,17 @@ async function stuPost(){
   let poll='';const po=$('#stpo');
   if(po&&po.checked){poll=$$('.stp1').map(x=>x.value.trim()).filter(Boolean).join('|');if(poll.split('|').length<2){er.textContent='A poll needs at least 2 options.';return}}
   if(R&&!ST.f){er.textContent='Choose a video first.';return}
+  if(R&&ST.dur>61&&!ST.f.xdur){er.textContent='Trim the video to 60 seconds or less.';return}
   if(!R&&!XF.length&&!text&&!poll){er.textContent='Write something or add a photo or video.';return}
   b.disabled=true;$('#stub').hidden=false;
   try{
     const files=R?[ST.f]:XF,urls=[];
     for(let i=0;i<files.length;i++){st(files[i].type.startsWith('video/')?'Checking and uploading video…':'Uploading '+(i+1)+' of '+files.length+'…');urls.push(await up(files[i]))}
     let poster='';if(R&&ST.cvs[ST.ci]){st('Saving your cover…');try{poster=await up(new File([ST.cvs[ST.ci]],'cover.jpg',{type:'image/jpeg'}))}catch(e){poster=''}}
+    if(!R&&files[0]&&files[0].type.startsWith('image/')&&window.thumbOf){st('Making a preview…');try{poster=await up(await thumbOf(files[0]))}catch(e){poster=''}}
     st(sch?'Scheduling…':'Posting…');
     const kind=files[0]?(files[0].type.startsWith('video/')?'video':'image'):'';
-    const r=await A('post4',{text,media:urls.join(','),kind,poll,sens:$('#stse').checked?'1':'',poster,alt:($('#sta')||{}).value||'',cm:$('#stcm').value,at:at||''});
+    const r=await A('post4',{text,media:urls.join(','),kind,poll,sens:$('#stse').checked?'1':'',poster,alt:($('#sta')||{}).value||'',cm:$('#stcm').value,at:at||'',dur:R?(ST.dur||''):''});
     stuClose(false);
     if(r.scheduled)toast('Scheduled for '+when(r.scheduled*1000));
     else{toast(R?'Your reel is live 🎬':'Posted');go(R?'reels':'feed')}}
@@ -2087,6 +2048,9 @@ document.addEventListener('pointerdown',e=>{const r=e.target.closest('#main .pr[
 document.addEventListener('contextmenu',e=>{const r=e.target.closest('#main .pr[data-a=dm]');if(r){e.preventDefault();chatSheet(r.dataset.i)}});
 document.addEventListener('click',e=>{const r=e.target.closest('#main .pr[data-a=dm]');if(r&&r.dataset.lp){delete r.dataset.lp;e.stopPropagation();e.preventDefault()}},true);
 
+window.studioVideo=()=>ST.k=='reel'?ST.f:null;
+window.studioSetVideo=f=>{ST.f=f;ST.cvs=[];ST.cuu=[];ST.ci=0;ST.dur=f.xdur||0;stuPv();makeCovers()};
+
 /* ================= clicks ================= */
 $('#app').addEventListener('click',async e=>{
   const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,d=b.dataset;
@@ -2125,7 +2089,7 @@ $('#app').addEventListener('click',async e=>{
 <!-- ===== Amlink Batch 1: rewards hub, daily spin, challenges, leaderboards, arcade ===== -->
 <script>
 (()=>{
-const BD={first_post:'✍️ First post',first_reel:'🎬 First reel',chatty:'💬 Chatty',streak7:'🔥 7-day streak',level5:'⭐ Level 5'};
+const BD={first_post:'✍️ First post',first_reel:'🎬 First reel',chatty:'💬 Chatty',streak7:'🔥 7-day streak',level5:'⭐ Level 5',recruiter:'💌 Recruiter',gamer:'🎮 Gamer',wordsmith:'🔤 Wordsmith'};
 const od=openDr;
 openDr=function(){od();$('#dr').insertAdjacentHTML('beforeend','<p class="sg">Rewards and games</p><div class="cd"><button class="sr" data-a="gh"><i>🏆</i>Rewards hub<em>›</em></button><button class="sr" data-a="gar"><i>🎮</i>Arcade<em>›</em></button><button class="sr" data-a="glb"><i>📊</i>Leaderboards<em>›</em></button></div>')};
 
@@ -2134,17 +2098,18 @@ async function ghub(){
   modal(`<h3>Rewards hub</h3><div class="stg" style="padding:0"><div class="stc"><b>Lv ${j.Level}</b><small>${j.XP} XP</small></div><div class="stc"><b>🪙 ${j.Coins}</b><small>Coins</small></div><div class="stc"><b>🔥 ${j.Streak}</b><small>Day streak (best ${j.Best})</small></div></div>
   <div class="ubar" style="height:8px"><i style="width:${p}%;animation:none;margin:0"></i></div><small class="sub">${j.Next-j.XP} XP to level ${j.Level+1}</small>
   <button class="pri" data-a="gclaim" ${j.Claim?'':'disabled'}>${j.Claim?'🎁 Spin your daily reward':'Come back tomorrow'}</button>
+  <div class="act" style="justify-content:center"><button class="ed" data-a="shop">🛍 Shop</button><button class="ed" data-a="inv">💌 Invite friends</button><button class="ed" data-a="gword">🔤 Daily word</button></div>
   <p class="sg" style="padding:0">Daily challenges</p>`+j.Chal.map(c=>`<div class="cd" style="padding:12px;display:flex;justify-content:space-between"><span>${c.Done?'✅':'⬜'} ${E(c.T)}</span><small>${c.Have}/${c.N} · +${c.XP} XP</small></div>`).join('')+
   `<p class="sg" style="padding:0">Badges</p><div class="chips">${j.Badges.map(b=>`<button>${E(BD[b]||b)}</button>`).join('')||'<small class="sub">No badges yet. Post, comment and keep your streak.</small>'}</div>`)}
 
-function arcade(){modal('<h3>Arcade</h3><div class="ctl"><button data-a="gplay" data-g="snake"><i>🐍</i>Snake<small>Eat, grow, do not crash</small></button><button data-a="gplay" data-g="memory"><i>🧠</i>Memory Match<small>Fewer moves, higher score</small></button></div>')}
+function arcade(){modal('<h3>Arcade</h3><div class="ctl"><button data-a="gplay" data-g="snake"><i>🐍</i>Snake<small>Eat, grow, do not crash</small></button><button data-a="gplay" data-g="memory"><i>🧠</i>Memory Match<small>Fewer moves, higher score</small></button><button data-a="gword"><i>🔤</i>Daily Word<small>One puzzle a day</small></button></div>')}
 
 async function lboards(){
   const [x,s,m]=await Promise.all([A('gboard?g=xp'),A('gboard?g=snake'),A('gboard?g=memory')]);
   const sec=(t,l)=>`<p class="sg" style="padding:0">${t}</p>`+(l.map((r,i)=>`<div class="pr"><b>${i+1}</b>${AV(r.U)}<div class="nm">${nm(r.U)}</div><b>${r.V}</b></div>`).join('')||'<small class="sub">No scores yet</small>');
   modal('<h3>Leaderboards</h3>'+sec('⭐ Top XP',x)+sec('🐍 Snake',s)+sec('🧠 Memory',m))}
 
-async function submit(g,s){try{const j=await A('gscore',{game:g,score:s});toast(j.New?'New best: '+j.Best+' 🎉':'Score '+s+' · best '+j.Best)}catch(e){toast(e.message)}}
+async function submit(g,s){try{const j=await A('gscore',{game:g,score:s});toast(j.New?'New best: '+j.Best+' 🎉':'Score '+s+' · best '+j.Best);const bx=document.querySelector('#md .box');if(bx&&!bx.querySelector('[data-a=shsc]'))bx.insertAdjacentHTML('beforeend',`<button class="pri" data-a="shsc" data-g="${g}" data-s="${s}">📤 Challenge friends to beat ${s}</button>`)}catch(e){toast(e.message)}}
 
 function snake(){
   modal('<h3>Snake</h3><canvas id="snc" width="300" height="300" style="width:100%;max-width:300px;margin:0 auto;display:block;background:#000;border-radius:12px;touch-action:none"></canvas><p id="sn1" class="sub" style="text-align:center">Score 0 · swipe or use arrow keys</p><div class="act" style="justify-content:center"><button class="ed" data-a="sdir" data-d="-1,0">◀</button><button class="ed" data-a="sdir" data-d="0,-1">▲</button><button class="ed" data-a="sdir" data-d="0,1">▼</button><button class="ed" data-a="sdir" data-d="1,0">▶</button></div>');
@@ -2184,6 +2149,7 @@ $('#app').addEventListener('click',async e=>{
     else if(a=='sdir'){const [x,y]=b.dataset.d.split(',').map(Number);window.SDIR&&window.SDIR(x,y)}
     else if(a=='gclaim'){const j=await A('gclaim',{});toast('You won 🪙 '+j.Won+'!');ghub()}
   }catch(x){toast(x.message)}});
+window.XG={snake,memory};
 })();
 </script>
 
@@ -2199,6 +2165,8 @@ live=function(){
   if(es||!window.EventSource)return;
   const px=new EventTarget();es=px;let dly=1000,down=false,real=null;
   px.addEventListener('message',e=>{const d=e.data;
+    if(d.startsWith('game:')){if(window.XGU)window.XGU(d.slice(5));return}
+    if(d.startsWith('match:')){if(window.XGM)window.XGM(d.slice(6));return}
     if(d.startsWith('typing:')){if(peer&&d.slice(7)==peer.ID&&$('#mic')){const s=$('.chh small');if(s){s.textContent='typing…';clearTimeout(live.t);live.t=setTimeout(()=>s.textContent=stat(peer),3000)}}return}
     bell();if(d=='msg'){if($('#mic'))L().catch(()=>{});else if($('#ms'))gload().catch(()=>{})}
     if(document.hidden&&window.Notification&&Notification.permission=='granted'&&TXT[d]&&navigator.serviceWorker)navigator.serviceWorker.ready.then(r=>r.showNotification('Amlink',{body:TXT[d],icon:'/icon.svg'}))});
@@ -2317,6 +2285,441 @@ $('#app').addEventListener('click',async e=>{
     else if(a=='bkp'){await dlf('backup','amlink-backup.json');toast('Backup downloaded')}
     else if(a=='alg'){await dlf('auditlog','amlink-audit-log.json')}
   }catch(x){toast(x.message)}});
+})();
+</script>
+
+<!-- ===== Amlink Batch 2: Games tab, multiplayer games, daily word, shop, invites, interests, cosmetics ===== -->
+<style>
+.gpill{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px 10px;font-size:13px;font-weight:700}
+.gc{display:flex;gap:12px;align-items:center;margin:10px 12px;padding:14px;border:1px solid var(--line);border-radius:18px;background:var(--card);background-image:var(--gl)}
+.gc>i{font-style:normal;font-size:30px;flex:none;width:56px;text-align:center}
+.gc>div{flex:1;min-width:0;display:grid;gap:6px}.gc small{color:var(--mut)}
+.gcb{display:flex;gap:6px;flex-wrap:wrap}.gcb .ed{padding:7px 12px;font-size:13px}
+.gban{margin:10px 12px;padding:12px 14px;border-radius:16px;background:var(--sh) 0 0/200% 100%;animation:shine 8s linear infinite;color:#000;font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer}
+.gst{text-align:center;font-weight:800;font-size:18px}
+.gvs{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}.gvs span{color:var(--mut)}
+.tb{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:300px;width:100%;margin:0 auto}
+.tb button{aspect-ratio:1;font-size:40px;font-weight:800;border-radius:14px;border:1px solid var(--line);background:var(--card);padding:0;line-height:1}
+.tb button:not(:disabled):active{transform:scale(.95)}
+.c4{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;max-width:360px;width:100%;margin:0 auto;background:#1d4ed8;padding:8px;border-radius:14px}
+.c4 button{aspect-ratio:1;border-radius:50%;border:0;background:#0b1b4d;padding:0}.c4 .p1{background:#ef4444}.c4 .p2{background:#facc15}
+.rsc{display:flex;justify-content:center;gap:14px;font-size:18px;align-items:center}
+.rrv{display:flex;justify-content:center;gap:18px;font-size:46px;align-items:center}.rrv small{font-size:14px;color:var(--mut)}
+.rpick{display:flex;justify-content:center;gap:12px;margin-top:8px}
+.rpick button{font-size:42px;width:84px;height:84px;border-radius:22px;border:1px solid var(--line);background:var(--card);padding:0}
+.rpick button.sel{border:3px solid var(--fg)}.rpick button:disabled:not(.sel){opacity:.45}
+.wg{display:grid;gap:6px;max-width:300px;margin:0 auto;width:100%}.wr{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.wc{aspect-ratio:1;display:grid;place-items:center;font-size:26px;font-weight:800;text-transform:uppercase;border:2px solid var(--line);border-radius:10px}
+.wc2{background:#2fa84f;color:#fff;border-color:#2fa84f}.wc1{background:#c9a227;color:#fff;border-color:#c9a227}.wc0{background:#555;color:#fff;border-color:#555}
+.chips button.sel{background:var(--fg);color:var(--bg)}
+.shg{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.shi{border:1px solid var(--line);border-radius:16px;padding:12px;display:grid;gap:8px;justify-items:center;text-align:center;background:var(--card)}
+.gcard{display:grid;gap:6px;justify-items:start;min-width:170px}.gcard .ed{color:var(--fg)}
+.fr_gold{box-shadow:0 0 0 2px var(--bg),0 0 0 4.5px #f5c518!important}
+.fr_neon{box-shadow:0 0 0 2px var(--bg),0 0 0 4px #39ff14,0 0 12px #39ff14!important}
+.fr_rainbow{box-shadow:0 0 0 2px var(--bg),0 0 0 4.5px #e3a6ff,0 0 0 7px #8fe3ff!important}
+.fr_fire{box-shadow:0 0 0 2px var(--bg),0 0 0 4.5px #ff7a1a,0 0 14px #ff3d00!important}
+.nc_blue{color:#3b82f6}.nc_pink{color:#ec4899}.nc_green{color:#22c55e}
+.nc_shine{background:var(--sh) 0 0/200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 6s linear infinite}
+.bb_ocean{background:linear-gradient(135deg,#0ea5e9,#2563eb)!important;color:#fff!important}
+.bb_sunset{background:linear-gradient(135deg,#f97316,#ec4899)!important;color:#fff!important}
+.bb_forest{background:linear-gradient(135deg,#16a34a,#065f46)!important;color:#fff!important}
+.bb_night{background:linear-gradient(135deg,#312e81,#0f172a)!important;color:#fff!important}
+</style>
+<script>
+(()=>{
+const GN={ttt:['❌⭕','Tic-Tac-Toe','X and O. First to get 3 in a row.'],c4:['🔴🟡','Connect 4','Drop discs and get 4 in a line.'],rps:['✊✋','Rock Paper Scissors','Best of 3, played live.']};
+const RP={r:'✊',p:'✋',s:'✌️'};
+const INTL={music:'🎵 Music',sports:'⚽ Sports',comedy:'😂 Comedy',gaming:'🎮 Gaming',food:'🍲 Food',travel:'✈️ Travel',fashion:'👗 Fashion',tech:'💻 Tech',art:'🎨 Art',study:'📚 Study'};
+let GT='play',GID=null,QT=null,XC={},WJ=null;
+const cp=l=>navigator.clipboard?navigator.clipboard.writeText(l).then(()=>toast('Link copied')):prompt('Copy link',l);
+
+/* invite link: remember ?r=CODE until the person has an account */
+try{const r=new URLSearchParams(location.search).get('r');if(r&&/^\w{4,10}$/.test(r)){localStorage.setItem('ref',r);history.replaceState(null,'','/')}}catch(e){}
+
+/* interests: shared by the welcome tour and the menu */
+window.XINT=Object.keys(INTL);
+window.XINTH=(sel,lab)=>(lab===''?'':`<p class="sg" style="padding:0">${lab||'3. Pick your interests'}</p>`)+`<div class="chips" id="intc">${XINT.map(k=>`<button type="button" class="${sel.includes(k)?'sel':''}" data-a="intt" data-k="${k}">${INTL[k]}</button>`).join('')}</div>`;
+
+/* small preview image for photo posts (used in grids) */
+window.thumbOf=async f=>{const bm=await createImageBitmap(f),k=Math.min(1,480/Math.max(bm.width,bm.height)),c=document.createElement('canvas');c.width=Math.round(bm.width*k);c.height=Math.round(bm.height*k);const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(bm,0,0,c.width,c.height);const b=await new Promise(r=>c.toBlob(r,'image/jpeg',.7));if(!b)throw new Error('thumb');return new File([b],'thumb.jpg',{type:'image/jpeg'})};
+
+/* ================= GAMES TAB ================= */
+const go5=go;
+go=async function(t){
+  if(t!='games')return go5(t);
+  tab='games';clearInterval(poll);$('#app').classList.remove('cs','dro','fs');
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t=='games'));
+  document.querySelectorAll('.seg button').forEach(b=>b.classList.remove('on'));
+  await hub()};
+async function hub(){
+  let me={Coins:0,Level:1,Streak:0};try{me=await A('gme')}catch(e){}
+  const tabs=[['play','🎮 Play'],['mine','⚔️ My games'],['solo','🕹 Solo'],['rank','🏆 Rankings']];
+  $('#main').innerHTML=`<div class="ch2"><b>Games</b><span class="gpill">🪙 ${me.Coins} · Lv ${me.Level} · 🔥 ${me.Streak}</span></div><div class="atb">${tabs.map(([k,l])=>`<button data-a="gtab" data-k="${k}" class="${GT==k?'on':''}">${l}</button>`).join('')}</div><div id="gbody"></div>`;
+  await gbody()}
+const stt=g=>g.Status=='active'?(g.Mine?'your move':'their move'):g.Status=='draw'?'draw':g.Status=='won'?(g.Win==ME.ID?'you won':'they won'):(g.Win==ME.ID?'they resigned':'you resigned');
+async function gbody(){
+  const box=$('#gbody');if(!box)return;let h='';
+  try{
+    if(GT=='play'){
+      const mine=await A('gmine'),n=mine.filter(g=>g.Mine).length;
+      h=(n?`<div class="gban" data-a="gtab" data-k="mine"><span>⚔️ ${n} game${n>1?'s':''} waiting for your move</span><span>Open ›</span></div>`:'')+
+        Object.entries(GN).map(([k,v])=>`<div class="gc"><i>${v[0]}</i><div><b>${v[1]}</b><small>${v[2]}</small><div class="gcb"><button class="ed" data-a="gq" data-k="${k}">⚡ Quick match</button><button class="ed" data-a="gfr" data-k="${k}">👥 Challenge a friend</button></div></div></div>`).join('')+
+        '<p class="sub" style="text-align:center;padding:8px 24px">Quick match pairs you with a random player who is waiting. You can also challenge anyone from a chat with the 🎮 button.</p>'}
+    else if(GT=='mine'){
+      const mine=await A('gmine');
+      h=mine.map(g=>`<div class="pr" data-a="gopen" data-i="${g.ID}" style="cursor:pointer">${AV(g.Opp)}<div class="nm">${nm(g.Opp)}<br><small>${E(GN[g.Kind]?GN[g.Kind][1]:g.Kind)} · ${stt(g)}</small></div>${g.Mine?'<b class="bd">Your move</b>':''}</div>`).join('')||'<p class="empty">No games yet. Start one from the Play tab.</p>'}
+    else if(GT=='solo'){
+      h=`<div class="gc"><i>🐍</i><div><b>Snake</b><small>Eat, grow, do not crash. Top the leaderboard.</small><div class="gcb"><button class="ed" data-a="gplay" data-g="snake">▶ Play</button></div></div></div>
+      <div class="gc"><i>🧠</i><div><b>Memory Match</b><small>Find all the pairs in the fewest moves.</small><div class="gcb"><button class="ed" data-a="gplay" data-g="memory">▶ Play</button></div></div></div>
+      <div class="gc"><i>🔤</i><div><b>Daily Word</b><small>One 5-letter puzzle a day. Same word for everyone.</small><div class="gcb"><button class="ed" data-a="gword">▶ Play today’s word</button></div></div></div>
+      <p class="sg" style="padding:8px 16px 0">Rewards</p><div class="gcb" style="padding:0 12px 12px"><button class="ed" data-a="gh">🏆 Rewards hub</button><button class="ed" data-a="shop">🛍 Shop</button><button class="ed" data-a="inv">💌 Invite friends</button></div>`}
+    else{
+      const [x,s,m]=await Promise.all([A('gboard?g=xp'),A('gboard?g=snake'),A('gboard?g=memory')]);
+      const sec=(t,l)=>`<p class="sg" style="padding:8px 16px 0">${t}</p>`+(l.map((r,i)=>`<div class="pr"><b>${i+1}</b>${AV(r.U)}<div class="nm">${nm(r.U)}</div><b>${r.V}</b></div>`).join('')||'<small class="sub" style="padding:0 16px">No scores yet</small>');
+      h=sec('⭐ Top XP',x)+sec('🐍 Snake',s)+sec('🧠 Memory Match',m)}
+  }catch(e){h='<p class="empty">'+E(e.message)+'</p>'}
+  box.innerHTML=h}
+
+/* choose a friend to challenge */
+function friendPicker(kind){
+  modal(`<h3>Challenge a friend</h3><p class="sub">${E(GN[kind][1])}</p><div class="sb" style="padding:0"><input id="gfq" placeholder="Search a username" autocomplete="off"></div><div id="gfl"></div>`);
+  const draw=async()=>{const q=$('#gfq')?$('#gfq').value.trim():'';let l=[];try{l=q?await A('search?q='+encodeURIComponent(q)):await A('friends')}catch(e){}
+    const b=$('#gfl');if(b)b.innerHTML=l.map(u=>`<div class="pr">${AV(u)}<div class="nm">${nm(u)}<br><small>${u.On?'Online':''}</small></div><button class="ed" data-a="gnw2" data-u="${u.ID}" data-k="${kind}">Challenge</button></div>`).join('')||'<p class="empty">Search a username, or follow people to see them here.</p>'};
+  let t;$('#gfq').oninput=()=>{clearTimeout(t);t=setTimeout(draw,250)};draw()}
+
+/* quick match */
+async function quick(kind){
+  const r=await A('gqjoin',{kind});
+  if(r.id){gview(r.id);return}
+  modal(`<h3>Finding a player</h3><div class="gq"><div class="ubar"><i></i></div><p class="sub" style="text-align:center">Waiting for another player to join ${E(GN[kind][1])}…</p><button class="pri sec" data-a="gqc">Cancel</button></div>`,true);
+  let n=0;clearInterval(QT);
+  QT=setInterval(async()=>{n++;
+    if(!$('.gq')){clearInterval(QT);A('gqcancel',{}).catch(()=>{});return}
+    try{const j=await A('gqpoll');if(j.id){clearInterval(QT);gview(j.id);return}}catch(e){}
+    if(n>36){clearInterval(QT);A('gqcancel',{}).catch(()=>{});const q=$('.gq');if(q)q.innerHTML=`<p class="empty">No one else is online right now. Try challenging a friend instead.</p><button class="pri" data-a="gfr" data-k="${kind}">Challenge a friend</button>`}},2000)}
+
+/* the game board */
+async function gview(id){GID=id;drawGame(await A('gget?id='+id))}
+function drawGame(g){
+  GID=g.ID;const me=g.Me,opp=me==1?g.B:g.A,mt=g.Turn==ME.ID,act=g.Status=='active';
+  let s;
+  if(act)s=g.Kind=='rps'?(g.My?'Waiting for @'+opp.Username+'…':'Pick your move'):(mt?'Your turn':'Waiting for @'+opp.Username+'…');
+  else if(g.Status=='draw')s='It is a draw 🤝';
+  else if(g.Win==ME.ID)s=g.Status=='resigned'?'You won, they resigned 🎉':'You won! 🎉';
+  else s=g.Status=='resigned'?'You resigned':'@'+opp.Username+' won';
+  let board='';
+  if(g.Kind=='ttt')board='<div class="tb">'+g.Board.map((v,i)=>`<button data-a="gmv" data-m="${i}" ${(!act||!mt||v)?'disabled':''}>${v==1?'<span style="color:#ef4444">✕</span>':v==2?'<span style="color:#3b82f6">◯</span>':''}</button>`).join('')+'</div>';
+  else if(g.Kind=='c4')board='<div class="c4">'+g.Board.map((v,i)=>`<button class="${v?'p'+v:''}" data-a="gmv" data-m="${i%7}" ${(!act||!mt)?'disabled':''} aria-label="Column ${i%7+1}"></button>`).join('')+'</div>';
+  else{const mineL=me==1?g.L1:g.L2,theirL=me==1?g.L2:g.L1,sc=me==1?[g.S1,g.S2]:[g.S2,g.S1];
+    board=`<div class="rsc"><b>You ${sc[0]}</b><span>–</span><b>${sc[1]} @${E(opp.Username)}</b></div>`+(g.Rd?`<div class="rrv"><span>${RP[mineL]||''}</span><small>vs</small><span>${RP[theirL]||''}</span></div><p class="sub" style="text-align:center">${g.LW==0?'Tie. Go again.':g.LW==me?'You won the round':'They won the round'}</p>`:'')+(act?`<div class="rpick">${['r','p','s'].map(k=>`<button data-a="gmv" data-m="${k}" ${g.My?'disabled':''} class="${g.My==k?'sel':''}">${RP[k]}</button>`).join('')}</div>`:'')}
+  const mark=g.Kind=='ttt'?['✕','◯']:g.Kind=='c4'?['🔴','🟡']:['',''];
+  const html=`<div id="gbd" data-g="${g.ID}" style="display:grid;gap:14px"><div class="gvs">${AV(g.A)}<b>${nm(g.A)} ${mark[0]}</b><span>vs</span>${AV(g.B)}<b>${nm(g.B)} ${mark[1]}</b></div><p class="gst">${E(s)}</p>${board}${act?'<button class="ed" data-a="grs">🏳 Resign</button>':`<button class="pri" data-a="grm" data-k="${g.Kind}" data-u="${opp.ID}">🔁 Play again</button>`}</div>`;
+  const bx=document.getElementById('gbd');
+  if(bx&&bx.dataset.g==g.ID)bx.outerHTML=html;else modal('<h3>'+E(GN[g.Kind][1])+'</h3>'+html)}
+window.XGU=id=>{if(GID==id&&document.getElementById('gbd'))gview(id).catch(()=>{});else{toast('🎮 Your move in a game');if(tab=='games'&&GT!='solo'&&GT!='rank')gbody()}};
+window.XGM=id=>{if($('.gq')){clearInterval(QT);gview(id).catch(()=>{})}};
+setInterval(()=>{if(GID&&document.getElementById('gbd')&&!document.hidden)gview(GID).catch(()=>{})},5000);
+
+/* challenge cards inside chats, bubble themes */
+const L2=L;
+L=async function(){await L2();decorate()};
+function decorate(){
+  const mineB=XC.Bub||'',theirB=(typeof peer!='undefined'&&peer&&peer.Bub)||'';
+  document.querySelectorAll('#ms .m').forEach(el=>{
+    const m=el.textContent.trim().match(/^🎮 (ttt|c4|rps) ([0-9a-f]{24})/);
+    if(m){const me=el.classList.contains('me');el.removeAttribute('data-a');
+      el.innerHTML=`<div class="gcard"><b>${GN[m[1]][0]} ${E(GN[m[1]][1])}</b><small>${me?'You sent a challenge':'You were challenged'}</small><button class="ed" data-a="gopen" data-i="${m[2]}">Open game</button></div>`}
+    const c=el.classList.contains('me')?mineB:theirB;if(c)el.classList.add(c)})}
+const ch=chat;
+chat=async function(u){await ch(u);const bar=document.querySelector('.ch .bar');
+  if(bar&&!$('#gmb')){const mic=$('#mic');(mic||bar.lastElementChild).insertAdjacentHTML('beforebegin','<button id="gmb" data-a="gch" aria-label="Play a game" style="font-size:20px">🎮</button>')}};
+
+/* ================= DAILY WORD ================= */
+async function wopen(){wdraw(await A('wget'))}
+function wdraw(j){
+  WJ=j;const rows=[];
+  for(let r=0;r<6;r++){const g=j.G[r];rows.push('<div class="wr">'+[0,1,2,3,4].map(c=>g?`<div class="wc wc${g.F[c]}">${E(g.W[c])}</div>`:'<div class="wc"></div>').join('')+'</div>')}
+  const body=`<div class="wg">${rows.join('')}</div>`+(j.Done?`<p class="gst">${j.Won?'Solved in '+j.G.length+'/6 🎉':'The word was '+E((j.Answer||'').toUpperCase())}</p><button class="pri" data-a="wsh">📤 Share result</button><button class="pri sec" data-a="wpost">📝 Post to my feed</button><small class="sub" style="text-align:center">A new word arrives every day at midnight UTC.</small>`:`<div class="bar" style="padding:0;border:0"><input id="wi" maxlength="5" placeholder="Type a 5-letter word" autocomplete="off" autocapitalize="none"><button data-a="wgo">Guess</button></div><p class="er" id="wer"></p>`);
+  modal('<h3>Daily Word</h3><div id="wgd" style="display:grid;gap:14px">'+body+'</div>');
+  const i=$('#wi');if(i){i.focus();i.onkeydown=e=>{if(e.key=='Enter')wgo()}}}
+async function wgo(){const i=$('#wi');if(!i)return;try{wdraw(await A('wguess',{w:i.value.trim().toLowerCase()}))}catch(e){const r=$('#wer');if(r)r.textContent=e.message}}
+function wtext(){const em=WJ.G.map(g=>[...g.F].map(c=>c=='2'?'🟩':c=='1'?'🟨':'⬛').join('')).join('\n');return`Amlink Word ${WJ.Day} ${WJ.Won?WJ.G.length:'X'}/6\n${em}\n#amlinkword`}
+
+/* ================= SHOP, INVITES, INTERESTS ================= */
+async function shop(){
+  const j=await A('shop'),T={frame:'Avatar frames',name:'Name styles',bubble:'Chat bubbles'};
+  const prev=it=>it.Type=='frame'?`<b class="av ${it.ID}">${E((ME.Username||'A')[0])}</b>`:it.Type=='name'?`<b class="${it.ID}">${E(ME.Username||'you')}</b>`:`<div class="m me ${it.ID}" style="max-width:none">Hello 👋</div>`;
+  modal(`<h3>Shop</h3><div class="stg" style="padding:0"><div class="stc"><b>🪙 ${j.Coins}</b><small>Your coins</small></div><div class="stc"><b>Lv ${j.Level}</b><small>Your level</small></div></div><small class="sub">Earn coins from the daily reward, challenges, games and invites.</small>`+
+    Object.keys(T).map(t=>`<p class="sg" style="padding:0">${T[t]}</p><div class="shg">`+j.Items.filter(i=>i.Type==t).map(it=>`<div class="shi">${prev(it)}<small>${E(it.Name)}</small>`+(it.Own?`<button class="ed" data-a="seq" data-i="${it.ID}" data-t="${it.Type}" data-e="${it.Eq?1:0}">${it.Eq?'Unequip':'Equip'}</button>`:`<button class="ed" data-a="sby" data-i="${it.ID}" ${j.Level<it.Lvl?'disabled':''}>${j.Level<it.Lvl?'Level '+it.Lvl:'🪙 '+it.Price}</button>`)+'</div>').join('')+'</div>').join(''))}
+async function invite(){
+  const j=await A('refcode'),link=location.origin+'/?r='+j.Code;
+  modal(`<h3>Invite friends</h3><p class="sub">You and your friend each get 🪙 50 when they join with your link. You have invited ${j.N} so far.</p><input id="rfl" readonly value="${E(link)}"><button class="pri" data-a="rfs" data-l="${E(link)}">📤 Share invite</button>`)}
+async function ints(){const j=await A('intget');modal('<h3>Your interests</h3><p class="sub">We use these to fill your For You feed.</p>'+XINTH(j.Mine,''))}
+
+/* ================= startup hooks ================= */
+const ap=app;
+app=function(){ap();
+  A('cosme').then(j=>{XC=j||{}}).catch(()=>{});
+  try{const c=localStorage.getItem('ref');if(c)A('refclaim',{code:c}).then(()=>toast('Invite bonus: +50 coins 🎉')).catch(()=>{}).finally(()=>{try{localStorage.removeItem('ref')}catch(e){}})}catch(e){}};
+const od=openDr;
+openDr=function(){od();$('#dr').insertAdjacentHTML('beforeend','<p class="sg">Games and rewards</p><div class="cd"><button class="sr" data-a="gtabgo"><i>🎮</i>Games<em>›</em></button><button class="sr" data-a="shop"><i>🛍</i>Shop<em>›</em></button><button class="sr" data-a="inv"><i>💌</i>Invite friends<em>›</em></button><button class="sr" data-a="ints"><i>❤️</i>Your interests<em>›</em></button></div>')};
+
+/* shared links: /g/snake?from=name&s=120 */
+(function(){const m=location.pathname.match(/^\/g\/(snake|memory|word)\/?$/);if(!m)return;
+  const q=new URLSearchParams(location.search),fr=(q.get('from')||'').replace(/\W/g,'').slice(0,20),sc=parseInt(q.get('s'))||0;
+  const w=setInterval(()=>{if(!ME||!ME.Username||!window.XG)return;clearInterval(w);history.replaceState(null,'','/');
+    if(fr&&sc&&m[1]!='word')toast('@'+fr+' scored '+sc+'. Can you beat it?');
+    if(m[1]=='snake')XG.snake();else if(m[1]=='memory')XG.memory();else wopen().catch(e=>toast(e.message))},700)})();
+
+/* ================= clicks ================= */
+$('#app').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,d=b.dataset,i=d.i;
+  try{
+    if(a=='gtab'){GT=d.k;if(tab!='games')await go('games');else{document.querySelectorAll('.atb [data-a=gtab]').forEach(x=>x.classList.toggle('on',x.dataset.k==GT));gbody()}}
+    else if(a=='gtabgo'){$('#app').classList.remove('dro');go('games')}
+    else if(a=='gq')quick(d.k);
+    else if(a=='gqc'){clearInterval(QT);await A('gqcancel',{});closeM()}
+    else if(a=='gfr')friendPicker(d.k);
+    else if(a=='gnw2'){b.disabled=true;const j=await A('gnew',{to:d.u,kind:d.k});toast('Challenge sent 🎮');gview(j.id)}
+    else if(a=='gopen')gview(i);
+    else if(a=='gmv')drawGame(await A('gmove',{id:GID,m:d.m}));
+    else if(a=='grs'){if(confirm('Resign this game?'))drawGame(await A('gresign',{id:GID}))}
+    else if(a=='grm'){const j=await A('gnew',{to:d.u,kind:d.k});gview(j.id)}
+    else if(a=='gch'&&typeof peer!='undefined'&&peer)modal(`<h3>Challenge ${E(peer.Username)}</h3><div class="ctl">${Object.entries(GN).map(([k,v])=>`<button data-a="gnw" data-k="${k}"><i>${v[0].slice(0,2)}</i>${E(v[1])}<small>${E(v[2])}</small></button>`).join('')}</div>`);
+    else if(a=='gnw'){const j=await A('gnew',{to:peer.ID,kind:d.k});closeM();L().catch(()=>{});gview(j.id)}
+    else if(a=='gword')wopen();
+    else if(a=='wgo')wgo();
+    else if(a=='wsh'){const t=wtext(),l=location.origin+'/g/word';navigator.share?navigator.share({title:'Amlink Word',text:t,url:l}).catch(()=>{}):(navigator.clipboard&&navigator.clipboard.writeText(t+'\n'+l),toast('Result copied'))}
+    else if(a=='wpost'){await A('post4',{text:wtext(),media:'',kind:'',poll:'',sens:'',poster:'',alt:'',cm:'0',at:''});toast('Posted 🎉')}
+    else if(a=='shop')shop();
+    else if(a=='sby'){await A('shopbuy',{id:i});toast('Unlocked! 🎉');A('cosme').then(j=>{XC=j||{}});shop()}
+    else if(a=='seq'){await A('shopeq',{id:d.e=='1'?'':i,type:d.t});A('cosme').then(j=>{XC=j||{}});shop()}
+    else if(a=='inv')invite();
+    else if(a=='rfs'){const l=d.l;navigator.share?navigator.share({title:'Amlink',text:'Join me on Amlink and we both get coins',url:l}).catch(()=>{}):cp(l)}
+    else if(a=='ints')ints();
+    else if(a=='intt'){b.classList.toggle('sel');const l=[...document.querySelectorAll('#intc .sel')].map(x=>x.dataset.k).join(',');await A('intset',{list:l})}
+    else if(a=='shsc'){const l=location.origin+'/g/'+d.g+'?from='+encodeURIComponent(ME.Username||'')+'&s='+d.s,t='I scored '+d.s+' in '+(d.g=='snake'?'Snake':'Memory Match')+'. Can you beat me?';navigator.share?navigator.share({title:'Amlink',text:t,url:l}).catch(()=>{}):cp(l)}
+  }catch(x){toast(x.message)}});
+})();
+</script>
+
+<!-- ===== Amlink Batch 3: reel video editor (trim, crop, filters, adjust, sound) ===== -->
+<style>
+#vedt{position:absolute;inset:0;z-index:48;background:var(--bg);display:flex;flex-direction:column;overflow-y:auto;animation:pgin .28s cubic-bezier(.2,.8,.2,1);padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+#vedt .pgh{max-width:none}
+.vcv{position:relative;display:grid;place-items:center;background:#000;min-height:34vh;touch-action:none;flex:none}
+.vcv canvas{max-width:100%;max-height:44vh;touch-action:none;cursor:grab}
+.vpp{position:absolute;left:12px;bottom:12px;width:44px;height:44px;border-radius:50%;border:0;background:#000a;color:#fff;font-size:18px}
+.vtm{position:absolute;right:12px;bottom:18px;color:#fff;font-size:12px;text-shadow:0 1px 3px #000}
+.vpn{padding:8px 16px;display:grid;gap:12px;align-content:start}
+.vexp{position:absolute;inset:0;z-index:5;background:#000e;color:#fff;display:grid;place-content:center;gap:14px;text-align:center;padding:24px}
+.vexp .ed{background:#ffffff26;color:#fff;justify-self:center}
+</style>
+<script>
+(()=>{
+const FILT={'Original':'','Vivid':'saturate(1.4) contrast(1.1)','B&W':'grayscale(1)','Warm':'sepia(.35) saturate(1.2)','Cool':'hue-rotate(15deg) saturate(1.1) brightness(1.05)','Fade':'contrast(.85) brightness(1.1) saturate(.8)','Drama':'contrast(1.35) brightness(.9)','Vintage':'sepia(.5) contrast(.9) brightness(1.05) saturate(.9)','Glow':'brightness(1.12) saturate(1.3) contrast(.95)'};
+const ASP=[[0,'Original'],[9/16,'9:16'],[1,'1:1'],[4/5,'4:5'],[16/9,'16:9']];
+const F=()=>typeof CanvasRenderingContext2D!='undefined'&&'filter' in CanvasRenderingContext2D.prototype;
+const REC=()=>!!(window.MediaRecorder&&HTMLCanvasElement.prototype.captureStream&&(window.AudioContext||window.webkitAudioContext));
+const mm=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+const MAXD=60;
+let ES=null,V=null,raf=0,EXP=null;
+
+/* recordings made in a browser have no length stored in them. This adds it, so the reel can be scrubbed everywhere. */
+function fixWebm(buf,dur){
+  const rdSize=p=>{const b=buf[p];if(b===undefined)return null;let l=1,m=0x80;while(l<=8&&!(b&m)){l++;m>>=1}if(l>8)return null;let v=b&(m-1),unk=v===m-1;for(let i=1;i<l;i++){const c=buf[p+i];if(c===undefined)return null;v=v*256+c;if(c!==255)unk=false}return{l,v,unk}};
+  const rdId=p=>{const b=buf[p];if(b===undefined)return null;let l=1,m=0x80;while(l<=4&&!(b&m)){l++;m>>=1}if(l>4)return null;let v=0;for(let i=0;i<l;i++)v=v*256+buf[p+i];return{l,v}};
+  const wrSize=(a,pos,l,v)=>{for(let i=l-1;i>=0;i--){a[pos+i]=v%256;v=Math.floor(v/256)}a[pos]|=(0x80>>(l-1))};
+  let p=0;const h=rdId(p);if(!h||h.v!==0x1A45DFA3)return null;
+  const hs=rdSize(p+h.l);if(!hs)return null;p+=h.l+hs.l+hs.v;
+  const sg=rdId(p);if(!sg||sg.v!==0x18538067)return null;
+  const ss=rdSize(p+sg.l);if(!ss)return null;
+  const segSizePos=p+sg.l,segStart=p+sg.l+ss.l;let q=segStart;
+  const end=ss.unk?buf.length:Math.min(buf.length,q+ss.v);
+  let seek=null,prev=null;
+  while(q<end){
+    const id=rdId(q);if(!id)return null;const sz=rdSize(q+id.l);if(!sz||sz.unk)return null;
+    const el={id:id.v,pos:q,il:id.l,sl:sz.l,size:sz.v};
+    if(id.v===0x1F43B675)return null;                    // a cluster came before Info
+    if(id.v===0x114D9B74)seek=el;
+    if(id.v===0x1549A966){
+      const cs=q+id.l+sz.l,ce=cs+sz.v;let scale=1000000,o=cs;
+      while(o<ce){const cid=rdId(o);if(!cid)return null;const csz=rdSize(o+cid.l);if(!csz)return null;
+        if(cid.v===0x4489)return null;                   // already has a duration
+        if(cid.v===0x2AD7B1){let v=0;for(let i=0;i<csz.v;i++)v=v*256+buf[o+cid.l+csz.l+i];scale=v}
+        o+=cid.l+csz.l+csz.v}
+      const add=new Uint8Array(11);add[0]=0x44;add[1]=0x89;add[2]=0x88;new DataView(add.buffer).setFloat64(3,dur*1e9/scale);
+      const newLen=sz.v+11,hdr=new Uint8Array(12);hdr.set([0x15,0x49,0xA9,0x66]);hdr[4]=0x01;let n=newLen;for(let i=11;i>=5;i--){hdr[i]=n%256;n=Math.floor(n/256)}
+      const delta=hdr.length+newLen-(id.l+sz.l+sz.v);
+      if(!seek){                                          // no index: the file can simply grow
+        const out=new Uint8Array(buf.length+delta);
+        out.set(buf.subarray(0,q),0);out.set(hdr,q);out.set(buf.subarray(cs,ce),q+hdr.length);out.set(add,q+hdr.length+sz.v);out.set(buf.subarray(ce),q+hdr.length+newLen);
+        if(!ss.unk){let v=ss.v+delta;if(v>Math.pow(2,7*ss.l)-2)return null;wrSize(out,segSizePos,ss.l,v)}
+        return out}
+      // an index exists: take the room from the padding (Void) right before Info so nothing after it moves
+      if(!prev||prev.id!==0xEC||prev.pos+prev.il+prev.sl+prev.size!==q||prev.size<delta)return null;
+      const out=new Uint8Array(buf),ns=q-delta;
+      wrSize(out,prev.pos+prev.il,prev.sl,prev.size-delta);
+      out.fill(0,prev.pos+prev.il+prev.sl,ns);
+      out.set(hdr,ns);out.set(buf.subarray(cs,ce),ns+hdr.length);out.set(add,ns+hdr.length+sz.v);
+      let o2=seek.pos+seek.il+seek.sl,fixed=false;const e2=o2+seek.size;
+      while(o2<e2){const a=rdId(o2),as=rdSize(o2+a.l);
+        if(a.v===0x4DBB){let k=o2+a.l+as.l;const ke=k+as.v;let isInfo=false,pp=-1;
+          while(k<ke){const b=rdId(k),bs=rdSize(k+b.l),vs=k+b.l+bs.l;
+            if(b.v===0x53AB&&bs.v===4&&buf[vs]===0x15&&buf[vs+1]===0x49&&buf[vs+2]===0xA9&&buf[vs+3]===0x66)isInfo=true;
+            if(b.v===0x53AC)pp=k;
+            k+=b.l+bs.l+bs.v}
+          if(isInfo&&pp>=0){const b=rdId(pp),bs=rdSize(pp+b.l),vs=pp+b.l+bs.l;let v=ns-segStart;
+            if(v>=Math.pow(256,bs.v))return null;for(let i=bs.v-1;i>=0;i--){out[vs+i]=v%256;v=Math.floor(v/256)}fixed=true}}
+        o2+=a.l+as.l+as.v}
+      return fixed?out:null}
+    prev=el;q+=id.l+sz.l+sz.v}
+  return null}
+
+/* how long a reel is, even when the file itself does not say */
+window.rdur=v=>isFinite(v.duration)&&v.duration>0?v.duration:(+v.dataset.dur||0);
+
+const pickMime=()=>{for(const m of ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm','video/mp4;codecs=avc1,mp4a.40.2','video/mp4']){try{if(MediaRecorder.isTypeSupported(m))return m}catch(e){}}return ''};
+const once=(el,ev)=>new Promise(r=>{const t=setTimeout(r,5000);el.addEventListener(ev,()=>{clearTimeout(t);r()},{once:true})});
+const fstr=()=>((FILT[ES.flt]||'')+` brightness(${ES.br}%) contrast(${ES.ct}%) saturate(${ES.sa}%)`).trim();
+const adjusted=()=>ES.flt!='Original'||ES.br!=100||ES.ct!=100||ES.sa!=100;
+
+/* what part of the video is shown, and how big the result is */
+function geom(vw,vh){
+  const ar=ES.asp||vw/vh;let cw,ch;
+  if(vw/vh>ar){ch=vh;cw=vh*ar}else{cw=vw;ch=vw/ar}
+  cw/=ES.zoom;ch/=ES.zoom;
+  const L=Math.max(160,Math.min(960,Math.round(Math.max(cw,ch)))),ow=ar>=1?L:Math.round(L*ar),oh=ar>=1?Math.round(L/ar):L;
+  return{ar,cw,ch,sx:(vw-cw)*ES.px,sy:(vh-ch)*ES.py,ow:ow&~1,oh:oh&~1}}
+function draw(cv,v){
+  const g=geom(v.videoWidth,v.videoHeight);
+  if(cv.width!=g.ow||cv.height!=g.oh){cv.width=g.ow;cv.height=g.oh}
+  const x=cv.getContext('2d');x.filter=F()?fstr():'none';
+  x.drawImage(v,g.sx,g.sy,g.cw,g.ch,0,0,cv.width,cv.height)}
+
+/* ---------- the editor screen ---------- */
+async function open(file){
+  close();
+  const v=document.createElement('video');v.playsInline=true;v.preload='auto';v.muted=true;v.src=URL.createObjectURL(file);
+  try{await new Promise((res,rej)=>{v.onloadeddata=res;v.onerror=()=>rej(new Error('x'));setTimeout(()=>rej(new Error('t')),15000)})}
+  catch(e){URL.revokeObjectURL(v.src);toast('This video cannot be edited here. You can still post it as it is.');return}
+  let d=v.duration;if(!isFinite(d)||!d)d=file.xdur||0;
+  if(!d){URL.revokeObjectURL(v.src);toast('Could not read the length of this video');return}
+  V=v;ES={file,dur:d,start:0,end:Math.min(d,MAXD),asp:0,zoom:1,px:.5,py:.5,flt:'Original',br:100,ct:100,sa:100,mute:false,tab:'trim',busy:false};
+  const o=document.createElement('div');o.id='vedt';
+  o.innerHTML=`<div class="pgh"><button data-v="x" aria-label="Cancel">←</button><b>Edit video</b><button class="ed" data-v="ok" style="margin-left:auto;padding:6px 16px">Done</button></div><div class="vcv"><canvas id="vcv"></canvas><button class="vpp" data-v="pp" aria-label="Play or pause">⏸</button><span class="vtm" id="vtm"></span></div><div class="atb" id="vtb">${[['trim','✂️ Trim'],['crop','⬛ Crop'],['flt','✨ Filters'],['adj','🎚 Adjust'],['snd','🔊 Sound']].map(([k,l])=>`<button data-v="tab" data-k="${k}">${l}</button>`).join('')}</div><div class="vpn" id="vpn"></div>`;
+  $('#app').appendChild(o);
+  o.onclick=click;o.oninput=input;
+  const cv=$('#vcv');let drag=null;
+  cv.onpointerdown=e=>{cv.setPointerCapture(e.pointerId);drag=[e.clientX,e.clientY]};
+  cv.onpointermove=e=>{if(!drag||!V)return;
+    const g=geom(V.videoWidth,V.videoHeight),k=cv.width/cv.clientWidth,dx=(e.clientX-drag[0])*k,dy=(e.clientY-drag[1])*k;drag=[e.clientX,e.clientY];
+    const sw=V.videoWidth-g.cw,sh=V.videoHeight-g.ch;
+    if(sw>1)ES.px=Math.min(1,Math.max(0,(g.sx-dx*g.cw/cv.width)/sw));
+    if(sh>1)ES.py=Math.min(1,Math.max(0,(g.sy-dy*g.ch/cv.height)/sh))};
+  cv.onpointerup=cv.onpointercancel=()=>{drag=null};
+  panel();V.currentTime=0;V.play().catch(()=>{});loop()}
+function close(){
+  cancelAnimationFrame(raf);const o=$('#vedt');if(o)o.remove();
+  if(V){try{V.pause()}catch(e){}try{URL.revokeObjectURL(V.src)}catch(e){}}
+  V=null;ES=null}
+function loop(){
+  cancelAnimationFrame(raf);
+  const step=()=>{if(!V||!ES||!$('#vedt'))return;
+    if(!ES.busy){
+      if(!V.paused&&V.currentTime>=ES.end)V.currentTime=ES.start;
+      if(V.readyState>=2)draw($('#vcv'),V);
+      const t=$('#vtm');if(t)t.textContent=mm(Math.max(0,V.currentTime-ES.start))+' / '+mm(ES.end-ES.start)}
+    raf=requestAnimationFrame(step)};
+  step()}
+
+function panel(){
+  document.querySelectorAll('#vtb button').forEach(b=>b.classList.toggle('on2',b.dataset.k==ES.tab));
+  const p=$('#vpn');let h='';
+  if(ES.tab=='trim')h=`<label class="fl2">Start <small id="vts">${mm(ES.start)}</small><input type="range" id="vs" min="0" max="${ES.dur}" step="0.1" value="${ES.start}"></label><label class="fl2">End <small id="vte">${mm(ES.end)}</small><input type="range" id="ve" min="0" max="${ES.dur}" step="0.1" value="${ES.end}"></label><p class="sub" id="vtl">Length ${mm(ES.end-ES.start)}. Reels can be up to 1:00.</p>`;
+  else if(ES.tab=='crop')h=`<div class="atb" style="padding:0">${ASP.map(([a,l])=>`<button data-v="asp" data-a="${a}" class="${ES.asp==a?'on2':''}">${l}</button>`).join('')}</div><label class="fl2">Zoom<input type="range" id="vz" min="1" max="3" step="0.01" value="${ES.zoom}"></label><small class="sub">Drag the video to move it inside the frame.</small>`;
+  else if(ES.tab=='flt')h=F()?`<div class="atb" style="padding:0">${Object.keys(FILT).map(k=>`<button data-v="flt" data-f="${E(k)}" class="${ES.flt==k?'on2':''}">${E(k)}</button>`).join('')}</div>`:'<p class="sub">Filters need Chrome, Edge or Firefox on a computer or Android phone.</p>';
+  else if(ES.tab=='adj')h=F()?`<label class="fl2">Brightness<input type="range" id="vbr" min="50" max="150" value="${ES.br}"></label><label class="fl2">Contrast<input type="range" id="vct" min="50" max="150" value="${ES.ct}"></label><label class="fl2">Color<input type="range" id="vsa" min="0" max="200" value="${ES.sa}"></label>`:'<p class="sub">Adjustments need Chrome, Edge or Firefox.</p>';
+  else h=`<div class="row"><div>Remove sound<small>The reel will be silent</small></div><label class="sw"><input type="checkbox" id="vmu"${ES.mute?' checked':''}><span></span></label></div><button class="ed" data-v="hear">${V&&!V.muted?'🔇 Mute while editing':'🔊 Hear the sound while editing'}</button>`;
+  p.innerHTML=h}
+
+function input(e){
+  const id=e.target.id,val=+e.target.value;if(!ES)return;
+  if(id=='vs'){ES.start=Math.min(val,ES.end-.5);if(ES.end-ES.start>MAXD)ES.end=ES.start+MAXD;V.currentTime=ES.start;trimUi()}
+  else if(id=='ve'){ES.end=Math.max(val,ES.start+.5);if(ES.end-ES.start>MAXD)ES.start=ES.end-MAXD;V.currentTime=Math.max(ES.start,ES.end-.3);trimUi()}
+  else if(id=='vz')ES.zoom=val;
+  else if(id=='vbr')ES.br=val;else if(id=='vct')ES.ct=val;else if(id=='vsa')ES.sa=val;
+  else if(id=='vmu')ES.mute=e.target.checked}
+function trimUi(){
+  const s=$('#vs'),e=$('#ve');if(s)s.value=ES.start;if(e)e.value=ES.end;
+  const a=$('#vts'),b=$('#vte'),c=$('#vtl');if(a)a.textContent=mm(ES.start);if(b)b.textContent=mm(ES.end);if(c)c.textContent='Length '+mm(ES.end-ES.start)+'. Reels can be up to 1:00.'}
+
+function click(e){
+  const b=e.target.closest('[data-v]');if(!b||!ES)return;e.stopPropagation();const a=b.dataset.v;
+  if(a=='x'){if(!ES.busy)close()}
+  else if(a=='ok')done();
+  else if(a=='xc'){EXP&&EXP.cancel()}
+  else if(ES.busy)return;
+  else if(a=='pp'){if(V.paused){if(V.currentTime>=ES.end)V.currentTime=ES.start;V.play();b.textContent='⏸'}else{V.pause();b.textContent='▶'}}
+  else if(a=='tab'){ES.tab=b.dataset.k;panel()}
+  else if(a=='asp'){ES.asp=+b.dataset.a;ES.px=ES.py=.5;panel()}
+  else if(a=='flt'){ES.flt=b.dataset.f;panel()}
+  else if(a=='hear'){V.muted=!V.muted;panel()}}
+
+/* ---------- save the edit as a new video file ---------- */
+async function done(){
+  if(!ES||ES.busy)return;
+  const edited=ES.start>.05||ES.end<ES.dur-.05||ES.asp!=0||ES.zoom!=1||adjusted()||ES.mute;
+  if(!edited){close();toast('No changes made');return}
+  if(ES.end-ES.start>MAXD+.5){toast('Trim the video to 60 seconds or less');return}
+  if(!REC()){toast('This browser cannot save video edits. Try Chrome, Edge or Firefox.');return}
+  if(!F()&&adjusted()){toast('Filters and adjustments need Chrome, Edge or Firefox. Choose Original to continue.');return}
+  ES.busy=true;if(V)V.pause();
+  const o=$('#vedt'),ov=document.createElement('div');ov.className='vexp';
+  ov.innerHTML=`<b>Processing your video…</b><div class="ubar" style="width:240px;margin:auto"><i id="vpb" style="animation:none;width:0%;margin:0"></i></div><small id="vpt">0%</small><small>Keep this tab open. It takes about ${Math.ceil(ES.end-ES.start)} seconds.</small><button class="ed" data-v="xc">Cancel</button>`;
+  o.appendChild(ov);
+  try{
+    const f=await exportVideo(p=>{const a=$('#vpb'),t=$('#vpt');if(a)a.style.width=Math.round(p*100)+'%';if(t)t.textContent=Math.round(p*100)+'%'});
+    if(typeof window.studioSetVideo!='function')throw new Error('Open the reel screen first');
+    window.studioSetVideo(f);close();toast('Video ready ✂️')}
+  catch(err){if(err&&err.message!='cancel')toast(err.message||'Could not process the video');const x=$('.vexp');if(x)x.remove();if(ES){ES.busy=false;if(V)V.play().catch(()=>{})}}}
+
+function exportVideo(onp){
+  return new Promise((resolve,reject)=>{
+    const v=document.createElement('video');v.playsInline=true;v.preload='auto';v.src=V.src;
+    let ac=null,rec=null,tmr=0,cancelled=false,ended=false;
+    const clean=()=>{clearInterval(tmr);try{v.pause()}catch(e){}try{ac&&ac.close()}catch(e){}EXP=null};
+    EXP={cancel:()=>{cancelled=true;clean();try{if(rec&&rec.state!='inactive')rec.stop()}catch(e){}reject(new Error('cancel'))}};
+    v.onerror=()=>{clean();reject(new Error('This video format cannot be processed here.'))};
+    v.onloadeddata=async()=>{
+      try{
+        const g=geom(v.videoWidth,v.videoHeight),c=document.createElement('canvas');c.width=g.ow;c.height=g.oh;
+        const x=c.getContext('2d'),stream=c.captureStream(30),len=ES.end-ES.start,st=ES.start,en=ES.end,fl=F()?fstr():'none';
+        if(!ES.mute){const AC=window.AudioContext||window.webkitAudioContext;ac=new AC();const src=ac.createMediaElementSource(v),dest=ac.createMediaStreamDestination();src.connect(dest);await ac.resume();dest.stream.getAudioTracks().forEach(t=>stream.addTrack(t))}
+        else v.muted=true;
+        const mime=pickMime(),opts={videoBitsPerSecond:2200000,audioBitsPerSecond:128000};if(mime)opts.mimeType=mime;
+        rec=new MediaRecorder(stream,opts);const ch=[];
+        rec.ondataavailable=ev=>{if(ev.data&&ev.data.size)ch.push(ev.data)};
+        rec.onstop=async()=>{
+          if(cancelled)return;
+          try{
+            const type=(rec.mimeType||mime||'video/webm').split(';')[0];let blob=new Blob(ch,{type});
+            if(type=='video/webm'){try{const fx=fixWebm(new Uint8Array(await blob.arrayBuffer()),len);if(fx)blob=new Blob([fx],{type})}catch(e){}}
+            if(blob.size>28*1048576)throw new Error('The edited video is too large. Trim it or crop it smaller.');
+            const file=new File([blob],'reel.'+(type=='video/mp4'?'mp4':'webm'),{type});file.xdur=len;clean();resolve(file)}
+          catch(err){clean();reject(err)}};
+        v.currentTime=st;await once(v,'seeked');
+        rec.start(500);await v.play();
+        const tick=()=>{if(cancelled||ended)return;
+          x.filter=fl;x.drawImage(v,g.sx,g.sy,g.cw,g.ch,0,0,c.width,c.height);
+          onp(Math.min(1,Math.max(0,(v.currentTime-st)/len)));
+          if(v.currentTime>=en-.03||v.ended){ended=true;clearInterval(tmr);v.pause();setTimeout(()=>{try{rec.stop()}catch(e){}},200)}};
+        tmr=setInterval(tick,33)}
+      catch(err){clean();reject(new Error(err&&err.message&&err.message.length<90?err.message:'Could not process the video'))}}})}
+
+window.XVE={open,auto:f=>open(f)};
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a=vedit]');if(!b)return;e.stopPropagation();const f=typeof window.studioVideo=='function'&&window.studioVideo();if(f)open(f);else toast('Choose a video first')},true);
 })();
 </script>
 
