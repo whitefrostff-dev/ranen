@@ -101,6 +101,7 @@ type State struct {
 	X3       Ext3
 	X4       Ext4
 	X5       Ext5
+	X6       Ext6
 	Users    map[string]*User
 	Posts    []*Post
 	Msgs     []Msg
@@ -306,7 +307,19 @@ func uv(id string) map[string]any {
 	if u.Hide {
 		seen = 0
 	}
-	return map[string]any{"ID": u.ID, "Username": u.Username, "Verified": u.Verified, "On": now()-u.Seen < 120 && !u.Hide, "Seen": seen, "Av": u.Avatar, "Priv": x().Priv[u.ID], "Pin": x().Pin[u.ID]}
+	m := map[string]any{"ID": u.ID, "Username": u.Username, "Verified": u.Verified, "On": now()-u.Seen < 120 && !u.Hide, "Seen": seen, "Av": u.Avatar, "Priv": x().Priv[u.ID], "Pin": x().Pin[u.ID]}
+	if c := S.X6.Cos[u.ID]; c != nil {
+		if c.Frame != "" {
+			m["Fr"] = c.Frame
+		}
+		if c.Name != "" {
+			m["Nc"] = c.Name
+		}
+		if c.Bub != "" {
+			m["Bub"] = c.Bub
+		}
+	}
+	return m
 }
 func pv(p *Post) map[string]any {
 	cs := []map[string]any{}
@@ -401,6 +414,7 @@ func main() {
 	load()
 	fillIDs(true)
 	fillCIDs()
+	modHits = x5().Hits
 	go writer()
 	go janitor()
 	go func() {
@@ -890,6 +904,10 @@ func main() {
 					return
 				}
 				dropFiles(append([]string{p.Media}, p.More...)...)
+				if o := x3().PO[p.ID]; o != nil {
+					dropFiles(o.Poster)
+					delete(x3().PO, p.ID)
+				}
 				S.Posts = append(S.Posts[:i], S.Posts[i+1:]...)
 				save()
 				js(w, ok)
@@ -2163,6 +2181,10 @@ func purgeMore(id string) {
 		if p.User == id {
 			files = append(files, p.Media)
 			files = append(files, p.More...)
+			if o := x3().PO[p.ID]; o != nil {
+				files = append(files, o.Poster)
+				delete(x3().PO, p.ID)
+			}
 			continue
 		}
 		cs := p.Comments[:0:0]
@@ -2296,6 +2318,7 @@ func extra2() {
 			if p.User == u.ID {
 				s *= 0.5
 			}
+			s *= interestBoost(u.ID, p)
 			l = append(l, sp{p, s})
 		}
 		sort.Slice(l, func(a, b int) bool { return l[a].s > l[b].s })
@@ -4238,6 +4261,7 @@ type POpt struct {
 	Poster string
 	Alt    string
 	CM     int // who can comment: 0 everyone, 1 people the author follows, 2 nobody
+	Dur    float64 // length in seconds of an edited video
 }
 type SchP struct {
 	ID, User, Text, Media, Kind, Poll string
@@ -4305,7 +4329,7 @@ func buildPost(s *SchP) *Post {
 	if s.Sens {
 		x().Sens[p.ID] = true
 	}
-	if s.Opt.Poster != "" || s.Opt.Alt != "" || s.Opt.CM != 0 {
+	if s.Opt.Poster != "" || s.Opt.Alt != "" || s.Opt.CM != 0 || s.Opt.Dur > 0 {
 		o := s.Opt
 		x3().PO[p.ID] = &o
 	}
@@ -4396,11 +4420,15 @@ func extra8() {
 		if cm < 0 || cm > 2 {
 			cm = 0
 		}
+		dur, _ := strconv.ParseFloat(b["dur"], 64)
+		if dur < 0 || dur > 600 || dur != dur {
+			dur = 0
+		}
 		if (t == "" && len(media) == 0 && poll == "") || rn(t) > 2000 || len(media) > 10 {
 			fail(w, 400, "Invalid post")
 			return
 		}
-		s := &SchP{ID: uid(), User: u.ID, Text: t, Kind: k, Poll: poll, Sens: b["sens"] == "1", Opt: POpt{poster, trunc(strings.TrimSpace(b["alt"]), 200), cm}}
+		s := &SchP{ID: uid(), User: u.ID, Text: t, Kind: k, Poll: poll, Sens: b["sens"] == "1", Opt: POpt{poster, trunc(strings.TrimSpace(b["alt"]), 200), cm, dur}}
 		if len(media) > 0 {
 			s.Media, s.More = media[0], media[1:]
 		}
@@ -4771,6 +4799,7 @@ type Ext5 struct {
 	NoRR  map[string]bool            // read receipts off
 	Reach map[string]int
 	GSeen map[string]map[string]int64
+	Hits  map[string][]int64 // new-account posting limits, kept across restarts
 }
 
 func x5() *Ext5 {
@@ -4789,6 +4818,9 @@ func x5() *Ext5 {
 	}
 	if e.GSeen == nil {
 		e.GSeen = map[string]map[string]int64{}
+	}
+	if e.Hits == nil {
+		e.Hits = map[string][]int64{}
 	}
 	return e
 }
@@ -4983,7 +5015,7 @@ func edge(next http.Handler) http.Handler {
 				w.Write([]byte("ok"))
 				return
 			}
-			if p == "/" || strings.HasPrefix(p, "/u/") || strings.HasPrefix(p, "/tag/") || strings.HasPrefix(p, "/p/") {
+			if p == "/" || strings.HasPrefix(p, "/u/") || strings.HasPrefix(p, "/tag/") || strings.HasPrefix(p, "/p/") || strings.HasPrefix(p, "/g/") {
 				servePage(w, r)
 				return
 			}
@@ -5011,7 +5043,7 @@ var (
 
 func ogTags(r *http.Request) string {
 	p := r.URL.Path
-	n, tag, pid := "", "", ""
+	n, tag, pid, gm := "", "", "", ""
 	switch {
 	case strings.HasPrefix(p, "/u/"):
 		n = p[3:]
@@ -5019,6 +5051,8 @@ func ogTags(r *http.Request) string {
 		tag = p[5:]
 	case strings.HasPrefix(p, "/p/"):
 		pid = p[3:]
+	case strings.HasPrefix(p, "/g/"):
+		gm = p[3:]
 	default:
 		n, pid = r.URL.Query().Get("u"), r.URL.Query().Get("p")
 	}
@@ -5046,6 +5080,13 @@ func ogTags(r *http.Request) string {
 				}
 				break
 			}
+		}
+	} else if gm == "snake" || gm == "memory" || gm == "word" {
+		names := map[string]string{"snake": "Snake", "memory": "Memory Match", "word": "the Daily Word"}
+		from, sc := r.URL.Query().Get("from"), r.URL.Query().Get("s")
+		title, desc = "Play "+names[gm]+" on Amlink", "Play games with friends on Amlink"
+		if v, e := strconv.Atoi(sc); e == nil && v > 0 && v < 100000 && ogUser.MatchString(from) {
+			title, desc = "Can you beat @"+from+" at "+names[gm]+"?", "@"+from+" scored "+strconv.Itoa(v)+". Play on Amlink and try to beat it."
 		}
 	} else if tag != "" {
 		title, desc = "#"+tag+" on Amlink", "See posts tagged #"+tag+" on Amlink"
@@ -5185,6 +5226,9 @@ func extraB() {
 			if l == "" {
 				l = "Media"
 			}
+			if strings.HasPrefix(c.last.Text, "🎮 ") {
+				l = "🎮 Game challenge"
+			}
 			out = append(out, map[string]any{"U": uv(c.id), "Last": l, "TS": c.last.TS, "Un": c.un, "Mine": c.last.From == u.ID})
 		}
 		js(w, out)
@@ -5286,9 +5330,26 @@ func extraB() {
 			js(w, out)
 			return
 		}
-		for i := len(S.Posts) - 1; i >= 0 && len(out) < 40; i-- {
+		seenP := map[string]bool{}
+		if q != "" { // whole-word matches come from the word index
+			if toks := wordTok.FindAllString(q, -1); len(toks) > 0 {
+				wordIdx()
+				l := wordIx[toks[0]]
+				for i := len(l) - 1; i >= 0 && len(out) < 40; i-- {
+					p := l[i]
+					if fp(p.ID) != p || !vis(p) || !strings.Contains(strings.ToLower(p.Text), q) {
+						continue
+					}
+					seenP[p.ID] = true
+					out = append(out, pv(p))
+				}
+			}
+		}
+		scanned := 0 // partial words are found by a scan of the newest 5000 posts
+		for i := len(S.Posts) - 1; i >= 0 && len(out) < 40 && scanned < 5000; i-- {
+			scanned++
 			p := S.Posts[i]
-			if !vis(p) {
+			if seenP[p.ID] || !vis(p) {
 				continue
 			}
 			if q == "" || strings.Contains(strings.ToLower(p.Text), q) {
@@ -5523,5 +5584,857 @@ func extraB() {
 			return
 		}
 		fail(w, 400, "You cannot report this message")
+	})
+}
+
+// =====================================================================
+// ---------- Batch 2: multiplayer games, daily word, shop, invites, interests ----------
+// =====================================================================
+
+type Cos struct {
+	Own              []string
+	Frame, Name, Bub string
+}
+type Game struct {
+	ID, Kind, A, B, Turn, Status, Win string
+	Board                             []int
+	P1, P2, L1, L2                    string // rock-paper-scissors picks and the last revealed round
+	S1, S2, Rd, LW                    int
+	TS, Upd                           int64
+	Paid                              bool
+}
+type WS struct {
+	Day  string
+	G    []string
+	Done bool
+	Won  bool
+}
+type Ext6 struct {
+	Cos   map[string]*Cos
+	Games map[string]*Game
+	Word  map[string]*WS
+	Code  map[string]string // user -> invite code
+	CodeU map[string]string // invite code -> user
+	RefBy map[string]string // invited user -> inviter
+	RefN  map[string]int
+	Int   map[string][]string
+}
+
+func x6() *Ext6 {
+	e := &S.X6
+	if e.Cos == nil {
+		e.Cos = map[string]*Cos{}
+	}
+	if e.Games == nil {
+		e.Games = map[string]*Game{}
+	}
+	if e.Word == nil {
+		e.Word = map[string]*WS{}
+	}
+	if e.Code == nil {
+		e.Code = map[string]string{}
+	}
+	if e.CodeU == nil {
+		e.CodeU = map[string]string{}
+	}
+	if e.RefBy == nil {
+		e.RefBy = map[string]string{}
+	}
+	if e.RefN == nil {
+		e.RefN = map[string]int{}
+	}
+	if e.Int == nil {
+		e.Int = map[string][]string{}
+	}
+	return e
+}
+
+// ---------- games ----------
+func gameKind(k string) bool { return k == "ttt" || k == "c4" || k == "rps" }
+
+func newGame(kind, a, b string) *Game {
+	g := &Game{ID: uid(), Kind: kind, A: a, B: b, Turn: a, Status: "active", TS: now(), Upd: now()}
+	switch kind {
+	case "ttt":
+		g.Board = make([]int, 9)
+	case "c4":
+		g.Board = make([]int, 42)
+	case "rps":
+		g.Turn = ""
+	}
+	x6().Games[g.ID] = g
+	return g
+}
+
+func activeGames(id string) int {
+	n := 0
+	for _, g := range x6().Games {
+		if g.Status == "active" && (g.A == id || g.B == id) {
+			n++
+		}
+	}
+	return n
+}
+
+func gameView(g *Game, me string) map[string]any {
+	p := 1
+	if me == g.B {
+		p = 2
+	}
+	my, opp := g.P1, g.P2
+	if p == 2 {
+		my, opp = g.P2, g.P1
+	}
+	return map[string]any{"ID": g.ID, "Kind": g.Kind, "Board": g.Board, "Turn": g.Turn, "Status": g.Status, "Win": g.Win, "Me": p,
+		"A": uv(g.A), "B": uv(g.B), "S1": g.S1, "S2": g.S2, "Rd": g.Rd, "L1": g.L1, "L2": g.L2, "LW": g.LW, "My": my, "OppPicked": opp != ""}
+}
+
+func lineWin(b []int, p int) bool {
+	ls := [][3]int{{0, 1, 2}, {3, 4, 5}, {6, 7, 8}, {0, 3, 6}, {1, 4, 7}, {2, 5, 8}, {0, 4, 8}, {2, 4, 6}}
+	for _, l := range ls {
+		if b[l[0]] == p && b[l[1]] == p && b[l[2]] == p {
+			return true
+		}
+	}
+	return false
+}
+
+func c4Win(b []int, r, c, p int) bool {
+	dirs := [][2]int{{0, 1}, {1, 0}, {1, 1}, {1, -1}}
+	for _, d := range dirs {
+		n := 1
+		for s := -1; s <= 1; s += 2 {
+			rr, cc := r+d[0]*s, c+d[1]*s
+			for rr >= 0 && rr < 6 && cc >= 0 && cc < 7 && b[rr*7+cc] == p {
+				n++
+				rr += d[0] * s
+				cc += d[1] * s
+			}
+		}
+		if n >= 4 {
+			return true
+		}
+	}
+	return false
+}
+
+// 0 = tie, 1 = first picker wins, 2 = second wins
+func rpsWinner(a, b string) int {
+	if a == b {
+		return 0
+	}
+	if (a == "r" && b == "s") || (a == "s" && b == "p") || (a == "p" && b == "r") {
+		return 1
+	}
+	return 2
+}
+
+// payGame gives the rewards once, when a game ends (call with mu held)
+func payGame(g *Game) {
+	if g.Paid {
+		return
+	}
+	g.Paid = true
+	enough := false
+	if g.Kind == "rps" {
+		enough = g.S1+g.S2 >= 2
+	} else {
+		n := 0
+		for _, v := range g.Board {
+			if v != 0 {
+				n++
+			}
+		}
+		enough = n >= 5
+	}
+	if !enough {
+		return
+	}
+	switch g.Status {
+	case "won":
+		lo := g.A
+		if g.Win == g.A {
+			lo = g.B
+		}
+		gw := gpf(g.Win)
+		if gw.Cnt["gwin"] < 5 { // daily cap, stops win-trading
+			gw.Cnt["gwin"]++
+			gw.XP += 25
+			gw.Coins += 10
+		}
+		gw.Cnt["t_gwin"]++
+		badge(gw, "gamer")
+		gpf(lo).XP += 3
+		checkBadges(gw)
+	case "draw":
+		gpf(g.A).XP += 5
+		gpf(g.B).XP += 5
+	}
+}
+
+type qEnt struct {
+	user string
+	ts   int64
+}
+
+var (
+	gQueue = map[string][]qEnt{}
+	gMatch = map[string]string{} // waiting user -> game id they were matched into
+)
+
+func qDrop(id string) {
+	for k, l := range gQueue {
+		n := l[:0:0]
+		for _, e := range l {
+			if e.user != id && now()-e.ts < 75 {
+				n = append(n, e)
+			}
+		}
+		gQueue[k] = n
+	}
+}
+
+// ---------- daily word ----------
+var wordList = strings.Fields(`about above actor adult after again agree ahead alarm album alert alive allow alone along angel anger angle angry apart apple apply arena argue arise armed aside asset audio avoid awake award aware badly baker basic beach began begin being below bench berry birth black blame blank blind block blood board boost brain brand brave bread break brick brief bring broad brown build burst buyer cabin candy carry catch cause chain chair chalk charm chart chase cheap check chest chief child chill civil claim class clean clear clerk click climb clock close cloud coach coast color count court cover craft crash crazy cream crime cross crowd crown cycle daily dance dealt death debut delay depth doubt dozen draft drama dream dress drink drive eager early earth eight elite empty enemy enjoy enter entry equal error event every exact exist extra faith false fancy fault field fifth fight final first flame flash fleet floor focus force frame fresh front fruit funny giant given glass globe glory grace grade grain grand grant grass great green greet group grown guard guess guest guide habit happy harsh heart heavy hello honey honor horse hotel house human humor ideal image index inner input issue joint judge juice knife known label large laser later laugh layer learn lemon level light limit lunch magic major maker march match maybe mayor media metal model money month moral motor mouse mouth movie music naive nerve never newly night noble noise north novel nurse ocean offer often olive onion order other ought outer owner paint panel paper party peace phase phone photo piano pilot pitch place plain plane plant plate point power press price pride prime print prize proof proud queen quick quiet radio raise range rapid ratio reach ready realm relax reply right river robot rough round route royal rural salad scale scene scope score sense serve seven shade shake shape share sharp sheep sheet shelf shell shift shine shirt shock shoot short shown sight skill sleep slice slide small smart smile smoke solid solve sorry sound south space spare speak speed spend spice split sport staff stage stair stamp stand start state steam steel stick still stock stone store storm story strip study style sugar suite sunny super sweet swing table taste teach thank their theme there thick thing think third those three throw tiger title today token total touch tough tower trace track trade trail train treat trend trial tribe trick truck truly trust truth twice uncle under union unity until upper urban usage usual valid value video visit vital voice waste watch water wheel where which while white whole whose woman world worry worth would write wrong yield young youth`)
+
+var wordRe = regexp.MustCompile(`^[a-z]{5}$`)
+
+func wordOf(day string) string {
+	h := sha256.Sum256([]byte(day + env("WORD_SALT")))
+	n := int(h[0])<<24 | int(h[1])<<16 | int(h[2])<<8 | int(h[3])
+	if n < 0 {
+		n = -n
+	}
+	return wordList[n%len(wordList)]
+}
+
+// feedback: 2 = right spot, 1 = in the word, 0 = not in the word
+func wordFB(guess, ans string) string {
+	res := []byte("00000")
+	left := map[byte]int{}
+	for i := 0; i < 5; i++ {
+		if guess[i] == ans[i] {
+			res[i] = '2'
+		} else {
+			left[ans[i]]++
+		}
+	}
+	for i := 0; i < 5; i++ {
+		if res[i] == '2' {
+			continue
+		}
+		if left[guess[i]] > 0 {
+			res[i] = '1'
+			left[guess[i]]--
+		}
+	}
+	return string(res)
+}
+
+func wordState(id string) *WS {
+	e := x6()
+	ws := e.Word[id]
+	if ws == nil || ws.Day != today() {
+		ws = &WS{Day: today()}
+		e.Word[id] = ws
+	}
+	return ws
+}
+
+func wordView(ws *WS) map[string]any {
+	ans := wordOf(ws.Day)
+	gs := []map[string]string{}
+	for _, g := range ws.G {
+		gs = append(gs, map[string]string{"W": g, "F": wordFB(g, ans)})
+	}
+	out := map[string]any{"Day": ws.Day, "G": gs, "Done": ws.Done, "Won": ws.Won, "Max": 6}
+	if ws.Done && !ws.Won {
+		out["Answer"] = ans
+	}
+	return out
+}
+
+// ---------- shop ----------
+type ShopItem struct {
+	ID, Type, Name string
+	Price, Lvl     int
+}
+
+var shopItems = []ShopItem{
+	{"fr_gold", "frame", "Gold ring", 100, 1},
+	{"fr_neon", "frame", "Neon ring", 150, 2},
+	{"fr_rainbow", "frame", "Rainbow ring", 300, 4},
+	{"fr_fire", "frame", "Fire ring", 500, 6},
+	{"nc_blue", "name", "Blue name", 80, 1},
+	{"nc_pink", "name", "Pink name", 80, 1},
+	{"nc_green", "name", "Green name", 80, 1},
+	{"nc_shine", "name", "Shiny name", 400, 5},
+	{"bb_ocean", "bubble", "Ocean bubbles", 120, 2},
+	{"bb_sunset", "bubble", "Sunset bubbles", 120, 2},
+	{"bb_forest", "bubble", "Forest bubbles", 120, 3},
+	{"bb_night", "bubble", "Midnight bubbles", 200, 4},
+}
+
+func shopItem(id string) *ShopItem {
+	for i := range shopItems {
+		if shopItems[i].ID == id {
+			return &shopItems[i]
+		}
+	}
+	return nil
+}
+func setEq(c *Cos, it *ShopItem) {
+	switch it.Type {
+	case "frame":
+		c.Frame = it.ID
+	case "name":
+		c.Name = it.ID
+	case "bubble":
+		c.Bub = it.ID
+	}
+}
+
+// ---------- invites and interests ----------
+const codeAlpha = "abcdefghjkmnpqrstuvwxyz23456789"
+
+func refCode(id string) string {
+	e := x6()
+	if c := e.Code[id]; c != "" {
+		return c
+	}
+	for t := 0; t < 20; t++ {
+		b := make([]byte, 6)
+		rand.Read(b)
+		for i := range b {
+			b[i] = codeAlpha[int(b[i])%len(codeAlpha)]
+		}
+		c := string(b)
+		if _, k := e.CodeU[c]; !k {
+			e.Code[id] = c
+			e.CodeU[c] = id
+			return c
+		}
+	}
+	return ""
+}
+
+var interestList = []string{"music", "sports", "comedy", "gaming", "food", "travel", "fashion", "tech", "art", "study"}
+var interestWords = map[string][]string{
+	"music": {"music", "song", "album", "concert", "afrobeats", "lyrics"}, "sports": {"football", "soccer", "basketball", "sport", "sports", "goal", "match"},
+	"comedy": {"funny", "comedy", "meme", "memes", "lol", "joke"}, "gaming": {"game", "games", "gaming", "gamer", "ps5", "xbox", "fifa"},
+	"food": {"food", "cook", "cooking", "recipe", "jollof", "restaurant"}, "travel": {"travel", "trip", "vacation", "flight", "beach"},
+	"fashion": {"fashion", "style", "outfit", "ootd"}, "tech": {"tech", "code", "coding", "ai", "app", "phone"},
+	"art": {"art", "draw", "drawing", "design", "photo", "paint"}, "study": {"study", "school", "exam", "learn", "class"},
+}
+
+func interestBoost(uid string, p *Post) float64 {
+	mine := S.X6.Int[uid]
+	if len(mine) == 0 || p.Text == "" {
+		return 1
+	}
+	toks := map[string]bool{}
+	for _, t := range wordTok.FindAllString(strings.ToLower(p.Text), -1) {
+		toks[t] = true
+	}
+	n := 0
+	for _, it := range mine {
+		for _, w := range interestWords[it] {
+			if toks[w] {
+				n++
+				break
+			}
+		}
+	}
+	if n > 3 {
+		n = 3
+	}
+	return 1 + 0.4*float64(n)
+}
+
+// ---------- word index for post search ----------
+var (
+	wordIx = map[string][]*Post{}
+	wxN    int
+	wxLast string
+	wxAt   int64
+	wordTok = regexp.MustCompile(`[\p{L}\p{N}_]{3,}`)
+)
+
+func wordIdx() {
+	n := len(S.Posts)
+	last := ""
+	if n > 0 {
+		last = S.Posts[n-1].ID
+	}
+	if n == wxN && last == wxLast && now()-wxAt < 60 {
+		return
+	}
+	wordIx = map[string][]*Post{}
+	for _, p := range S.Posts {
+		if p.Comm != "" || p.Text == "" {
+			continue
+		}
+		seen := map[string]bool{}
+		for _, t := range wordTok.FindAllString(strings.ToLower(p.Text), -1) {
+			if !seen[t] {
+				seen[t] = true
+				wordIx[t] = append(wordIx[t], p)
+			}
+		}
+	}
+	wxN, wxLast, wxAt = n, last, now()
+}
+
+func init() {
+	extra10()
+}
+
+func extra10() {
+	ok := map[string]bool{"ok": true}
+
+	// housekeeping: old games, old word states, stale abuse counters, expired queue entries
+	go func() {
+		for range time.Tick(10 * time.Minute) {
+			mu.Lock()
+			e := x6()
+			for id, g := range e.Games {
+				if (g.Status != "active" && now()-g.Upd > 3*86400) || now()-g.Upd > 7*86400 {
+					delete(e.Games, id)
+				}
+			}
+			for id, ws := range e.Word {
+				y := time.Now().UTC().AddDate(0, 0, -1).Format("2006-01-02")
+				if ws.Day != today() && ws.Day != y {
+					delete(e.Word, id)
+				}
+			}
+			for k, l := range modHits {
+				if len(l) == 0 || now()-l[len(l)-1] > 3600 {
+					delete(modHits, k)
+				}
+			}
+			qDrop("")
+			for u, id := range gMatch {
+				if g := e.Games[id]; g == nil || now()-g.TS > 300 {
+					delete(gMatch, u)
+				}
+			}
+			mu.Unlock()
+		}
+	}()
+
+	// ----- challenge a friend (also posts a game card in the chat) -----
+	api("gnew", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		o := S.Users[b["to"]]
+		k := b["kind"]
+		if o == nil || o.ID == u.ID || o.Banned || blk(u, o) || !gameKind(k) {
+			fail(w, 400, "You cannot challenge this person")
+			return
+		}
+		for _, g := range x6().Games { // one open game of the same kind per pair
+			if g.Status == "active" && g.Kind == k && ((g.A == u.ID && g.B == o.ID) || (g.A == o.ID && g.B == u.ID)) {
+				js(w, map[string]string{"id": g.ID})
+				return
+			}
+		}
+		if activeGames(u.ID) >= 8 {
+			fail(w, 400, "You have too many open games. Finish or resign one first")
+			return
+		}
+		g := newGame(k, u.ID, o.ID)
+		S.Msgs = append(S.Msgs, Msg{From: u.ID, To: o.ID, Text: "🎮 " + k + " " + g.ID, TS: now(), Exp: dexp(u.ID, o.ID)})
+		note(o.ID, u.ID, "msg", "")
+		push(o.ID, "game:"+g.ID)
+		save()
+		js(w, map[string]string{"id": g.ID})
+	})
+	api("gget", func(u *User, w http.ResponseWriter, r *http.Request) {
+		g := x6().Games[r.URL.Query().Get("id")]
+		if g == nil || (g.A != u.ID && g.B != u.ID) {
+			fail(w, 404, "Game not found")
+			return
+		}
+		js(w, gameView(g, u.ID))
+	})
+	api("gmine", func(u *User, w http.ResponseWriter, r *http.Request) {
+		l := []*Game{}
+		for _, g := range x6().Games {
+			if g.A == u.ID || g.B == u.ID {
+				l = append(l, g)
+			}
+		}
+		sort.Slice(l, func(a, b int) bool { return l[a].Upd > l[b].Upd })
+		out := []map[string]any{}
+		for i := 0; i < len(l) && i < 30; i++ {
+			g := l[i]
+			opp := g.A
+			if opp == u.ID {
+				opp = g.B
+			}
+			mine := false
+			if g.Status == "active" {
+				if g.Kind == "rps" {
+					if (g.A == u.ID && g.P1 == "") || (g.B == u.ID && g.P2 == "") {
+						mine = true
+					}
+				} else {
+					mine = g.Turn == u.ID
+				}
+			}
+			out = append(out, map[string]any{"ID": g.ID, "Kind": g.Kind, "Status": g.Status, "Win": g.Win, "Opp": uv(opp), "Upd": g.Upd, "Mine": mine})
+		}
+		js(w, out)
+	})
+	api("gmove", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		g := x6().Games[b["id"]]
+		if g == nil || (g.A != u.ID && g.B != u.ID) {
+			fail(w, 404, "Game not found")
+			return
+		}
+		if g.Status != "active" {
+			fail(w, 400, "This game is over")
+			return
+		}
+		isA := u.ID == g.A
+		opp := g.B
+		p := 1
+		if !isA {
+			opp, p = g.A, 2
+		}
+		if g.Kind == "rps" {
+			m := b["m"]
+			if m != "r" && m != "p" && m != "s" {
+				fail(w, 400, "Pick rock, paper or scissors")
+				return
+			}
+			if (isA && g.P1 != "") || (!isA && g.P2 != "") {
+				fail(w, 400, "You already picked. Wait for your opponent")
+				return
+			}
+			if isA {
+				g.P1 = m
+			} else {
+				g.P2 = m
+			}
+			if g.P1 != "" && g.P2 != "" {
+				g.L1, g.L2 = g.P1, g.P2
+				g.LW = rpsWinner(g.P1, g.P2)
+				if g.LW == 1 {
+					g.S1++
+				} else if g.LW == 2 {
+					g.S2++
+				}
+				g.P1, g.P2 = "", ""
+				g.Rd++
+				if g.S1 >= 2 {
+					g.Status, g.Win = "won", g.A
+				} else if g.S2 >= 2 {
+					g.Status, g.Win = "won", g.B
+				}
+				if g.Status != "active" {
+					payGame(g)
+				}
+			}
+		} else {
+			if g.Turn != u.ID {
+				fail(w, 400, "It is not your turn")
+				return
+			}
+			m, e := strconv.Atoi(b["m"])
+			won := false
+			if g.Kind == "ttt" {
+				if e != nil || m < 0 || m > 8 || g.Board[m] != 0 {
+					fail(w, 400, "That square is taken")
+					return
+				}
+				g.Board[m] = p
+				won = lineWin(g.Board, p)
+			} else {
+				if e != nil || m < 0 || m > 6 {
+					fail(w, 400, "Pick a column")
+					return
+				}
+				row := -1
+				for rr := 5; rr >= 0; rr-- {
+					if g.Board[rr*7+m] == 0 {
+						row = rr
+						break
+					}
+				}
+				if row < 0 {
+					fail(w, 400, "That column is full")
+					return
+				}
+				g.Board[row*7+m] = p
+				won = c4Win(g.Board, row, m, p)
+			}
+			full := true
+			for _, v := range g.Board {
+				if v == 0 {
+					full = false
+					break
+				}
+			}
+			if won {
+				g.Status, g.Win = "won", u.ID
+			} else if full {
+				g.Status = "draw"
+			} else {
+				g.Turn = opp
+			}
+			if g.Status != "active" {
+				payGame(g)
+			}
+		}
+		g.Upd = now()
+		save()
+		push(opp, "game:"+g.ID)
+		js(w, gameView(g, u.ID))
+	})
+	api("gresign", func(u *User, w http.ResponseWriter, r *http.Request) {
+		g := x6().Games[in(r)["id"]]
+		if g == nil || (g.A != u.ID && g.B != u.ID) || g.Status != "active" {
+			fail(w, 400, "You cannot resign this game")
+			return
+		}
+		opp := g.A
+		if opp == u.ID {
+			opp = g.B
+		}
+		g.Status, g.Win, g.Paid, g.Upd = "resigned", opp, true, now()
+		save()
+		push(opp, "game:"+g.ID)
+		js(w, gameView(g, u.ID))
+	})
+
+	// ----- quick match: play a random person who is waiting -----
+	api("gqjoin", func(u *User, w http.ResponseWriter, r *http.Request) {
+		k := in(r)["kind"]
+		if !gameKind(k) {
+			fail(w, 400, "Unknown game")
+			return
+		}
+		if activeGames(u.ID) >= 8 {
+			fail(w, 400, "You have too many open games. Finish or resign one first")
+			return
+		}
+		qDrop(u.ID)
+		for i, e := range gQueue[k] {
+			o := S.Users[e.user]
+			if o == nil || o.Banned || blk(u, o) {
+				continue
+			}
+			gQueue[k] = append(gQueue[k][:i:i], gQueue[k][i+1:]...)
+			a, bb := e.user, u.ID
+			rb := make([]byte, 1)
+			rand.Read(rb)
+			if rb[0]%2 == 0 {
+				a, bb = bb, a
+			}
+			g := newGame(k, a, bb)
+			gMatch[e.user] = g.ID
+			push(e.user, "match:"+g.ID)
+			save()
+			js(w, map[string]any{"id": g.ID})
+			return
+		}
+		gQueue[k] = append(gQueue[k], qEnt{u.ID, now()})
+		delete(gMatch, u.ID)
+		js(w, map[string]any{"wait": true})
+	})
+	api("gqpoll", func(u *User, w http.ResponseWriter, r *http.Request) {
+		id := gMatch[u.ID]
+		if id != "" {
+			delete(gMatch, u.ID)
+			if g := x6().Games[id]; g != nil {
+				js(w, map[string]any{"id": id})
+				return
+			}
+		}
+		js(w, map[string]any{"wait": true})
+	})
+	api("gqcancel", func(u *User, w http.ResponseWriter, r *http.Request) {
+		qDrop(u.ID)
+		js(w, ok)
+	})
+
+	// ----- daily word -----
+	api("wget", func(u *User, w http.ResponseWriter, r *http.Request) {
+		js(w, wordView(wordState(u.ID)))
+	})
+	api("wguess", func(u *User, w http.ResponseWriter, r *http.Request) {
+		g := strings.ToLower(strings.TrimSpace(in(r)["w"]))
+		ws := wordState(u.ID)
+		if ws.Done {
+			fail(w, 400, "You already finished today's word")
+			return
+		}
+		if !wordRe.MatchString(g) {
+			fail(w, 400, "Type a 5-letter word")
+			return
+		}
+		ws.G = append(ws.G, g)
+		gg := gpf(u.ID)
+		if g == wordOf(ws.Day) {
+			ws.Done, ws.Won = true, true
+			left := 6 - len(ws.G)
+			gg.XP += 20 + left*5
+			gg.Coins += 10 + left*5
+			gg.Cnt["t_word"]++
+			badge(gg, "wordsmith")
+			award(u.ID, "play")
+		} else if len(ws.G) >= 6 {
+			ws.Done = true
+			gg.XP += 3
+		}
+		save()
+		js(w, wordView(ws))
+	})
+
+	// ----- shop -----
+	api("shop", func(u *User, w http.ResponseWriter, r *http.Request) {
+		g := gpf(u.ID)
+		own, eq := map[string]bool{}, map[string]bool{}
+		if c := x6().Cos[u.ID]; c != nil {
+			for _, id := range c.Own {
+				own[id] = true
+			}
+			eq[c.Frame], eq[c.Name], eq[c.Bub] = true, true, true
+		}
+		items := []map[string]any{}
+		for _, it := range shopItems {
+			items = append(items, map[string]any{"ID": it.ID, "Type": it.Type, "Name": it.Name, "Price": it.Price, "Lvl": it.Lvl, "Own": own[it.ID], "Eq": eq[it.ID]})
+		}
+		js(w, map[string]any{"Items": items, "Coins": g.Coins, "Level": lvl(g.XP)})
+	})
+	api("shopbuy", func(u *User, w http.ResponseWriter, r *http.Request) {
+		it := shopItem(in(r)["id"])
+		if it == nil {
+			fail(w, 400, "Unknown item")
+			return
+		}
+		g := gpf(u.ID)
+		e := x6()
+		c := e.Cos[u.ID]
+		if c == nil {
+			c = &Cos{}
+			e.Cos[u.ID] = c
+		}
+		if has(c.Own, it.ID) {
+			fail(w, 400, "You already own this")
+			return
+		}
+		if lvl(g.XP) < it.Lvl {
+			fail(w, 400, fmt.Sprintf("Reach level %d to unlock this", it.Lvl))
+			return
+		}
+		if g.Coins < it.Price {
+			fail(w, 400, "Not enough coins")
+			return
+		}
+		g.Coins -= it.Price
+		c.Own = append(c.Own, it.ID)
+		setEq(c, it)
+		save()
+		js(w, map[string]int{"Coins": g.Coins})
+	})
+	api("shopeq", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		e := x6()
+		c := e.Cos[u.ID]
+		if c == nil {
+			c = &Cos{}
+			e.Cos[u.ID] = c
+		}
+		if b["id"] == "" {
+			switch b["type"] {
+			case "frame":
+				c.Frame = ""
+			case "name":
+				c.Name = ""
+			case "bubble":
+				c.Bub = ""
+			default:
+				fail(w, 400, "Unknown type")
+				return
+			}
+		} else {
+			it := shopItem(b["id"])
+			if it == nil || !has(c.Own, it.ID) {
+				fail(w, 403, "You do not own this")
+				return
+			}
+			setEq(c, it)
+		}
+		save()
+		js(w, ok)
+	})
+	api("cosme", func(u *User, w http.ResponseWriter, r *http.Request) {
+		c := x6().Cos[u.ID]
+		if c == nil {
+			c = &Cos{}
+		}
+		js(w, map[string]string{"Frame": c.Frame, "Name": c.Name, "Bub": c.Bub})
+	})
+
+	// ----- invites -----
+	api("refcode", func(u *User, w http.ResponseWriter, r *http.Request) {
+		c := refCode(u.ID)
+		save()
+		js(w, map[string]any{"Code": c, "N": x6().RefN[u.ID]})
+	})
+	api("refclaim", func(u *User, w http.ResponseWriter, r *http.Request) {
+		code := strings.ToLower(strings.TrimSpace(in(r)["code"]))
+		e := x6()
+		inv := e.CodeU[code]
+		iu := S.Users[inv]
+		if _, done := e.RefBy[u.ID]; done || inv == "" || inv == u.ID || iu == nil || iu.Banned || blk(u, iu) {
+			fail(w, 400, "This invite link cannot be used")
+			return
+		}
+		born, k := x().Born[u.ID]
+		if !k || now()-born > 7*86400 {
+			fail(w, 400, "Invite links only work for new accounts")
+			return
+		}
+		if e.RefN[inv] >= 50 {
+			fail(w, 400, "This invite link has reached its limit")
+			return
+		}
+		e.RefBy[u.ID] = inv
+		e.RefN[inv]++
+		gi, gu := gpf(inv), gpf(u.ID)
+		gi.Coins += 50
+		gu.Coins += 50
+		gi.XP += 20
+		gu.XP += 20
+		if e.RefN[inv] >= 3 {
+			badge(gi, "recruiter")
+		}
+		save()
+		js(w, map[string]int{"Coins": 50})
+	})
+
+	// ----- interests -----
+	api("intget", func(u *User, w http.ResponseWriter, r *http.Request) {
+		m := x6().Int[u.ID]
+		if m == nil {
+			m = []string{}
+		}
+		js(w, map[string]any{"List": interestList, "Mine": m})
+	})
+	api("intset", func(u *User, w http.ResponseWriter, r *http.Request) {
+		var out []string
+		for _, s := range strings.Split(strings.ToLower(in(r)["list"]), ",") {
+			s = strings.TrimSpace(s)
+			if has(interestList, s) && !has(out, s) && len(out) < 10 {
+				out = append(out, s)
+			}
+		}
+		x6().Int[u.ID] = out
+		save()
+		js(w, ok)
 	})
 }
