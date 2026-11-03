@@ -102,6 +102,7 @@ type State struct {
 	X4       Ext4
 	X5       Ext5
 	X6       Ext6
+	X7       Ext7
 	Users    map[string]*User
 	Posts    []*Post
 	Msgs     []Msg
@@ -326,7 +327,13 @@ func pv(p *Post) map[string]any {
 	for _, c := range p.Comments {
 		cs = append(cs, map[string]any{"ID": c.ID, "Parent": c.Parent, "U": uv(c.User), "Text": c.Text, "TS": c.TS, "Likes": c.Likes})
 	}
-	return map[string]any{"ID": p.ID, "U": uv(p.User), "Text": p.Text, "Media": p.Media, "Kind": p.Kind, "TS": p.TS, "Likes": p.Likes, "C": cs, "More": p.More, "Poll": p.Poll, "Sens": x().Sens[p.ID], "Rep": repOf(p.ID), "Views": x2().Views[p.ID], "PinC": x2().PinC[p.ID], "Comm": p.Comm, "Opt": x3().PO[p.ID]}
+	m := map[string]any{"ID": p.ID, "U": uv(p.User), "Text": p.Text, "Media": p.Media, "Kind": p.Kind, "TS": p.TS, "Likes": p.Likes, "C": cs, "More": p.More, "Poll": p.Poll, "Sens": x().Sens[p.ID], "Rep": repOf(p.ID), "Views": x2().Views[p.ID], "PinC": x2().PinC[p.ID], "Comm": p.Comm, "Opt": x3().PO[p.ID]}
+	if o := x3().PO[p.ID]; o != nil && o.Duet != "" {
+		if d := fp(o.Duet); d != nil {
+			m["DuetU"] = uv(d.User)["Username"]
+		}
+	}
+	return m
 }
 func fpOld(id string) *Post {
 	for _, p := range S.Posts {
@@ -622,7 +629,7 @@ func main() {
 			n = 60
 		}
 		for i := len(S.Posts) - 1; i >= 0 && len(out) < n; i-- {
-			if S.Posts[i].Comm != "" {
+			if S.Posts[i].Comm != "" || S.X7.Flag[S.Posts[i].ID] {
 				continue
 			}
 			if o := S.Users[S.Posts[i].User]; o != nil && (o.Banned || blk(u, o) || priv(u, o)) {
@@ -796,6 +803,7 @@ func main() {
 		for _, o := range S.Users {
 			m := uv(o.ID)
 			m["Banned"], m["Email"], m["Admin"] = o.Banned, o.Email, o.Admin
+			m["Mod"] = S.X7.Mods[o.ID]
 			us = append(us, m)
 			if now()-o.Seen < 120 && !o.Hide {
 				on++
@@ -959,6 +967,7 @@ func main() {
 			why = trunc(why, 200)
 		}
 		S.Reports = append(S.Reports, &Report{uid(), p.ID, u.ID, why, now()})
+		autoFlag(p.ID)
 		save()
 		js(w, ok)
 	})
@@ -1428,7 +1437,11 @@ func x() *Extra {
 	return e
 }
 func push(to, ev string) {
-	webPushTo(to, ev)
+	if strings.HasPrefix(ev, "game:") || strings.HasPrefix(ev, "match:") {
+		webPushTo(to, "yourmove")
+	} else {
+		webPushTo(to, ev)
+	}
 	for _, c := range hub[to] {
 		select {
 		case c <- ev:
@@ -2172,6 +2185,7 @@ func janitor() {
 // purgeMore removes everything else that belongs to a deleted account (call before deleting the user)
 func purgeMore(id string) {
 	purgeX5(id)
+	purgeX7(id)
 	e := x()
 	var files []string
 	if u := S.Users[id]; u != nil {
@@ -2302,7 +2316,7 @@ func extra2() {
 		l := []sp{}
 		t := float64(now())
 		for _, p := range S.Posts {
-			if p.Comm != "" || (vid && p.Kind != "video") || hid(u, p.User) {
+			if p.Comm != "" || (vid && p.Kind != "video") || hid(u, p.User) || S.X7.Flag[p.ID] {
 				continue
 			}
 			h := (t - float64(p.TS)) / 3600
@@ -2486,7 +2500,7 @@ func extra3() {
 		js(w, map[string]bool{"Sens": x().Sens[id]})
 	})
 	api("modq", func(u *User, w http.ResponseWriter, r *http.Request) {
-		if !u.Admin {
+		if !u.Admin && !isMod(u.ID) {
 			fail(w, 403, "Admins only")
 			return
 		}
@@ -2524,12 +2538,16 @@ func extra3() {
 		js(w, ok)
 	})
 	api("modact", func(u *User, w http.ResponseWriter, r *http.Request) {
-		if !u.Admin {
+		if !u.Admin && !isMod(u.ID) {
 			fail(w, 403, "Admins only")
 			return
 		}
 		b := in(r)
 		id, op := b["id"], b["op"]
+		if !u.Admin && (op == "ban" || op == "susp7") {
+			fail(w, 403, "Only an admin can do that")
+			return
+		}
 		var target, post, ctext string
 		cidx, found := -1, false
 		for _, rp := range S.Reports {
@@ -2555,6 +2573,9 @@ func extra3() {
 		t, e := S.Users[target], x()
 		switch op {
 		case "dismiss":
+			if cidx == -1 {
+				delete(x7().Flag, post)
+			}
 		case "delete":
 			if cidx == -2 {
 				for i := range S.Msgs {
@@ -2895,6 +2916,7 @@ func extra4() {
 			return
 		}
 		g.Msgs = append(g.Msgs, Msg{From: u.ID, To: g.ID, Text: t, Kind: k, Media: b["media"], TS: now()})
+		puzzleCheck(g, u, t)
 		for _, m := range g.Members {
 			note(m, u.ID, "msg", "")
 		}
@@ -4262,6 +4284,7 @@ type POpt struct {
 	Alt    string
 	CM     int // who can comment: 0 everyone, 1 people the author follows, 2 nobody
 	Dur    float64 // length in seconds of an edited video
+	Duet   string  // id of the reel this one is a duet with
 }
 type SchP struct {
 	ID, User, Text, Media, Kind, Poll string
@@ -4329,7 +4352,7 @@ func buildPost(s *SchP) *Post {
 	if s.Sens {
 		x().Sens[p.ID] = true
 	}
-	if s.Opt.Poster != "" || s.Opt.Alt != "" || s.Opt.CM != 0 || s.Opt.Dur > 0 {
+	if s.Opt.Poster != "" || s.Opt.Alt != "" || s.Opt.CM != 0 || s.Opt.Dur > 0 || s.Opt.Duet != "" {
 		o := s.Opt
 		x3().PO[p.ID] = &o
 	}
@@ -4424,11 +4447,15 @@ func extra8() {
 		if dur < 0 || dur > 600 || dur != dur {
 			dur = 0
 		}
+		duet := ""
+		if d := fp(b["duet"]); d != nil && d.Kind == "video" && !hid(u, d.User) {
+			duet = d.ID
+		}
 		if (t == "" && len(media) == 0 && poll == "") || rn(t) > 2000 || len(media) > 10 {
 			fail(w, 400, "Invalid post")
 			return
 		}
-		s := &SchP{ID: uid(), User: u.ID, Text: t, Kind: k, Poll: poll, Sens: b["sens"] == "1", Opt: POpt{poster, trunc(strings.TrimSpace(b["alt"]), 200), cm, dur}}
+		s := &SchP{ID: uid(), User: u.ID, Text: t, Kind: k, Poll: poll, Sens: b["sens"] == "1", Opt: POpt{poster, trunc(strings.TrimSpace(b["alt"]), 200), cm, dur, duet}}
 		if len(media) > 0 {
 			s.Media, s.More = media[0], media[1:]
 		}
@@ -4455,6 +4482,11 @@ func extra8() {
 			return
 		}
 		p := buildPost(s)
+		if duet != "" {
+			if d := fp(duet); d != nil {
+				note(d.User, u.ID, "duet", d.ID)
+			}
+		}
 		save()
 		js(w, map[string]any{"ok": true, "id": p.ID})
 	})
@@ -4768,7 +4800,7 @@ func extra9() {
 		sort.Slice(l, func(a, c int) bool { return l[a].v > l[c].v })
 		out := []map[string]any{}
 		for _, it := range l {
-			if o := S.Users[it.id]; o == nil || o.Banned || o.Username == "" {
+			if o := S.Users[it.id]; o == nil || o.Banned || o.Username == "" || (r.URL.Query().Get("f") == "1" && it.id != u.ID && !has(u.Following, it.id)) {
 				continue
 			}
 			out = append(out, map[string]any{"U": uv(it.id), "V": it.v})
@@ -5311,7 +5343,7 @@ func extraB() {
 		q := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
 		out := []map[string]any{}
 		vis := func(p *Post) bool {
-			if p.Comm != "" {
+			if p.Comm != "" || S.X7.Flag[p.ID] {
 				return false
 			}
 			o := S.Users[p.User]
@@ -5596,6 +5628,7 @@ type Cos struct {
 	Frame, Name, Bub string
 }
 type Game struct {
+	Tour string // set when the game belongs to a cup
 	ID, Kind, A, B, Turn, Status, Win string
 	Board                             []int
 	P1, P2, L1, L2                    string // rock-paper-scissors picks and the last revealed round
@@ -5735,6 +5768,7 @@ func payGame(g *Game) {
 		return
 	}
 	g.Paid = true
+	defer tourAdvance(g)
 	enough := false
 	if g.Kind == "rps" {
 		enough = g.S1+g.S2 >= 2
@@ -6204,6 +6238,7 @@ func extra10() {
 			opp = g.B
 		}
 		g.Status, g.Win, g.Paid, g.Upd = "resigned", opp, true, now()
+		tourAdvance(g)
 		save()
 		push(opp, "game:"+g.ID)
 		js(w, gameView(g, u.ID))
@@ -6436,5 +6471,528 @@ func extra10() {
 		x6().Int[u.ID] = out
 		save()
 		js(w, ok)
+	})
+}
+
+// =====================================================================
+// ---------- Batch 4: tournaments, party games, safety pack, duets ----------
+// =====================================================================
+
+type TM struct {
+	ID, A, B, Game, Win string
+	Round               int
+}
+type Tour struct {
+	ID, Kind, Status, Champ string
+	Players                 []string
+	M                       []*TM
+	TS                      int64
+}
+type Appeal struct {
+	ID, User, Kind, Ref, Text, Status string
+	TS                                int64
+}
+type Puz struct {
+	Ans string
+	Exp int64
+}
+type Ext7 struct {
+	Tours map[string]*Tour
+	Flag  map[string]bool // posts hidden from feeds after several reports
+	Mods  map[string]bool // moderators who are not admins
+	Apps  []*Appeal
+	Puz   map[string]*Puz
+}
+
+func x7() *Ext7 {
+	e := &S.X7
+	if e.Tours == nil {
+		e.Tours = map[string]*Tour{}
+	}
+	if e.Flag == nil {
+		e.Flag = map[string]bool{}
+	}
+	if e.Mods == nil {
+		e.Mods = map[string]bool{}
+	}
+	if e.Puz == nil {
+		e.Puz = map[string]*Puz{}
+	}
+	return e
+}
+func isMod(id string) bool { return S.X7.Mods[id] }
+
+// ---------- tournaments: 8 players, 3 rounds, knockout ----------
+func tourMatch(t *Tour, round int, a, b string) {
+	m := &TM{ID: uid(), Round: round, A: a, B: b}
+	g := newGame(t.Kind, a, b)
+	g.Tour = t.ID
+	m.Game = g.ID
+	t.M = append(t.M, m)
+	push(a, "game:"+g.ID)
+	push(b, "game:"+g.ID)
+}
+
+func tourStart(t *Tour) {
+	ps := append([]string(nil), t.Players...)
+	for i := len(ps) - 1; i > 0; i-- {
+		rb := make([]byte, 1)
+		rand.Read(rb)
+		j := int(rb[0]) % (i + 1)
+		ps[i], ps[j] = ps[j], ps[i]
+	}
+	t.Status = "running"
+	for i := 0; i+1 < len(ps); i += 2 {
+		tourMatch(t, 1, ps[i], ps[i+1])
+	}
+}
+
+// tourAdvance is called when a game ends (mu held)
+func tourAdvance(g *Game) {
+	if g.Tour == "" {
+		return
+	}
+	t := x7().Tours[g.Tour]
+	if t == nil || t.Status != "running" {
+		return
+	}
+	var m *TM
+	for _, x := range t.M {
+		if x.Game == g.ID {
+			m = x
+		}
+	}
+	if m == nil || m.Win != "" {
+		return
+	}
+	if g.Status == "draw" { // sudden death: play again right away
+		ng := newGame(t.Kind, g.A, g.B)
+		ng.Tour = t.ID
+		m.Game = ng.ID
+		push(g.A, "game:"+ng.ID)
+		push(g.B, "game:"+ng.ID)
+		return
+	}
+	if g.Win == "" {
+		return
+	}
+	m.Win = g.Win
+	var ws []string
+	total := 0
+	for _, x := range t.M {
+		if x.Round == m.Round {
+			total++
+			if x.Win != "" {
+				ws = append(ws, x.Win)
+			}
+		}
+	}
+	if len(ws) < total {
+		return
+	}
+	if total == 1 { // the final is over
+		t.Status, t.Champ = "done", m.Win
+		ru := m.A
+		if m.Win == m.A {
+			ru = m.B
+		}
+		gw := gpf(m.Win)
+		gw.Coins += 100
+		gw.XP += 60
+		badge(gw, "champion")
+		gr := gpf(ru)
+		gr.Coins += 40
+		gr.XP += 20
+		for _, p := range t.Players {
+			push(p, "game:"+g.ID)
+		}
+		return
+	}
+	for i := 0; i+1 < len(ws); i += 2 {
+		tourMatch(t, m.Round+1, ws[i], ws[i+1])
+	}
+}
+
+// ---------- party games for circles ----------
+var truths = []string{"What is the most embarrassing thing you have done in public?", "Who was your first crush?", "What is a secret talent nobody knows about?", "What is the last lie you told?", "What song do you secretly love?", "What is your biggest fear?", "Which friend here would you trust with your phone?", "What is the worst gift you ever received?"}
+var dares = []string{"Send a voice note singing the chorus of any song.", "Change your profile photo to a funny face for one hour.", "Send the 5th photo in your gallery.", "Talk in rhymes for the next 5 messages.", "Post a compliment to everyone in this circle.", "Send a selfie making your silliest face.", "Say something nice about each person here.", "Write a short poem about this circle."}
+var wyrs = []string{"Have free food for life OR free flights for life?", "Be able to fly OR be invisible?", "Always be 10 minutes late OR always be 20 minutes early?", "Live without music OR live without movies?", "Know when you will die OR how you will die?", "Have no phone for a month OR no friends for a month?"}
+var puzzles = []struct{ E, A string }{{"🦁👑", "lion king"}, {"🕷️👨", "spider man"}, {"❄️👸", "frozen"}, {"🌊🐠🔍", "finding nemo"}, {"🏠⬆️🎈", "up"}, {"🐍🍎", "adam and eve"}, {"⭐🌍⚔️", "star wars"}, {"🍕🐢", "ninja turtles"}, {"🚢🧊💔", "titanic"}, {"🧙‍♂️💍", "lord of the rings"}, {"🎤🇳🇬", "afrobeats"}, {"⚽🏆🌍", "world cup"}, {"🌧️☂️", "umbrella"}, {"🔥🐉", "dragon"}, {"🍯🐝", "honey bee"}}
+
+func puzzleCheck(g *Group, u *User, t string) {
+	pz := x7().Puz[g.ID]
+	if pz == nil || pz.Exp < now() {
+		return
+	}
+	if strings.EqualFold(strings.TrimSpace(t), pz.Ans) {
+		delete(x7().Puz, g.ID)
+		gg := gpf(u.ID)
+		if gg.Cnt["puz"] < 10 {
+			gg.Cnt["puz"]++
+			gg.XP += 5
+			gg.Coins += 2
+		}
+		g.Msgs = append(g.Msgs, Msg{From: u.ID, To: g.ID, Text: "✅ Got it! The answer was " + pz.Ans, TS: now()})
+	}
+}
+
+// ---------- safety ----------
+func autoFlag(pid string) {
+	p := fp(pid)
+	if p == nil || x7().Flag[pid] {
+		return
+	}
+	seen := map[string]bool{}
+	for _, rp := range S.Reports {
+		if rp.Post == pid {
+			seen[rp.By] = true
+		}
+	}
+	if len(seen) < 3 {
+		return
+	}
+	x7().Flag[pid] = true
+	x().Sens[pid] = true
+	S.Notifs = append(S.Notifs, Notif{p.User, p.User, "flag", pid, now(), false})
+	push(p.User, "flag")
+}
+
+func purgeX7(id string) {
+	e7, e6, e4 := x7(), x6(), x4()
+	delete(e7.Mods, id)
+	for k, t := range e7.Tours {
+		if t.Status == "open" {
+			t.Players = del(t.Players, id)
+			if len(t.Players) == 0 {
+				delete(e7.Tours, k)
+			}
+		}
+	}
+	keep := e7.Apps[:0]
+	for _, a := range e7.Apps {
+		if a.User != id {
+			keep = append(keep, a)
+		}
+	}
+	e7.Apps = keep
+	for k, g := range e6.Games {
+		if g.A == id || g.B == id {
+			delete(e6.Games, k)
+		}
+	}
+	delete(e6.Cos, id)
+	delete(e6.Word, id)
+	delete(e6.Int, id)
+	delete(e6.RefBy, id)
+	if c := e6.Code[id]; c != "" {
+		delete(e6.CodeU, c)
+	}
+	delete(e6.Code, id)
+	delete(e4.G, id)
+	for _, m := range e4.Sc {
+		delete(m, id)
+	}
+}
+
+func init() {
+	pushEv["yourmove"] = true
+	pushEv["flag"] = true
+	pushEv["aok"] = true
+	pushEv["ano"] = true
+	pushEv["duet"] = true
+	nGroups["duet"] = "reposts"
+	extra11()
+}
+
+func extra11() {
+	ok := map[string]bool{"ok": true}
+
+	// housekeeping for old tournaments
+	go func() {
+		for range time.Tick(15 * time.Minute) {
+			mu.Lock()
+			for id, t := range x7().Tours {
+				age := now() - t.TS
+				if (t.Status == "done" && age > 7*86400) || (t.Status == "open" && age > 3*86400) || age > 14*86400 {
+					delete(x7().Tours, id)
+				}
+			}
+			// a player who does not move for 24 hours forfeits their cup match, so cups always finish
+			for _, t := range x7().Tours {
+				if t.Status != "running" {
+					continue
+				}
+				for _, m := range append([]*TM(nil), t.M...) {
+					g := x6().Games[m.Game]
+					if m.Win != "" || g == nil || g.Status != "active" || now()-g.Upd < 86400 {
+						continue
+					}
+					loser := g.A
+					if g.Kind == "rps" {
+						if g.P1 != "" && g.P2 == "" {
+							loser = g.B
+						}
+					} else if g.Turn == g.B {
+						loser = g.B
+					}
+					winner := g.A
+					if loser == g.A {
+						winner = g.B
+					}
+					g.Status, g.Win, g.Paid, g.Upd = "resigned", winner, true, now()
+					tourAdvance(g)
+				}
+			}
+			mu.Unlock()
+		}
+	}()
+
+	// ----- tournaments -----
+	api("tlist", func(u *User, w http.ResponseWriter, r *http.Request) {
+		open, mine := []map[string]any{}, []map[string]any{}
+		ts := []*Tour{}
+		for _, t := range x7().Tours {
+			ts = append(ts, t)
+		}
+		sort.Slice(ts, func(a, b int) bool { return ts[a].TS > ts[b].TS })
+		for _, t := range ts {
+			joined := has(t.Players, u.ID)
+			row := map[string]any{"ID": t.ID, "Kind": t.Kind, "Status": t.Status, "N": len(t.Players), "In": joined}
+			if joined {
+				mine = append(mine, row)
+			} else if t.Status == "open" {
+				open = append(open, row)
+			}
+		}
+		js(w, map[string]any{"Open": open, "Mine": mine})
+	})
+	api("tjoin", func(u *User, w http.ResponseWriter, r *http.Request) {
+		k := in(r)["kind"]
+		if !gameKind(k) {
+			fail(w, 400, "Unknown game")
+			return
+		}
+		live := 0
+		for _, t := range x7().Tours {
+			if has(t.Players, u.ID) && t.Status != "done" {
+				live++
+				if t.Kind == k {
+					fail(w, 400, "You are already in a cup for this game")
+					return
+				}
+			}
+		}
+		if live >= 3 {
+			fail(w, 400, "You can be in up to 3 cups at a time")
+			return
+		}
+		var t *Tour
+		for _, c := range x7().Tours {
+			if c.Kind == k && c.Status == "open" && len(c.Players) < 8 && (t == nil || c.TS < t.TS) {
+				t = c
+			}
+		}
+		if t == nil {
+			t = &Tour{ID: uid(), Kind: k, Status: "open", TS: now()}
+			x7().Tours[t.ID] = t
+		}
+		t.Players = append(t.Players, u.ID)
+		if len(t.Players) == 8 {
+			tourStart(t)
+		}
+		save()
+		js(w, map[string]string{"id": t.ID})
+	})
+	api("tleave", func(u *User, w http.ResponseWriter, r *http.Request) {
+		t := x7().Tours[in(r)["id"]]
+		if t == nil || t.Status != "open" || !has(t.Players, u.ID) {
+			fail(w, 400, "You cannot leave this cup")
+			return
+		}
+		t.Players = del(t.Players, u.ID)
+		if len(t.Players) == 0 {
+			delete(x7().Tours, t.ID)
+		}
+		save()
+		js(w, ok)
+	})
+	api("tget", func(u *User, w http.ResponseWriter, r *http.Request) {
+		t := x7().Tours[r.URL.Query().Get("id")]
+		if t == nil {
+			fail(w, 404, "Cup not found")
+			return
+		}
+		ps := []map[string]any{}
+		for _, id := range t.Players {
+			ps = append(ps, uv(id))
+		}
+		rounds := map[int][]map[string]any{}
+		for _, m := range t.M {
+			st := ""
+			if g := x6().Games[m.Game]; g != nil {
+				st = g.Status
+			}
+			rounds[m.Round] = append(rounds[m.Round], map[string]any{"A": uv(m.A), "B": uv(m.B), "Game": m.Game, "Win": m.Win, "St": st, "Mine": m.Win == "" && (m.A == u.ID || m.B == u.ID)})
+		}
+		out := [][]map[string]any{}
+		for i := 1; i <= 3; i++ {
+			if l, k := rounds[i]; k {
+				out = append(out, l)
+			}
+		}
+		res := map[string]any{"ID": t.ID, "Kind": t.Kind, "Status": t.Status, "Players": ps, "Rounds": out, "In": has(t.Players, u.ID)}
+		if t.Champ != "" {
+			res["Champ"] = uv(t.Champ)
+		}
+		js(w, res)
+	})
+
+	// ----- party games in circles -----
+	api("pgame", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		g := fg(b["g"])
+		if g == nil || !has(g.Members, u.ID) || len(g.Members) == 0 {
+			fail(w, 403, "Not in this circle")
+			return
+		}
+		pick := func(n int) int {
+			rb := make([]byte, 2)
+			rand.Read(rb)
+			return (int(rb[0])<<8 | int(rb[1])) % n
+		}
+		who := "someone"
+		if o := S.Users[g.Members[pick(len(g.Members))]]; o != nil && o.Username != "" {
+			who = "@" + o.Username
+		}
+		var txt string
+		switch b["kind"] {
+		case "truth":
+			txt = "🎲 Truth for " + who + ": " + truths[pick(len(truths))]
+		case "dare":
+			txt = "🎲 Dare for " + who + ": " + dares[pick(len(dares))]
+		case "wyr":
+			txt = "🎲 Would you rather… " + wyrs[pick(len(wyrs))] + " Reply A or B!"
+		case "emoji":
+			pz := puzzles[pick(len(puzzles))]
+			x7().Puz[g.ID] = &Puz{Ans: pz.A, Exp: now() + 600}
+			txt = "🧩 Emoji guess: " + pz.E + "  (type your answer, the first correct one wins)"
+		default:
+			fail(w, 400, "Unknown game")
+			return
+		}
+		g.Msgs = append(g.Msgs, Msg{From: u.ID, To: g.ID, Text: txt, TS: now()})
+		for _, m := range g.Members {
+			note(m, u.ID, "msg", "")
+		}
+		save()
+		js(w, ok)
+	})
+
+	// ----- moderators -----
+	api("modme", func(u *User, w http.ResponseWriter, r *http.Request) {
+		js(w, map[string]bool{"Mod": u.Admin || isMod(u.ID)})
+	})
+	api("modrole", func(u *User, w http.ResponseWriter, r *http.Request) {
+		o := S.Users[in(r)["id"]]
+		if !u.Admin || o == nil || o.Admin {
+			fail(w, 403, "Not allowed")
+			return
+		}
+		x7().Mods[o.ID] = !x7().Mods[o.ID]
+		alog(u, "toggled moderator on @"+o.Username)
+		save()
+		js(w, map[string]bool{"Mod": x7().Mods[o.ID]})
+	})
+
+	// ----- appeals: works for banned users too, so it is not behind the normal login check -----
+	http.HandleFunc("/api/appeal", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		u := S.Users[S.Sess[r.Header.Get("X-Token")]]
+		if u == nil {
+			fail(w, 401, "Please log in")
+			return
+		}
+		if !ipAllow("ap|"+u.ID, 5) {
+			fail(w, 429, "Slow down a little")
+			return
+		}
+		b := in(r)
+		txt := strings.TrimSpace(b["text"])
+		if rn(txt) < 10 || rn(txt) > 500 {
+			fail(w, 400, "Explain in 10 to 500 characters")
+			return
+		}
+		for _, a := range x7().Apps {
+			if a.User == u.ID && a.Status == "pending" {
+				fail(w, 400, "Your appeal is already under review")
+				return
+			}
+		}
+		kind := "other"
+		if u.Banned {
+			kind = "ban"
+		} else if x().Susp[u.ID] > now() {
+			kind = "suspension"
+		}
+		x7().Apps = append(x7().Apps, &Appeal{ID: uid(), User: u.ID, Kind: kind, Ref: trunc(b["ref"], 40), Text: txt, Status: "pending", TS: now()})
+		if len(x7().Apps) > 500 {
+			x7().Apps = x7().Apps[100:]
+		}
+		save()
+		js(w, map[string]bool{"ok": true})
+	})
+	api("appeals", func(u *User, w http.ResponseWriter, r *http.Request) {
+		if !u.Admin && !isMod(u.ID) {
+			fail(w, 403, "Moderators only")
+			return
+		}
+		out := []map[string]any{}
+		for _, a := range x7().Apps {
+			if a.Status == "pending" && S.Users[a.User] != nil && len(out) < 50 {
+				out = append(out, map[string]any{"ID": a.ID, "U": uv(a.User), "Kind": a.Kind, "Text": a.Text, "TS": a.TS})
+			}
+		}
+		js(w, out)
+	})
+	api("appealact", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		if !u.Admin && !isMod(u.ID) {
+			fail(w, 403, "Moderators only")
+			return
+		}
+		for _, a := range x7().Apps {
+			if a.ID != b["id"] || a.Status != "pending" {
+				continue
+			}
+			o := S.Users[a.User]
+			if o == nil {
+				a.Status = "closed"
+				break
+			}
+			if b["v"] == "1" {
+				if a.Kind == "ban" && !u.Admin {
+					fail(w, 403, "Only an admin can lift a ban")
+					return
+				}
+				o.Banned = false
+				delete(x().Susp, o.ID)
+				if a.Ref != "" {
+					delete(x7().Flag, a.Ref)
+				}
+				a.Status = "approved"
+				S.Notifs = append(S.Notifs, Notif{o.ID, o.ID, "aok", "", now(), false})
+				push(o.ID, "aok")
+			} else {
+				a.Status = "rejected"
+				S.Notifs = append(S.Notifs, Notif{o.ID, o.ID, "ano", "", now(), false})
+				push(o.ID, "ano")
+			}
+			alog(u, a.Status+" an appeal from @"+o.Username)
+			save()
+			js(w, ok)
+			return
+		}
+		fail(w, 404, "Appeal not found")
 	})
 }
