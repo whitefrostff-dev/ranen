@@ -591,7 +591,7 @@ async function admin(keep){
  clearInterval(poll);if(!keep||!AD)AD=await A('admin');const j=AD,q=(($('#aq')||{}).value||'').toLowerCase();
  const t=(k,l)=>`<button class="${adt==k?'on':''}" data-a="adt" data-v="${k}">${l}</button>`,sn=p=>E((p.Text||'').slice(0,80))||(p.Kind=='video'?'🎬 video':'🖼 photo');let h='';
  if(adt=='o')h='<div class="stg">'+[['Users',j.Users],['Online now',j.Online],['Verified',j.Verified],['Banned',j.Banned],['Posts',j.Posts],['Reels',j.Reels],['Messages',j.Msgs],['Circles',j.Groups],['Broadcasts',j.Channels],['Moments',j.Moments]].map(x=>`<div class="stc"><b>${x[1]}</b><small>${x[0]}</small></div>`).join('')+'</div>';
- else if(adt=='u')h='<div class="sb"><input id="aq" placeholder="Search users or emails" value="'+E(q)+'" autocomplete="off"></div>'+j.L.filter(u=>!q||(u.Username||'').includes(q)||(u.Email||'').toLowerCase().includes(q)).map(u=>`<div class="pr"><b class="av">${E((u.Username||'?')[0])}</b><div class="nm">${nm(u)}${u.Admin?' <small>admin</small>':''}${u.Banned?' <small>banned</small>':''}<br><small>${E(u.Email)}</small></div><button data-a="ver" data-i="${u.ID}">${u.Verified?'Unverify':'Verify'}</button><button data-a="ban" data-i="${u.ID}">${u.Banned?'Unban':'Ban'}</button><button data-a="arole" data-i="${u.ID}">${u.Admin?'Demote':'Admin'}</button><button data-a="udel" data-i="${u.ID}">Delete</button></div>`).join('');
+ else if(adt=='u')h='<div class="sb"><input id="aq" placeholder="Search users or emails" value="'+E(q)+'" autocomplete="off"></div>'+j.L.filter(u=>!q||(u.Username||'').includes(q)||(u.Email||'').toLowerCase().includes(q)).map(u=>`<div class="pr"><b class="av">${E((u.Username||'?')[0])}</b><div class="nm">${nm(u)}${u.Admin?' <small>admin</small>':''}${u.Banned?' <small>banned</small>':''}<br><small>${E(u.Email)}</small></div><button data-a="ver" data-i="${u.ID}">${u.Verified?'Unverify':'Verify'}</button><button data-a="ban" data-i="${u.ID}">${u.Banned?'Unban':'Ban'}</button><button data-a="arole" data-i="${u.ID}">${u.Admin?'Demote':'Admin'}</button><button data-a="mrole" data-i="${u.ID}">${u.Mod?'Unmod':'Mod'}</button><button data-a="udel" data-i="${u.ID}">Delete</button></div>`).join('');
  else if(adt=='c')h=j.PL.map(p=>`<div class="pr"><div class="nm">${nm(p.U)}<br><small>${sn(p)} · ${ago(p.TS)}</small></div><button data-a="pdel" data-i="${p.ID}">Delete</button></div>`).join('');
  else if(adt=='r')h=j.R.map(x=>`<div class="pr"><div class="nm">${nm(x.By)} reported ${x.P?nm(x.P.U)+': '+sn(x.P):'a deleted post'}<br><small>${E(x.Reason||'No reason')} · ${ago(x.TS)}</small></div><button data-a="rdis" data-i="${x.ID}">Dismiss</button>${x.P?`<button data-a="pdel" data-i="${x.P.ID}">Delete post</button>`:''}</div>`).join('');
  else if(adt=='l')h=(j.Log||[]).slice().reverse().map(x=>`<div class="pr"><small>${E(x)}</small></div>`).join('');
@@ -1968,7 +1968,7 @@ function showCv(){const z=$('#stpv'),v=z&&z.querySelector('video');if(!z||!v)ret
   i.src=u;v.pause()}
 function stuClose(ask){
   const c=$('#stc');if(ask&&(ST.f||XF.length||(c&&c.value.trim()))&&!confirm('Discard this post?'))return;
-  const o=$('#stu');if(o)o.remove();ST={};XF=[]}
+  const o=$('#stu');if(o)o.remove();ST={};XF=[];window.XDUET=''}
 function drafts(tgl){const b=$('#stdls');if(!b)return;if(tgl&&b.dataset.o){b.innerHTML='';b.dataset.o='';return}b.dataset.o='1';
   const l=LS('dr9','[]');b.innerHTML=l.map((d,k)=>`<div class="pr"><div class="nm"><small>${E(d.t.slice(0,80))}</small></div><button class="ed" data-a="stdu" data-k="${k}">Use</button><button class="ed" data-a="stdd" data-k="${k}" aria-label="Delete draft">✕</button></div>`).join('')||'<small class="sub">No drafts yet.</small>'}
 async function stuPost(){
@@ -1988,7 +1988,7 @@ async function stuPost(){
     if(!R&&files[0]&&files[0].type.startsWith('image/')&&window.thumbOf){st('Making a preview…');try{poster=await up(await thumbOf(files[0]))}catch(e){poster=''}}
     st(sch?'Scheduling…':'Posting…');
     const kind=files[0]?(files[0].type.startsWith('video/')?'video':'image'):'';
-    const r=await A('post4',{text,media:urls.join(','),kind,poll,sens:$('#stse').checked?'1':'',poster,alt:($('#sta')||{}).value||'',cm:$('#stcm').value,at:at||'',dur:R?(ST.dur||''):''});
+    const r=await A('post4',{text,media:urls.join(','),kind,poll,sens:$('#stse').checked?'1':'',poster,alt:($('#sta')||{}).value||'',cm:$('#stcm').value,at:at||'',dur:R?(ST.dur||''):'',duet:window.XDUET||''});
     stuClose(false);
     if(r.scheduled)toast('Scheduled for '+when(r.scheduled*1000));
     else{toast(R?'Your reel is live 🎬':'Posted');go(R?'reels':'feed')}}
@@ -2048,6 +2048,7 @@ document.addEventListener('pointerdown',e=>{const r=e.target.closest('#main .pr[
 document.addEventListener('contextmenu',e=>{const r=e.target.closest('#main .pr[data-a=dm]');if(r){e.preventDefault();chatSheet(r.dataset.i)}});
 document.addEventListener('click',e=>{const r=e.target.closest('#main .pr[data-a=dm]');if(r&&r.dataset.lp){delete r.dataset.lp;e.stopPropagation();e.preventDefault()}},true);
 
+window.openStudio=openStu;
 window.studioVideo=()=>ST.k=='reel'?ST.f:null;
 window.studioSetVideo=f=>{ST.f=f;ST.cvs=[];ST.cuu=[];ST.ci=0;ST.dur=f.xdur||0;stuPv();makeCovers()};
 
@@ -2354,7 +2355,7 @@ go=async function(t){
   await hub()};
 async function hub(){
   let me={Coins:0,Level:1,Streak:0};try{me=await A('gme')}catch(e){}
-  const tabs=[['play','🎮 Play'],['mine','⚔️ My games'],['solo','🕹 Solo'],['rank','🏆 Rankings']];
+  const tabs=[['play','🎮 Play'],['mine','⚔️ My games'],['cup','🏅 Cups'],['solo','🕹 Solo'],['rank','🏆 Rankings']];
   $('#main').innerHTML=`<div class="ch2"><b>Games</b><span class="gpill">🪙 ${me.Coins} · Lv ${me.Level} · 🔥 ${me.Streak}</span></div><div class="atb">${tabs.map(([k,l])=>`<button data-a="gtab" data-k="${k}" class="${GT==k?'on':''}">${l}</button>`).join('')}</div><div id="gbody"></div>`;
   await gbody()}
 const stt=g=>g.Status=='active'?(g.Mine?'your move':'their move'):g.Status=='draw'?'draw':g.Status=='won'?(g.Win==ME.ID?'you won':'they won'):(g.Win==ME.ID?'they resigned':'you resigned');
@@ -2374,10 +2375,12 @@ async function gbody(){
       <div class="gc"><i>🧠</i><div><b>Memory Match</b><small>Find all the pairs in the fewest moves.</small><div class="gcb"><button class="ed" data-a="gplay" data-g="memory">▶ Play</button></div></div></div>
       <div class="gc"><i>🔤</i><div><b>Daily Word</b><small>One 5-letter puzzle a day. Same word for everyone.</small><div class="gcb"><button class="ed" data-a="gword">▶ Play today’s word</button></div></div></div>
       <p class="sg" style="padding:8px 16px 0">Rewards</p><div class="gcb" style="padding:0 12px 12px"><button class="ed" data-a="gh">🏆 Rewards hub</button><button class="ed" data-a="shop">🛍 Shop</button><button class="ed" data-a="inv">💌 Invite friends</button></div>`}
+    else if(GT=='cup'){h=window.XCUP?await XCUP():''}
     else{
-      const [x,s,m]=await Promise.all([A('gboard?g=xp'),A('gboard?g=snake'),A('gboard?g=memory')]);
+      const q=window.XRF?'&f=1':'';
+      const [x,s,m]=await Promise.all([A('gboard?g=xp'+q),A('gboard?g=snake'+q),A('gboard?g=memory'+q)]);
       const sec=(t,l)=>`<p class="sg" style="padding:8px 16px 0">${t}</p>`+(l.map((r,i)=>`<div class="pr"><b>${i+1}</b>${AV(r.U)}<div class="nm">${nm(r.U)}</div><b>${r.V}</b></div>`).join('')||'<small class="sub" style="padding:0 16px">No scores yet</small>');
-      h=sec('⭐ Top XP',x)+sec('🐍 Snake',s)+sec('🧠 Memory Match',m)}
+      h=`<div class="atb"><button data-a="rkf" data-v="0" class="${window.XRF?'':'on'}">🌍 Everyone</button><button data-a="rkf" data-v="1" class="${window.XRF?'on':''}">👥 Friends</button></div>`+sec('⭐ Top XP',x)+sec('🐍 Snake',s)+sec('🧠 Memory Match',m)}
   }catch(e){h='<p class="empty">'+E(e.message)+'</p>'}
   box.innerHTML=h}
 
@@ -2477,6 +2480,7 @@ $('#app').addEventListener('click',async e=>{
   const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,d=b.dataset,i=d.i;
   try{
     if(a=='gtab'){GT=d.k;if(tab!='games')await go('games');else{document.querySelectorAll('.atb [data-a=gtab]').forEach(x=>x.classList.toggle('on',x.dataset.k==GT));gbody()}}
+    else if(a=='rkf'){window.XRF=d.v=='1';gbody()}
     else if(a=='gtabgo'){$('#app').classList.remove('dro');go('games')}
     else if(a=='gq')quick(d.k);
     else if(a=='gqc'){clearInterval(QT);await A('gqcancel',{});closeM()}
@@ -2592,11 +2596,16 @@ function geom(vw,vh){
   cw/=ES.zoom;ch/=ES.zoom;
   const L=Math.max(160,Math.min(960,Math.round(Math.max(cw,ch)))),ow=ar>=1?L:Math.round(L*ar),oh=ar>=1?Math.round(L/ar):L;
   return{ar,cw,ch,sx:(vw-cw)*ES.px,sy:(vh-ch)*ES.py,ow:ow&~1,oh:oh&~1}}
+function drawItems(x,w,h){
+  for(const it of ES.items){
+    x.font='800 '+Math.round(it.s*h)+'px system-ui,sans-serif';x.textAlign='center';x.textBaseline='middle';
+    if(it.k=='t'){x.lineWidth=Math.max(2,it.s*h*.12);x.strokeStyle='#000';x.lineJoin='round';x.strokeText(it.t,it.x*w,it.y*h)}
+    x.fillStyle=it.c||'#fff';x.fillText(it.t,it.x*w,it.y*h)}}
 function draw(cv,v){
   const g=geom(v.videoWidth,v.videoHeight);
   if(cv.width!=g.ow||cv.height!=g.oh){cv.width=g.ow;cv.height=g.oh}
   const x=cv.getContext('2d');x.filter=F()?fstr():'none';
-  x.drawImage(v,g.sx,g.sy,g.cw,g.ch,0,0,cv.width,cv.height)}
+  x.drawImage(v,g.sx,g.sy,g.cw,g.ch,0,0,cv.width,cv.height);x.filter='none';drawItems(x,cv.width,cv.height)}
 
 /* ---------- the editor screen ---------- */
 async function open(file){
@@ -2606,14 +2615,15 @@ async function open(file){
   catch(e){URL.revokeObjectURL(v.src);toast('This video cannot be edited here. You can still post it as it is.');return}
   let d=v.duration;if(!isFinite(d)||!d)d=file.xdur||0;
   if(!d){URL.revokeObjectURL(v.src);toast('Could not read the length of this video');return}
-  V=v;ES={file,dur:d,start:0,end:Math.min(d,MAXD),asp:0,zoom:1,px:.5,py:.5,flt:'Original',br:100,ct:100,sa:100,mute:false,tab:'trim',busy:false};
+  V=v;ES={file,dur:d,start:0,end:Math.min(d,MAXD),asp:0,zoom:1,px:.5,py:.5,flt:'Original',br:100,ct:100,sa:100,mute:false,tab:'trim',busy:false,items:[],col:'#ffffff',speed:1,vol:100,vo:null,rec:null};
   const o=document.createElement('div');o.id='vedt';
-  o.innerHTML=`<div class="pgh"><button data-v="x" aria-label="Cancel">←</button><b>Edit video</b><button class="ed" data-v="ok" style="margin-left:auto;padding:6px 16px">Done</button></div><div class="vcv"><canvas id="vcv"></canvas><button class="vpp" data-v="pp" aria-label="Play or pause">⏸</button><span class="vtm" id="vtm"></span></div><div class="atb" id="vtb">${[['trim','✂️ Trim'],['crop','⬛ Crop'],['flt','✨ Filters'],['adj','🎚 Adjust'],['snd','🔊 Sound']].map(([k,l])=>`<button data-v="tab" data-k="${k}">${l}</button>`).join('')}</div><div class="vpn" id="vpn"></div>`;
+  o.innerHTML=`<div class="pgh"><button data-v="x" aria-label="Cancel">←</button><b>Edit video</b><button class="ed" data-v="ok" style="margin-left:auto;padding:6px 16px">Done</button></div><div class="vcv"><canvas id="vcv"></canvas><button class="vpp" data-v="pp" aria-label="Play or pause">⏸</button><span class="vtm" id="vtm"></span></div><div class="atb" id="vtb">${[['trim','✂️ Trim'],['crop','⬛ Crop'],['flt','✨ Filters'],['adj','🎚 Adjust'],['txt','🔤 Text'],['spd','⏩ Speed'],['snd','🔊 Sound']].map(([k,l])=>`<button data-v="tab" data-k="${k}">${l}</button>`).join('')}</div><div class="vpn" id="vpn"></div>`;
   $('#app').appendChild(o);
   o.onclick=click;o.oninput=input;
   const cv=$('#vcv');let drag=null;
-  cv.onpointerdown=e=>{cv.setPointerCapture(e.pointerId);drag=[e.clientX,e.clientY]};
+  cv.onpointerdown=e=>{cv.setPointerCapture(e.pointerId);const r=cv.getBoundingClientRect(),pu=(e.clientX-r.left)/r.width,pw=(e.clientY-r.top)/r.height;let hit=-1;ES.items.forEach((it,i)=>{if(Math.hypot(pu-it.x,(pw-it.y)*r.height/r.width)<Math.max(.09,it.s*r.height/r.width*1.2))hit=i});drag=hit>=0?[e.clientX,e.clientY,hit]:[e.clientX,e.clientY]};
   cv.onpointermove=e=>{if(!drag||!V)return;
+    if(drag.length==3){const r=cv.getBoundingClientRect(),it=ES.items[drag[2]];if(it){it.x=Math.min(1,Math.max(0,(e.clientX-r.left)/r.width));it.y=Math.min(1,Math.max(0,(e.clientY-r.top)/r.height))}return}
     const g=geom(V.videoWidth,V.videoHeight),k=cv.width/cv.clientWidth,dx=(e.clientX-drag[0])*k,dy=(e.clientY-drag[1])*k;drag=[e.clientX,e.clientY];
     const sw=V.videoWidth-g.cw,sh=V.videoHeight-g.ch;
     if(sw>1)ES.px=Math.min(1,Math.max(0,(g.sx-dx*g.cw/cv.width)/sw));
@@ -2628,7 +2638,8 @@ function loop(){
   cancelAnimationFrame(raf);
   const step=()=>{if(!V||!ES||!$('#vedt'))return;
     if(!ES.busy){
-      if(!V.paused&&V.currentTime>=ES.end)V.currentTime=ES.start;
+      if(ES.rec&&V.currentTime>=ES.end-.05){voStop();V.pause()}
+      else if(!V.paused&&V.currentTime>=ES.end)V.currentTime=ES.start;
       if(V.readyState>=2)draw($('#vcv'),V);
       const t=$('#vtm');if(t)t.textContent=mm(Math.max(0,V.currentTime-ES.start))+' / '+mm(ES.end-ES.start)}
     raf=requestAnimationFrame(step)};
@@ -2641,16 +2652,28 @@ function panel(){
   else if(ES.tab=='crop')h=`<div class="atb" style="padding:0">${ASP.map(([a,l])=>`<button data-v="asp" data-a="${a}" class="${ES.asp==a?'on2':''}">${l}</button>`).join('')}</div><label class="fl2">Zoom<input type="range" id="vz" min="1" max="3" step="0.01" value="${ES.zoom}"></label><small class="sub">Drag the video to move it inside the frame.</small>`;
   else if(ES.tab=='flt')h=F()?`<div class="atb" style="padding:0">${Object.keys(FILT).map(k=>`<button data-v="flt" data-f="${E(k)}" class="${ES.flt==k?'on2':''}">${E(k)}</button>`).join('')}</div>`:'<p class="sub">Filters need Chrome, Edge or Firefox on a computer or Android phone.</p>';
   else if(ES.tab=='adj')h=F()?`<label class="fl2">Brightness<input type="range" id="vbr" min="50" max="150" value="${ES.br}"></label><label class="fl2">Contrast<input type="range" id="vct" min="50" max="150" value="${ES.ct}"></label><label class="fl2">Color<input type="range" id="vsa" min="0" max="200" value="${ES.sa}"></label>`:'<p class="sub">Adjustments need Chrome, Edge or Firefox.</p>';
-  else h=`<div class="row"><div>Remove sound<small>The reel will be silent</small></div><label class="sw"><input type="checkbox" id="vmu"${ES.mute?' checked':''}><span></span></label></div><button class="ed" data-v="hear">${V&&!V.muted?'🔇 Mute while editing':'🔊 Hear the sound while editing'}</button>`;
+  else if(ES.tab=='txt')h=`<div class="bar" style="padding:0;border:0"><input id="vti" maxlength="30" placeholder="Type your text" autocomplete="off"><button data-v="addt">Add</button></div><div class="atb" style="padding:0">${['#ffffff','#ffd978','#ff5c8a','#77ccff','#99ff66'].map(c=>`<button data-v="tcol" data-c="${c}" aria-label="Text color" style="background:${c};width:34px;height:34px;padding:0;border-radius:50%;border:3px solid ${ES.col==c?'var(--fg)':'transparent'}"></button>`).join('')}</div><div class="atb" style="padding:0">${['😀','😂','😍','🔥','👏','💯','❤️','😎','🎉','✨','👀','🙏'].map(e=>`<button data-v="adde" data-e="${e}" style="font-size:22px">${e}</button>`).join('')}</div><small class="sub">Drag text and stickers on the video to move them.</small>${ES.items.map((it,i)=>`<div class="row"><span>${E(it.t)}</span><span><button class="ed" data-v="isz" data-i="${i}" data-d="-1" aria-label="Smaller">➖</button> <button class="ed" data-v="isz" data-i="${i}" data-d="1" aria-label="Bigger">➕</button> <button class="ed" data-v="idel" data-i="${i}" aria-label="Remove">✕</button></span></div>`).join('')}`;
+  else if(ES.tab=='spd')h=`<div class="atb" style="padding:0">${[.5,.75,1,1.5,2].map(s=>`<button data-v="spd" data-s="${s}" class="${ES.speed==s?'on2':''}">${s}x</button>`).join('')}</div><p class="sub">The finished video will be ${mm((ES.end-ES.start)/ES.speed)} long. Changing the speed removes a recorded voiceover.</p>`;
+  else h=`<div class="row"><div>Remove original sound<small>The reel will be silent</small></div><label class="sw"><input type="checkbox" id="vmu"${ES.mute?' checked':''}><span></span></label></div>${ES.mute?'':`<label class="fl2">Original sound volume<input type="range" id="vvo" min="0" max="100" value="${ES.vol}"></label>`}<p class="sg" style="padding:0">Voiceover</p>${ES.rec?'<button class="pri" data-v="vostop">⏹ Stop recording</button><small class="sub">Recording. Talk while the video plays.</small>':`<button class="ed" data-v="vorec">🎤 ${ES.vo?'Record again':'Record voiceover'}</button>${ES.vo?'<button class="ed" data-v="voplay">▶ Listen</button> <button class="ed" data-v="vodel">🗑 Remove</button>':''}`}<button class="ed" data-v="hear">${V&&!V.muted?'🔇 Mute while editing':'🔊 Hear the sound while editing'}</button>`;
   p.innerHTML=h}
 
 function input(e){
   const id=e.target.id,val=+e.target.value;if(!ES)return;
-  if(id=='vs'){ES.start=Math.min(val,ES.end-.5);if(ES.end-ES.start>MAXD)ES.end=ES.start+MAXD;V.currentTime=ES.start;trimUi()}
-  else if(id=='ve'){ES.end=Math.max(val,ES.start+.5);if(ES.end-ES.start>MAXD)ES.start=ES.end-MAXD;V.currentTime=Math.max(ES.start,ES.end-.3);trimUi()}
+  if(id=='vs'){dropVo();ES.start=Math.min(val,ES.end-.5);if(ES.end-ES.start>MAXD)ES.end=ES.start+MAXD;V.currentTime=ES.start;trimUi()}
+  else if(id=='ve'){dropVo();ES.end=Math.max(val,ES.start+.5);if(ES.end-ES.start>MAXD)ES.start=ES.end-MAXD;V.currentTime=Math.max(ES.start,ES.end-.3);trimUi()}
   else if(id=='vz')ES.zoom=val;
   else if(id=='vbr')ES.br=val;else if(id=='vct')ES.ct=val;else if(id=='vsa')ES.sa=val;
-  else if(id=='vmu')ES.mute=e.target.checked}
+  else if(id=='vmu'){ES.mute=e.target.checked;panel()}
+  else if(id=='vvo')ES.vol=val}
+function dropVo(){if(ES&&ES.vo){ES.vo=null;toast('Voiceover removed because the clip length changed')}}
+async function voStart(){
+  if(!navigator.mediaDevices||!window.MediaRecorder){toast('Recording is not supported here');return}
+  let s;try{s=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true}})}catch(e){toast('Allow the microphone to record');return}
+  const mr=new MediaRecorder(s),ch=[];
+  mr.ondataavailable=e=>{if(e.data&&e.data.size)ch.push(e.data)};
+  mr.onstop=()=>{s.getTracks().forEach(t=>t.stop());if(!ES)return;const blob=new Blob(ch,{type:(mr.mimeType||'audio/webm').split(';')[0]});ES.vo={blob,url:URL.createObjectURL(blob)};ES.rec=null;if(V)V.pause();panel()};
+  ES.rec=mr;V.currentTime=ES.start;V.playbackRate=ES.speed;V.muted=true;V.play().catch(()=>{});mr.start();panel()}
+function voStop(){if(ES&&ES.rec&&ES.rec.state!='inactive')ES.rec.stop()}
 function trimUi(){
   const s=$('#vs'),e=$('#ve');if(s)s.value=ES.start;if(e)e.value=ES.end;
   const a=$('#vts'),b=$('#vte'),c=$('#vtl');if(a)a.textContent=mm(ES.start);if(b)b.textContent=mm(ES.end);if(c)c.textContent='Length '+mm(ES.end-ES.start)+'. Reels can be up to 1:00.'}
@@ -2665,19 +2688,29 @@ function click(e){
   else if(a=='tab'){ES.tab=b.dataset.k;panel()}
   else if(a=='asp'){ES.asp=+b.dataset.a;ES.px=ES.py=.5;panel()}
   else if(a=='flt'){ES.flt=b.dataset.f;panel()}
+  else if(a=='addt'){const i=$('#vti'),t=(i&&i.value||'').trim();if(!t)return;ES.items.push({k:'t',t:t.slice(0,30),x:.5,y:.5,s:.07,c:ES.col});i.value='';panel()}
+  else if(a=='tcol'){ES.col=b.dataset.c;panel()}
+  else if(a=='adde'){ES.items.push({k:'e',t:b.dataset.e,x:.5,y:.4,s:.14});panel()}
+  else if(a=='isz'){const it=ES.items[+b.dataset.i];if(it)it.s=Math.min(.4,Math.max(.03,it.s*(b.dataset.d=='1'?1.2:.83)))}
+  else if(a=='idel'){ES.items.splice(+b.dataset.i,1);panel()}
+  else if(a=='spd'){dropVo();ES.speed=+b.dataset.s;V.playbackRate=ES.speed;panel()}
+  else if(a=='vorec')voStart();
+  else if(a=='vostop')voStop();
+  else if(a=='voplay'){if(ES.vo)new Audio(ES.vo.url).play().catch(()=>{})}
+  else if(a=='vodel'){ES.vo=null;panel()}
   else if(a=='hear'){V.muted=!V.muted;panel()}}
 
 /* ---------- save the edit as a new video file ---------- */
 async function done(){
   if(!ES||ES.busy)return;
-  const edited=ES.start>.05||ES.end<ES.dur-.05||ES.asp!=0||ES.zoom!=1||adjusted()||ES.mute;
+  const edited=ES.start>.05||ES.end<ES.dur-.05||ES.asp!=0||ES.zoom!=1||adjusted()||ES.mute||ES.speed!=1||ES.items.length>0||!!ES.vo;
   if(!edited){close();toast('No changes made');return}
-  if(ES.end-ES.start>MAXD+.5){toast('Trim the video to 60 seconds or less');return}
+  if((ES.end-ES.start)/ES.speed>MAXD+.5){toast('The finished video would be longer than 60 seconds. Trim more or speed it up.');return}
   if(!REC()){toast('This browser cannot save video edits. Try Chrome, Edge or Firefox.');return}
   if(!F()&&adjusted()){toast('Filters and adjustments need Chrome, Edge or Firefox. Choose Original to continue.');return}
   ES.busy=true;if(V)V.pause();
   const o=$('#vedt'),ov=document.createElement('div');ov.className='vexp';
-  ov.innerHTML=`<b>Processing your video…</b><div class="ubar" style="width:240px;margin:auto"><i id="vpb" style="animation:none;width:0%;margin:0"></i></div><small id="vpt">0%</small><small>Keep this tab open. It takes about ${Math.ceil(ES.end-ES.start)} seconds.</small><button class="ed" data-v="xc">Cancel</button>`;
+  ov.innerHTML=`<b>Processing your video…</b><div class="ubar" style="width:240px;margin:auto"><i id="vpb" style="animation:none;width:0%;margin:0"></i></div><small id="vpt">0%</small><small>Keep this tab open. It takes about ${Math.ceil((ES.end-ES.start)/ES.speed)} seconds.</small><button class="ed" data-v="xc">Cancel</button>`;
   o.appendChild(ov);
   try{
     const f=await exportVideo(p=>{const a=$('#vpb'),t=$('#vpt');if(a)a.style.width=Math.round(p*100)+'%';if(t)t.textContent=Math.round(p*100)+'%'});
@@ -2688,16 +2721,20 @@ async function done(){
 function exportVideo(onp){
   return new Promise((resolve,reject)=>{
     const v=document.createElement('video');v.playsInline=true;v.preload='auto';v.src=V.src;
-    let ac=null,rec=null,tmr=0,cancelled=false,ended=false;
-    const clean=()=>{clearInterval(tmr);try{v.pause()}catch(e){}try{ac&&ac.close()}catch(e){}EXP=null};
+    let ac=null,rec=null,tmr=0,cancelled=false,ended=false,va=null;
+    const clean=()=>{clearInterval(tmr);try{v.pause()}catch(e){}try{va&&va.pause()}catch(e){}try{ac&&ac.close()}catch(e){}EXP=null};
     EXP={cancel:()=>{cancelled=true;clean();try{if(rec&&rec.state!='inactive')rec.stop()}catch(e){}reject(new Error('cancel'))}};
     v.onerror=()=>{clean();reject(new Error('This video format cannot be processed here.'))};
     v.onloadeddata=async()=>{
       try{
         const g=geom(v.videoWidth,v.videoHeight),c=document.createElement('canvas');c.width=g.ow;c.height=g.oh;
-        const x=c.getContext('2d'),stream=c.captureStream(30),len=ES.end-ES.start,st=ES.start,en=ES.end,fl=F()?fstr():'none';
-        if(!ES.mute){const AC=window.AudioContext||window.webkitAudioContext;ac=new AC();const src=ac.createMediaElementSource(v),dest=ac.createMediaStreamDestination();src.connect(dest);await ac.resume();dest.stream.getAudioTracks().forEach(t=>stream.addTrack(t))}
+        const x=c.getContext('2d'),stream=c.captureStream(30),len=ES.end-ES.start,sp=ES.speed,st=ES.start,en=ES.end,fl=F()?fstr():'none';
+        if(!ES.mute||ES.vo){const AC=window.AudioContext||window.webkitAudioContext;ac=new AC();const dest=ac.createMediaStreamDestination();
+          if(!ES.mute){const src=ac.createMediaElementSource(v),gn=ac.createGain();gn.gain.value=ES.vol/100;src.connect(gn);gn.connect(dest)}else v.muted=true;
+          if(ES.vo){va=new Audio();va.src=ES.vo.url;ac.createMediaElementSource(va).connect(dest)}
+          await ac.resume();dest.stream.getAudioTracks().forEach(t=>stream.addTrack(t))}
         else v.muted=true;
+        v.playbackRate=sp;
         const mime=pickMime(),opts={videoBitsPerSecond:2200000,audioBitsPerSecond:128000};if(mime)opts.mimeType=mime;
         rec=new MediaRecorder(stream,opts);const ch=[];
         rec.ondataavailable=ev=>{if(ev.data&&ev.data.size)ch.push(ev.data)};
@@ -2705,21 +2742,167 @@ function exportVideo(onp){
           if(cancelled)return;
           try{
             const type=(rec.mimeType||mime||'video/webm').split(';')[0];let blob=new Blob(ch,{type});
-            if(type=='video/webm'){try{const fx=fixWebm(new Uint8Array(await blob.arrayBuffer()),len);if(fx)blob=new Blob([fx],{type})}catch(e){}}
+            if(type=='video/webm'){try{const fx=fixWebm(new Uint8Array(await blob.arrayBuffer()),len/sp);if(fx)blob=new Blob([fx],{type})}catch(e){}}
             if(blob.size>28*1048576)throw new Error('The edited video is too large. Trim it or crop it smaller.');
-            const file=new File([blob],'reel.'+(type=='video/mp4'?'mp4':'webm'),{type});file.xdur=len;clean();resolve(file)}
+            const file=new File([blob],'reel.'+(type=='video/mp4'?'mp4':'webm'),{type});file.xdur=len/sp;clean();resolve(file)}
           catch(err){clean();reject(err)}};
         v.currentTime=st;await once(v,'seeked');
-        rec.start(500);await v.play();
+        rec.start(500);if(va)va.play().catch(()=>{});await v.play();
         const tick=()=>{if(cancelled||ended)return;
-          x.filter=fl;x.drawImage(v,g.sx,g.sy,g.cw,g.ch,0,0,c.width,c.height);
+          x.filter=fl;x.drawImage(v,g.sx,g.sy,g.cw,g.ch,0,0,c.width,c.height);x.filter='none';drawItems(x,c.width,c.height);
           onp(Math.min(1,Math.max(0,(v.currentTime-st)/len)));
           if(v.currentTime>=en-.03||v.ended){ended=true;clearInterval(tmr);v.pause();setTimeout(()=>{try{rec.stop()}catch(e){}},200)}};
         tmr=setInterval(tick,33)}
       catch(err){clean();reject(new Error(err&&err.message&&err.message.length<90?err.message:'Could not process the video'))}}})}
 
-window.XVE={open,auto:f=>open(f)};
+window.XVE={open,auto:f=>open(f)};window.fixWebm=fixWebm;window.pickMime=pickMime;
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a=vedit]');if(!b)return;e.stopPropagation();const f=typeof window.studioVideo=='function'&&window.studioVideo();if(f)open(f);else toast('Choose a video first')},true);
+})();
+</script>
+
+<!-- ===== Amlink Batch 4: cups, party games, safety tools, reel duets ===== -->
+<style>
+.dtc{width:100%;max-width:420px;margin:0 auto;display:block;border-radius:16px;background:#000}
+.cupr{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(160px,1fr);gap:10px;overflow-x:auto;padding:4px 0}
+.cupc{display:grid;gap:8px;align-content:center}
+.mt{border:1px solid var(--line);border-radius:12px;padding:8px;background:var(--card);display:grid;gap:4px;font-size:13px}
+.mt .w{color:#2fa84f;font-weight:800}
+.duet{display:block;padding:6px 12px 0;font-size:13px;color:var(--mut)}
+</style>
+<script>
+(()=>{
+Object.assign(TXT,{flag:'Amlink: a post of yours is under review after reports',aok:'Amlink: your appeal was approved',ano:'Amlink: your appeal was not approved',duet:'made a duet with your reel'});
+const GK={ttt:'Tic-Tac-Toe',c4:'Connect 4',rps:'Rock Paper Scissors'};
+const mm=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+let XMOD=false,DT=null;
+
+/* ================= SAFETY: banned screen, appeals, moderators ================= */
+const A9=A;
+A=async(p,b)=>{try{return await A9(p,b)}catch(e){if(/banned/i.test((e&&e.message)||'')&&!document.getElementById('apl'))banned();throw e}};
+function banned(){modal(`<h3>Account banned</h3><div id="apl" style="display:grid;gap:12px"><p>Your account was banned. If you think this is a mistake, you can ask us to review it.</p><textarea id="apt" maxlength="500" placeholder="Tell us what happened (10 to 500 characters)"></textarea><p class="er" id="er"></p><button class="pri" data-a="aps">Send appeal</button><button class="pri sec" data-a="out">Log out</button></div>`,true)}
+function appealForm(){modal(`<h3>Appeal a decision</h3><div style="display:grid;gap:12px"><p class="sub">Was a post removed, did you get a warning, or are you suspended? Tell us why you think it was a mistake. A moderator will review it.</p><textarea id="apt" maxlength="500" placeholder="Explain in 10 to 500 characters"></textarea><p class="er" id="er"></p><button class="pri" data-a="aps">Send appeal</button></div>`)}
+async function sendAppeal(){
+  const t=($('#apt')||{}).value||'',er=$('#er');if(er)er.textContent='';
+  try{const r=await fetch('/api/appeal',{method:'POST',headers:{'X-Token':T||'','Content-Type':'application/json'},body:JSON.stringify({text:t,ref:''})}),j=await r.json();
+    if(j.error)throw new Error(j.error);
+    const box=$('#apl');if(box)box.innerHTML='<p>Thanks. Your appeal was sent. We will review it.</p><button class="pri sec" data-a="out">Log out</button>';else{closeM();toast('Appeal sent')}}
+  catch(e){if(er)er.textContent=e.message}}
+async function appeals(){
+  const l=await A('appeals');
+  modal('<h3>Appeals</h3>'+(l.map(a=>`<div class="cd" style="padding:12px;display:grid;gap:8px"><div>${nm(a.U)} <small>${E(a.Kind)} · ${new Date(a.TS*1000).toLocaleDateString()}</small></div><p style="white-space:pre-wrap">${E(a.Text)}</p><div class="act"><button class="ed" data-a="apv" data-i="${a.ID}" data-v="1">Approve</button><button class="ed" data-a="apv" data-i="${a.ID}" data-v="0">Reject</button></div></div>`).join('')||'<p class="empty">No pending appeals.</p>'))}
+
+/* ================= CUPS (8-player knockouts) ================= */
+window.XCUP=async()=>{
+  const j=await A('tlist');
+  const row=t=>`<div class="pr"><div class="nm">${E(GK[t.Kind])} cup<br><small>${t.Status=='open'?t.N+'/8 players':t.Status=='running'?'In progress':'Finished'}</small></div>${t.In?`<button class="ed" data-a="tv" data-i="${t.ID}">Bracket</button>`:`<button class="ed" data-a="tjn" data-k="${t.Kind}">Join</button>`}</div>`;
+  return '<p class="sub" style="padding:8px 16px">8 players, 3 knockout rounds. The winner earns 🪙 100 and a Champion badge. A cup starts as soon as 8 players have joined.</p>'+
+    Object.keys(GK).map(k=>`<div class="gc"><i>🏅</i><div><b>${E(GK[k])} cup</b><div class="gcb"><button class="ed" data-a="tjn" data-k="${k}">Join a cup</button></div></div></div>`).join('')+
+    '<p class="sg" style="padding:8px 16px 0">My cups</p>'+(j.Mine.map(row).join('')||'<small class="sub" style="padding:0 16px">You are not in a cup yet.</small>')+
+    (j.Open.length?'<p class="sg" style="padding:8px 16px 0">Open cups</p>'+j.Open.map(row).join(''):'')};
+async function bracket(id){
+  const t=await A('tget?id='+id),names=['Round of 8','Semi-finals','Final'];
+  const mt=x=>`<div class="mt"><span class="${x.Win==x.A.ID?'w':''}">${nm(x.A)}</span><span class="${x.Win==x.B.ID?'w':''}">${nm(x.B)}</span>${x.Win?'':x.Mine?`<button class="ed" data-a="gopen" data-i="${x.Game}">▶ Play your match</button>`:'<small>In progress</small>'}</div>`;
+  modal(`<h3>${E(GK[t.Kind])} cup</h3>`+(t.Status=='open'?`<p class="sub">Waiting for players: ${t.Players.length}/8</p>${t.Players.map(u=>`<div class="pr">${AV(u)}<div class="nm">${nm(u)}</div></div>`).join('')}${t.In?`<button class="pri sec" data-a="tlv" data-i="${t.ID}">Leave this cup</button>`:''}`:`${t.Champ?`<p class="gst">🏆 Champion: ${nm(t.Champ)}</p>`:''}<div class="cupr">${t.Rounds.map((r,i)=>`<div class="cupc"><b>${names[i]||'Round '+(i+1)}</b>${r.map(mt).join('')}</div>`).join('')}</div>`))}
+
+/* ================= PARTY GAMES in circles ================= */
+const gp4=gopen;
+gopen=async function(id,n){await gp4(id,n);const h=document.querySelector('.chh');if(h&&!$('#pgb'))h.insertAdjacentHTML('beforeend','<button id="pgb" data-a="pgm" aria-label="Party games" style="font-size:20px">🎲</button>')};
+
+/* ================= DUETS ================= */
+const rl4=reels;
+reels=function(){rl4();
+  document.querySelectorAll('.reel').forEach(r=>{
+    const l=r.querySelector('.lk'),p=l&&posts.find(x=>x.ID==l.dataset.i);if(!p)return;
+    const rail=r.querySelector('.rail');
+    if(rail&&p.U.ID!=ME.ID&&!rail.querySelector('[data-a=duet]'))rail.insertAdjacentHTML('afterbegin',`<button data-a="duet" data-i="${p.ID}" aria-label="Make a duet">🎭<span>Duet</span></button>`);
+    if(p.DuetU){const mu=r.querySelector('.rmu');if(mu)mu.insertAdjacentHTML('beforebegin',`<div class="rmu">🎭 Duet with @${E(p.DuetU)}</div>`)}})};
+const pt4=paint;
+paint=function(){pt4();
+  document.querySelectorAll('.post[data-pid]').forEach(el=>{
+    if(el.dataset.du)return;el.dataset.du=1;const p=posts.find(x=>x.ID==el.dataset.pid);
+    if(p&&p.DuetU){const hd=el.querySelector('header');if(hd)hd.insertAdjacentHTML('afterend',`<small class="duet">🎭 Duet with @${E(p.DuetU)}</small>`)}})};
+
+function dtClean(){
+  if(!DT)return;cancelAnimationFrame(DT.raf);clearInterval(DT.tm);
+  try{DT.ms&&DT.ms.getTracks().forEach(t=>t.stop())}catch(e){}
+  try{DT.sv&&DT.sv.pause()}catch(e){}try{DT.ac&&DT.ac.close()}catch(e){}DT=null}
+async function duet(pid){
+  const p=posts.find(x=>x.ID==pid);
+  if(!p||p.Kind!='video'||!p.Media){toast('Only reels can be used for duets');return}
+  if(!window.MediaRecorder||!navigator.mediaDevices||!HTMLCanvasElement.prototype.captureStream){toast('Duets need Chrome, Edge or Firefox');return}
+  dtClean();
+  modal(`<h3>Duet with @${E(p.U.Username)}</h3><div style="display:grid;gap:12px"><canvas id="dtc" class="dtc" width="720" height="640"></canvas><p class="sub" id="dtm" style="text-align:center">Starting the camera…</p><button class="pri" id="dtg" data-a="dtgo" disabled>● Record</button><button class="pri sec" data-a="dtx">Cancel</button></div>`,true);
+  const sv=document.createElement('video');sv.crossOrigin='anonymous';sv.playsInline=true;sv.preload='auto';sv.src=p.Media;
+  const cam=document.createElement('video');cam.playsInline=true;cam.muted=true;
+  let ms;
+  try{ms=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:720}},audio:{echoCancellation:true,noiseSuppression:true}})}
+  catch(e){closeM();toast('Allow the camera and microphone to make a duet');return}
+  cam.srcObject=ms;await cam.play().catch(()=>{});
+  try{await new Promise((res,rej)=>{sv.onloadeddata=res;sv.onerror=()=>rej(new Error('x'));setTimeout(()=>rej(new Error('t')),15000)})}
+  catch(e){ms.getTracks().forEach(t=>t.stop());closeM();toast('This reel cannot be used for a duet');return}
+  DT={p,sv,cam,ms,state:'ready',raf:0,count:0};
+  const cv=$('#dtc');if(!cv){dtClean();return}const x=cv.getContext('2d');
+  const cover=(v,dx,dy,dw,dh,flip)=>{const vw=v.videoWidth||dw,vh=v.videoHeight||dh,k=Math.max(dw/vw,dh/vh),sw=dw/k,sh=dh/k;x.save();if(flip){x.translate(dx+dw,dy);x.scale(-1,1);x.drawImage(v,(vw-sw)/2,(vh-sh)/2,sw,sh,0,0,dw,dh)}else x.drawImage(v,(vw-sw)/2,(vh-sh)/2,sw,sh,dx,dy,dw,dh);x.restore()};
+  const frame=()=>{if(!DT||!$('#dtc')){dtClean();return}
+    x.fillStyle='#000';x.fillRect(0,0,720,640);cover(sv,0,0,360,640,false);cover(cam,360,0,360,640,true);
+    if(DT.count){x.fillStyle='#fff';x.font='800 120px system-ui';x.textAlign='center';x.textBaseline='middle';x.fillText(DT.count,360,320)}
+    DT.raf=requestAnimationFrame(frame)};
+  frame();const m=$('#dtm'),g=$('#dtg');if(m)m.textContent='Your video plays on the left. Use headphones for the best sound.';if(g)g.disabled=false}
+async function dtRecord(){
+  if(!DT||DT.state!='ready')return;DT.state='count';const b=$('#dtg');if(b)b.disabled=true;
+  for(const n of [3,2,1]){if(!DT)return;DT.count=n;await new Promise(r=>setTimeout(r,800))}
+  if(!DT)return;DT.count=0;
+  const sv=DT.sv,ms=DT.ms,p=DT.p,t0=Date.now();
+  try{
+    const c=$('#dtc'),stream=c.captureStream(30),AC=window.AudioContext||window.webkitAudioContext,ac=new AC(),dest=ac.createMediaStreamDestination();
+    const sn=ac.createMediaElementSource(sv);sn.connect(dest);sn.connect(ac.destination);
+    ac.createMediaStreamSource(ms).connect(dest);await ac.resume();
+    dest.stream.getAudioTracks().forEach(t=>stream.addTrack(t));
+    const mime=window.pickMime?pickMime():'',opts={videoBitsPerSecond:2200000,audioBitsPerSecond:128000};if(mime)opts.mimeType=mime;
+    const rec=new MediaRecorder(stream,opts),ch=[];DT.rec=rec;DT.ac=ac;
+    rec.ondataavailable=e=>{if(e.data&&e.data.size)ch.push(e.data)};
+    rec.onstop=async()=>{
+      try{
+        const len=Math.max(1,(Date.now()-t0)/1000),type=(rec.mimeType||mime||'video/webm').split(';')[0];let blob=new Blob(ch,{type});
+        if(type=='video/webm'&&window.fixWebm){try{const fx=fixWebm(new Uint8Array(await blob.arrayBuffer()),len);if(fx)blob=new Blob([fx],{type})}catch(e){}}
+        dtClean();closeM();
+        if(blob.size>28*1048576){toast('The duet is too large. Record a shorter one.');return}
+        const file=new File([blob],'duet.'+(type=='video/mp4'?'mp4':'webm'),{type});file.xdur=len;
+        if(!window.openStudio||!window.studioSetVideo){toast('Could not open the reel screen');return}
+        openStudio('reel');window.studioSetVideo(file);window.XDUET=p.ID;
+        setTimeout(()=>{const cc=$('#stc');if(cc){cc.value='🎭 Duet with @'+p.U.Username+' ';cc.dispatchEvent(new Event('input'))}},60)}
+      catch(e){dtClean();toast('Could not save the duet')}};
+    sv.currentTime=0;await sv.play();rec.start(500);DT.state='rec';
+    if(b){b.textContent='⏹ Stop';b.dataset.a='dtst';b.disabled=false}
+    DT.tm=setInterval(()=>{if(!DT)return;const t=(Date.now()-t0)/1000,m=$('#dtm');if(m)m.textContent='Recording '+mm(t);if(sv.ended||t>=60)dtStop()},250)}
+  catch(e){toast('Could not start recording');dtClean();closeM()}}
+function dtStop(){if(DT&&DT.rec&&DT.rec.state!='inactive'){clearInterval(DT.tm);DT.sv.pause();DT.rec.stop()}}
+
+/* ================= startup and menus ================= */
+const ap=app;
+app=function(){ap();A('modme').then(j=>{XMOD=!!(j&&j.Mod)}).catch(()=>{})};
+const od=openDr;
+openDr=function(){od();$('#dr').insertAdjacentHTML('beforeend','<p class="sg">Safety</p><div class="cd"><button class="sr" data-a="apw"><i>🗣</i>Appeal a decision<em>›</em></button>'+(XMOD||ME.Admin?'<button class="sr" data-a="apl2"><i>📬</i>Review appeals<em>›</em></button>':'')+(XMOD&&!ME.Admin?'<button class="sr" data-a="xmq"><i>🛡️</i>Moderation<em>›</em></button>':'')+'</div>')};
+
+/* ================= clicks ================= */
+$('#app').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,d=b.dataset,i=d.i;
+  try{
+    if(a=='tjn'){const j=await A('tjoin',{kind:d.k});toast('You joined a cup 🏅');bracket(j.id)}
+    else if(a=='tv')bracket(i);
+    else if(a=='tlv'){await A('tleave',{id:i});closeM();toast('You left the cup')}
+    else if(a=='pgm')modal('<h3>Party games</h3><div class="ctl"><button data-a="pgo" data-k="truth"><i>🎭</i>Truth<small>A random member answers</small></button><button data-a="pgo" data-k="dare"><i>🔥</i>Dare<small>A random member does it</small></button><button data-a="pgo" data-k="wyr"><i>🤔</i>Would you rather<small>Everyone picks A or B</small></button><button data-a="pgo" data-k="emoji"><i>🧩</i>Emoji guess<small>First correct answer wins</small></button></div>');
+    else if(a=='pgo'){await A('pgame',{g:gid,kind:d.k});closeM();gload().catch(()=>{})}
+    else if(a=='duet')duet(i);
+    else if(a=='dtgo')dtRecord();
+    else if(a=='dtst')dtStop();
+    else if(a=='dtx'){dtClean();closeM()}
+    else if(a=='aps')sendAppeal();
+    else if(a=='apw'){$('#app').classList.remove('dro');appealForm()}
+    else if(a=='apl2'){$('#app').classList.remove('dro');appeals()}
+    else if(a=='apv'){await A('appealact',{id:i,v:d.v});appeals()}
+    else if(a=='mrole'){await A('modrole',{id:i});admin()}
+  }catch(x){toast(x.message)}});
 })();
 </script>
 
