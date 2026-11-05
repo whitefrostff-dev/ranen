@@ -103,6 +103,7 @@ type State struct {
 	X5       Ext5
 	X6       Ext6
 	X7       Ext7
+	X8       Ext8
 	Users    map[string]*User
 	Posts    []*Post
 	Msgs     []Msg
@@ -1987,9 +1988,15 @@ func extra(ok map[string]bool) {
 			l = append(l, sc{o.ID, s})
 		}
 		sort.Slice(l, func(a, b int) bool { return l[a].s > l[b].s })
-		ppl := []map[string]any{}
-		for i := 0; i < len(l) && i < 8; i++ {
-			ppl = append(ppl, uv(l[i].id))
+		ppl := boosted(u)
+		have := map[string]bool{}
+		for _, m := range ppl {
+			have[m["ID"].(string)] = true
+		}
+		for i := 0; i < len(l) && len(ppl) < 8; i++ {
+			if !have[l[i].id] {
+				ppl = append(ppl, uv(l[i].id))
+			}
 		}
 		tags, cut7 := map[string]int{}, now()-7*86400
 		for _, p := range S.Posts {
@@ -2186,6 +2193,7 @@ func janitor() {
 func purgeMore(id string) {
 	purgeX5(id)
 	purgeX7(id)
+	purgeX8(id)
 	e := x()
 	var files []string
 	if u := S.Users[id]; u != nil {
@@ -5629,6 +5637,9 @@ type Cos struct {
 }
 type Game struct {
 	Tour string // set when the game belongs to a cup
+	Aux, Qi, A1, A2, Lq, La1, La2, Mv int // checkers chain, trivia state, move counter
+	QTS                              int64
+	F1, F2, Sh1, Sh2, Bx, Qs         []int // battleship fleets and shots, dots-and-boxes owners, trivia questions
 	ID, Kind, A, B, Turn, Status, Win string
 	Board                             []int
 	P1, P2, L1, L2                    string // rock-paper-scissors picks and the last revealed round
@@ -5683,7 +5694,9 @@ func x6() *Ext6 {
 }
 
 // ---------- games ----------
-func gameKind(k string) bool { return k == "ttt" || k == "c4" || k == "rps" }
+func gameKind(k string) bool {
+	return k == "ttt" || k == "c4" || k == "rps" || k == "chk" || k == "bs" || k == "dab" || k == "tri"
+}
 
 func newGame(kind, a, b string) *Game {
 	g := &Game{ID: uid(), Kind: kind, A: a, B: b, Turn: a, Status: "active", TS: now(), Upd: now()}
@@ -5694,6 +5707,25 @@ func newGame(kind, a, b string) *Game {
 		g.Board = make([]int, 42)
 	case "rps":
 		g.Turn = ""
+	case "chk":
+		g.Board = make([]int, 64)
+		for i := range g.Board {
+			if r, c := i/8, i%8; (r+c)%2 == 1 {
+				if r < 3 {
+					g.Board[i] = 2
+				} else if r > 4 {
+					g.Board[i] = 1
+				}
+			}
+		}
+	case "bs":
+		g.F1, g.F2 = placeFleet(), placeFleet()
+		g.Sh1, g.Sh2 = make([]int, 100), make([]int, 100)
+	case "dab":
+		g.Board, g.Bx = make([]int, 40), make([]int, 16)
+	case "tri":
+		g.Turn = ""
+		triNew(g)
 	}
 	x6().Games[g.ID] = g
 	return g
@@ -5718,8 +5750,9 @@ func gameView(g *Game, me string) map[string]any {
 	if p == 2 {
 		my, opp = g.P2, g.P1
 	}
-	return map[string]any{"ID": g.ID, "Kind": g.Kind, "Board": g.Board, "Turn": g.Turn, "Status": g.Status, "Win": g.Win, "Me": p,
+	v := map[string]any{"ID": g.ID, "Kind": g.Kind, "Board": g.Board, "Turn": g.Turn, "Status": g.Status, "Win": g.Win, "Me": p,
 		"A": uv(g.A), "B": uv(g.B), "S1": g.S1, "S2": g.S2, "Rd": g.Rd, "L1": g.L1, "L2": g.L2, "LW": g.LW, "My": my, "OppPicked": opp != ""}
+	return gameViewX(v, g, me, p)
 }
 
 func lineWin(b []int, p int) bool {
@@ -5772,6 +5805,10 @@ func payGame(g *Game) {
 	enough := false
 	if g.Kind == "rps" {
 		enough = g.S1+g.S2 >= 2
+	} else if g.Kind == "tri" {
+		enough = true
+	} else if g.Kind == "chk" || g.Kind == "bs" || g.Kind == "dab" {
+		enough = g.Mv >= 6
 	} else {
 		n := 0
 		for _, v := range g.Board {
@@ -6089,6 +6126,9 @@ func extra10() {
 			fail(w, 404, "Game not found")
 			return
 		}
+		if triTick(g) {
+			save()
+		}
 		js(w, gameView(g, u.ID))
 	})
 	api("gmine", func(u *User, w http.ResponseWriter, r *http.Request) {
@@ -6108,8 +6148,12 @@ func extra10() {
 			}
 			mine := false
 			if g.Status == "active" {
-				if g.Kind == "rps" {
-					if (g.A == u.ID && g.P1 == "") || (g.B == u.ID && g.P2 == "") {
+				if g.Kind == "rps" || g.Kind == "tri" {
+					if g.Kind == "tri" {
+						if (g.A == u.ID && g.A1 == 0) || (g.B == u.ID && g.A2 == 0) {
+							mine = true
+						}
+					} else if (g.A == u.ID && g.P1 == "") || (g.B == u.ID && g.P2 == "") {
 						mine = true
 					}
 				} else {
@@ -6136,6 +6180,17 @@ func extra10() {
 		p := 1
 		if !isA {
 			opp, p = g.A, 2
+		}
+		if g.Kind == "chk" || g.Kind == "bs" || g.Kind == "dab" || g.Kind == "tri" {
+			if msg := newKindMove(g, u.ID, b["m"]); msg != "" {
+				fail(w, 400, msg)
+				return
+			}
+			g.Upd = now()
+			save()
+			push(opp, "game:"+g.ID)
+			js(w, gameView(g, u.ID))
+			return
 		}
 		if g.Kind == "rps" {
 			m := b["m"]
@@ -6366,10 +6421,11 @@ func extra10() {
 			return
 		}
 		if g.Coins < it.Price {
-			fail(w, 400, "Not enough coins")
+			fail(w, 400, "Not enough Ran Coin")
 			return
 		}
 		g.Coins -= it.Price
+		ledger(u.ID, -it.Price, "shop", "Bought "+it.Name)
 		c.Own = append(c.Own, it.ID)
 		setEq(c, it)
 		save()
@@ -6994,5 +7050,659 @@ func extra11() {
 			return
 		}
 		fail(w, 404, "Appeal not found")
+	})
+}
+
+// =====================================================================
+// ---------- Batch 5: Checkers, Battleship, Dots and Boxes, Trivia, Ran Coin wallet, gifts, boost ----------
+// =====================================================================
+
+// ---------- checkers (English draughts: captures are compulsory, men that reach the far side become kings) ----------
+func chkOwner(v int) int {
+	if v == 1 || v == 3 {
+		return 1
+	}
+	if v == 2 || v == 4 {
+		return 2
+	}
+	return 0
+}
+
+func chkMoves(b []int, p, only int) (caps, simple [][2]int) {
+	for i, v := range b {
+		if chkOwner(v) != p || (only >= 0 && i != only) {
+			continue
+		}
+		r, c := i/8, i%8
+		for _, dr := range []int{-1, 1} {
+			if (v == 1 && dr != -1) || (v == 2 && dr != 1) {
+				continue
+			}
+			for _, dc := range []int{-1, 1} {
+				r1, c1 := r+dr, c+dc
+				if r1 < 0 || r1 > 7 || c1 < 0 || c1 > 7 {
+					continue
+				}
+				t := b[r1*8+c1]
+				if t == 0 {
+					simple = append(simple, [2]int{i, r1*8 + c1})
+				} else if chkOwner(t) != p {
+					r2, c2 := r+2*dr, c+2*dc
+					if r2 >= 0 && r2 <= 7 && c2 >= 0 && c2 <= 7 && b[r2*8+c2] == 0 {
+						caps = append(caps, [2]int{i, r2*8 + c2})
+					}
+				}
+			}
+		}
+	}
+	return
+}
+
+func chkLegal(g *Game, p int) [][2]int {
+	only := -1
+	if g.Aux > 0 {
+		only = g.Aux - 1
+	}
+	c, s := chkMoves(g.Board, p, only)
+	if len(c) > 0 || only >= 0 {
+		return c
+	}
+	return s
+}
+
+// chkApply plays a move and reports whether the same player must keep jumping
+func chkApply(g *Game, p, from, to int) bool {
+	b := g.Board
+	v := b[from]
+	r1, c1, r2, c2 := from/8, from%8, to/8, to%8
+	capture := r2-r1 == 2 || r1-r2 == 2
+	man := v == 1 || v == 2
+	b[from] = 0
+	if capture {
+		b[((r1+r2)/2)*8+(c1+c2)/2] = 0
+	}
+	promoted := false
+	if v == 1 && r2 == 0 {
+		v, promoted = 3, true
+	}
+	if v == 2 && r2 == 7 {
+		v, promoted = 4, true
+	}
+	b[to] = v
+	g.Aux = 0
+	if capture || man {
+		g.Rd = 0
+	} else {
+		g.Rd++
+	}
+	if capture && !promoted {
+		if c, _ := chkMoves(b, p, to); len(c) > 0 {
+			g.Aux = to + 1
+			return true
+		}
+	}
+	return false
+}
+
+// ---------- battleship ----------
+var shipLens = []int{5, 4, 3, 3, 2}
+
+func placeFleet() []int {
+	for {
+		f := make([]int, 100)
+		all := true
+		for id, L := range shipLens {
+			placed := false
+			for t := 0; t < 200 && !placed; t++ {
+				rb := make([]byte, 3)
+				rand.Read(rb)
+				horiz := rb[0]%2 == 0
+				r, c := int(rb[1])%10, int(rb[2])%10
+				if (horiz && c+L > 10) || (!horiz && r+L > 10) {
+					continue
+				}
+				free := true
+				for k := 0; k < L; k++ {
+					rr, cc := r, c
+					if horiz {
+						cc += k
+					} else {
+						rr += k
+					}
+					if f[rr*10+cc] != 0 {
+						free = false
+						break
+					}
+				}
+				if !free {
+					continue
+				}
+				for k := 0; k < L; k++ {
+					rr, cc := r, c
+					if horiz {
+						cc += k
+					} else {
+						rr += k
+					}
+					f[rr*10+cc] = id + 1
+				}
+				placed = true
+			}
+			if !placed {
+				all = false
+				break
+			}
+		}
+		if all {
+			return f
+		}
+	}
+}
+
+// lengths of the ships that are completely hit
+func sunkShips(fleet, shots []int) []int {
+	out := []int{}
+	for id := 1; id <= len(shipLens); id++ {
+		whole, n := true, 0
+		for i, v := range fleet {
+			if v == id {
+				n++
+				if shots[i] != 2 {
+					whole = false
+				}
+			}
+		}
+		if whole && n > 0 {
+			out = append(out, shipLens[id-1])
+		}
+	}
+	return out
+}
+
+// ---------- dots and boxes (4 x 4 boxes) ----------
+func dabBox(e []int, r, c int) bool {
+	return e[r*4+c] != 0 && e[(r+1)*4+c] != 0 && e[20+r*5+c] != 0 && e[20+r*5+c+1] != 0
+}
+
+// ---------- trivia battle ----------
+type TQ struct {
+	T string
+	O [4]string
+	C int
+}
+
+var triBank = []TQ{
+	{"What is the capital of Australia?", [4]string{"Sydney", "Melbourne", "Canberra", "Perth"}, 2},
+	{"Which planet is known as the Red Planet?", [4]string{"Venus", "Mars", "Jupiter", "Mercury"}, 1},
+	{"How many players does one football team have on the pitch?", [4]string{"9", "10", "11", "12"}, 2},
+	{"What is the largest ocean on Earth?", [4]string{"Atlantic", "Indian", "Pacific", "Arctic"}, 2},
+	{"What is the chemical symbol for gold?", [4]string{"Ag", "Au", "Gd", "Go"}, 1},
+	{"Who painted the Mona Lisa?", [4]string{"Michelangelo", "Leonardo da Vinci", "Raphael", "Van Gogh"}, 1},
+	{"Which country won the 2018 FIFA World Cup?", [4]string{"Croatia", "Belgium", "France", "Brazil"}, 2},
+	{"Which African country has the largest population?", [4]string{"Nigeria", "Ethiopia", "Egypt", "South Africa"}, 0},
+	{"How many continents are there?", [4]string{"5", "6", "7", "8"}, 2},
+	{"What is the hardest natural substance?", [4]string{"Gold", "Iron", "Diamond", "Quartz"}, 2},
+	{"Which gas do plants take in from the air?", [4]string{"Oxygen", "Nitrogen", "Carbon dioxide", "Helium"}, 2},
+	{"The Great Wall is in which country?", [4]string{"India", "China", "Japan", "Mongolia"}, 1},
+	{"Lagos is a city in which country?", [4]string{"Ghana", "Nigeria", "Kenya", "Senegal"}, 1},
+	{"Which instrument has 88 keys?", [4]string{"Guitar", "Violin", "Piano", "Flute"}, 2},
+	{"What is the fastest land animal?", [4]string{"Lion", "Cheetah", "Horse", "Leopard"}, 1},
+	{"How long is a normal football match without extra time?", [4]string{"80 minutes", "90 minutes", "100 minutes", "120 minutes"}, 1},
+	{"Who wrote Romeo and Juliet?", [4]string{"Charles Dickens", "William Shakespeare", "Mark Twain", "Jane Austen"}, 1},
+	{"What is the currency of Japan?", [4]string{"Yuan", "Won", "Yen", "Ringgit"}, 2},
+	{"Which planet is famous for its rings?", [4]string{"Mars", "Saturn", "Venus", "Mercury"}, 1},
+	{"At what temperature does water boil at sea level?", [4]string{"90 °C", "100 °C", "110 °C", "120 °C"}, 1},
+	{"What is the largest animal on Earth?", [4]string{"Elephant", "Blue whale", "Giraffe", "Shark"}, 1},
+	{"What is the capital of Canada?", [4]string{"Toronto", "Vancouver", "Ottawa", "Montreal"}, 2},
+	{"Which language has the most native speakers?", [4]string{"English", "Spanish", "Mandarin Chinese", "Hindi"}, 2},
+	{"In which year did humans first land on the Moon?", [4]string{"1959", "1969", "1979", "1989"}, 1},
+	{"Which is the longest river in Africa?", [4]string{"Niger", "Congo", "Nile", "Zambezi"}, 2},
+	{"How many strings does a standard guitar have?", [4]string{"4", "5", "6", "7"}, 2},
+	{"What is H2O more commonly called?", [4]string{"Salt", "Water", "Bleach", "Oxygen"}, 1},
+	{"Rio de Janeiro is a city in which country?", [4]string{"Argentina", "Brazil", "Portugal", "Chile"}, 1},
+	{"What is the smallest prime number?", [4]string{"0", "1", "2", "3"}, 2},
+	{"Which organ pumps blood around the body?", [4]string{"Lungs", "Liver", "Heart", "Kidney"}, 2},
+	{"Which mountain is the highest above sea level?", [4]string{"K2", "Mount Everest", "Kilimanjaro", "Denali"}, 1},
+	{"Which sport is played at Wimbledon?", [4]string{"Golf", "Tennis", "Cricket", "Rugby"}, 1},
+	{"Which company makes the iPhone?", [4]string{"Samsung", "Apple", "Google", "Sony"}, 1},
+	{"How many days are in a leap year?", [4]string{"364", "365", "366", "367"}, 2},
+	{"In which country is the Eiffel Tower?", [4]string{"Italy", "France", "Spain", "Belgium"}, 1},
+	{"Which set contains the primary colours of light?", [4]string{"Red, yellow, blue", "Red, green, blue", "Cyan, magenta, yellow", "Black, white, grey"}, 1},
+	{"Which is the smallest continent by land area?", [4]string{"Europe", "Australia (Oceania)", "Antarctica", "South America"}, 1},
+	{"Who is known as the King of Pop?", [4]string{"Elvis Presley", "Michael Jackson", "Prince", "Justin Bieber"}, 1},
+	{"Which metal is liquid at room temperature?", [4]string{"Iron", "Mercury", "Lead", "Tin"}, 1},
+	{"The pyramids of Giza are in which country?", [4]string{"Morocco", "Egypt", "Sudan", "Libya"}, 1},
+}
+
+func triNew(g *Game) {
+	idx := make([]int, len(triBank))
+	for i := range idx {
+		idx[i] = i
+	}
+	for i := len(idx) - 1; i > 0; i-- {
+		rb := make([]byte, 2)
+		rand.Read(rb)
+		j := (int(rb[0])<<8 | int(rb[1])) % (i + 1)
+		idx[i], idx[j] = idx[j], idx[i]
+	}
+	g.Qs, g.Qi, g.QTS, g.A1, g.A2 = idx[:7], 0, now(), 0, 0
+}
+
+func triResolve(g *Game) {
+	q := triBank[g.Qs[g.Qi]]
+	g.Lq, g.La1, g.La2 = g.Qs[g.Qi]+1, g.A1, g.A2
+	if g.A1 == q.C+1 {
+		g.S1 += 10
+	}
+	if g.A2 == q.C+1 {
+		g.S2 += 10
+	}
+	g.A1, g.A2 = 0, 0
+	g.Qi++
+	g.QTS, g.Upd = now(), now()
+	if g.Qi >= len(g.Qs) {
+		switch {
+		case g.S1 > g.S2:
+			g.Status, g.Win = "won", g.A
+		case g.S2 > g.S1:
+			g.Status, g.Win = "won", g.B
+		default:
+			g.Status = "draw"
+		}
+		payGame(g)
+	}
+}
+
+// triTick moves the quiz on when both players answered or 15 seconds passed; returns true if anything changed
+func triTick(g *Game) bool {
+	if g.Kind != "tri" || g.Status != "active" || g.Qi >= len(g.Qs) {
+		return false
+	}
+	if (g.A1 != 0 && g.A2 != 0) || now()-g.QTS >= 15 {
+		triResolve(g)
+		return true
+	}
+	return false
+}
+
+// newKindMove plays one move of the four new games. It returns an error message, or "" when the move was accepted.
+func newKindMove(g *Game, uid, ms string) string {
+	isA := uid == g.A
+	p, opp := 1, g.B
+	if !isA {
+		p, opp = 2, g.A
+	}
+	if g.Kind != "tri" && g.Turn != uid {
+		return "It is not your turn"
+	}
+	switch g.Kind {
+	case "chk":
+		pr := strings.Split(ms, "-")
+		if len(pr) != 2 {
+			return "Pick a piece and a square"
+		}
+		from, e1 := strconv.Atoi(pr[0])
+		to, e2 := strconv.Atoi(pr[1])
+		if e1 != nil || e2 != nil {
+			return "Invalid move"
+		}
+		legal := false
+		for _, mv := range chkLegal(g, p) {
+			if mv[0] == from && mv[1] == to {
+				legal = true
+			}
+		}
+		if !legal {
+			return "That move is not allowed"
+		}
+		if !chkApply(g, p, from, to) {
+			g.Turn = opp
+			if c, s := chkMoves(g.Board, 3-p, -1); len(c)+len(s) == 0 {
+				g.Status, g.Win = "won", uid
+			} else if g.Rd >= 80 {
+				g.Status = "draw"
+			}
+		}
+	case "bs":
+		idx, e := strconv.Atoi(ms)
+		if e != nil || idx < 0 || idx > 99 {
+			return "Pick a square"
+		}
+		shots, target := g.Sh1, g.F2
+		if !isA {
+			shots, target = g.Sh2, g.F1
+		}
+		if shots[idx] != 0 {
+			return "You already fired there"
+		}
+		if target[idx] != 0 {
+			shots[idx] = 2
+		} else {
+			shots[idx] = 1
+		}
+		hits := 0
+		for _, v := range shots {
+			if v == 2 {
+				hits++
+			}
+		}
+		if hits >= 17 {
+			g.Status, g.Win = "won", uid
+		} else {
+			g.Turn = opp
+		}
+	case "dab":
+		m, e := strconv.Atoi(ms)
+		if e != nil || m < 0 || m > 39 || g.Board[m] != 0 {
+			return "That line is already drawn"
+		}
+		g.Board[m] = p
+		var cand [][2]int
+		if m < 20 {
+			hr, hc := m/4, m%4
+			if hr > 0 {
+				cand = append(cand, [2]int{hr - 1, hc})
+			}
+			if hr < 4 {
+				cand = append(cand, [2]int{hr, hc})
+			}
+		} else {
+			k := m - 20
+			vr, vc := k/5, k%5
+			if vc > 0 {
+				cand = append(cand, [2]int{vr, vc - 1})
+			}
+			if vc < 4 {
+				cand = append(cand, [2]int{vr, vc})
+			}
+		}
+		got := 0
+		for _, bx := range cand {
+			if g.Bx[bx[0]*4+bx[1]] == 0 && dabBox(g.Board, bx[0], bx[1]) {
+				g.Bx[bx[0]*4+bx[1]] = p
+				got++
+			}
+		}
+		if p == 1 {
+			g.S1 += got
+		} else {
+			g.S2 += got
+		}
+		if got == 0 {
+			g.Turn = opp
+		}
+		if g.S1+g.S2 == 16 {
+			switch {
+			case g.S1 > g.S2:
+				g.Status, g.Win = "won", g.A
+			case g.S2 > g.S1:
+				g.Status, g.Win = "won", g.B
+			default:
+				g.Status = "draw"
+			}
+		}
+	case "tri":
+		triTick(g)
+		if g.Status != "active" {
+			return "This game is over"
+		}
+		pr := strings.Split(ms, ":")
+		if len(pr) != 2 {
+			return "Pick an answer"
+		}
+		qn, e1 := strconv.Atoi(pr[0])
+		o, e2 := strconv.Atoi(pr[1])
+		if e1 != nil || e2 != nil || o < 0 || o > 3 {
+			return "Pick an answer"
+		}
+		if qn != g.Qi {
+			return "That question has already ended"
+		}
+		if (isA && g.A1 != 0) || (!isA && g.A2 != 0) {
+			return "You already answered"
+		}
+		if isA {
+			g.A1 = o + 1
+		} else {
+			g.A2 = o + 1
+		}
+		triTick(g)
+	default:
+		return "Unknown game"
+	}
+	g.Mv++
+	if g.Status != "active" {
+		payGame(g)
+	}
+	return ""
+}
+
+// gameViewX adds what each of the new games needs to show
+func gameViewX(v map[string]any, g *Game, me string, p int) map[string]any {
+	switch g.Kind {
+	case "chk":
+		if g.Status == "active" && g.Turn == me {
+			v["Moves"] = chkLegal(g, p)
+		}
+	case "bs":
+		mine, myShots, theirShots, theirFleet := g.F1, g.Sh1, g.Sh2, g.F2
+		if p == 2 {
+			mine, myShots, theirShots, theirFleet = g.F2, g.Sh2, g.Sh1, g.F1
+		}
+		v["F"], v["SH"], v["OS"] = mine, myShots, theirShots
+		v["OppSunk"], v["MySunk"] = sunkShips(theirFleet, myShots), sunkShips(mine, theirShots)
+		if g.Status != "active" {
+			v["OppF"] = theirFleet
+		}
+	case "dab":
+		v["Bx"] = g.Bx
+	case "tri":
+		ma, oa := g.A1, g.A2
+		if p == 2 {
+			ma, oa = g.A2, g.A1
+		}
+		v["My"], v["OppPicked"] = ma, oa != 0
+		v["QT"] = len(g.Qs)
+		if g.Status == "active" && g.Qi < len(g.Qs) {
+			q := triBank[g.Qs[g.Qi]]
+			left := 15 - int(now()-g.QTS)
+			if left < 0 {
+				left = 0
+			}
+			v["Q"] = map[string]any{"T": q.T, "O": q.O[:]}
+			v["QN"], v["Left"] = g.Qi+1, left
+		}
+		if g.Lq > 0 {
+			lq := triBank[g.Lq-1]
+			la, lb := g.La1, g.La2
+			if p == 2 {
+				la, lb = lb, la
+			}
+			v["LQ"] = map[string]any{"T": lq.T, "O": lq.O[:], "C": lq.C}
+			v["LA"] = []int{la, lb}
+		}
+	}
+	return v
+}
+
+// ---------- Ran Coin: history, gifts, profile boost ----------
+type Led struct {
+	ID, User, Kind, Note string
+	D                    int
+	TS                   int64
+}
+type Ext8 struct {
+	Led   []*Led
+	Boost map[string]int64
+	GSent map[string]int
+	GGot  map[string]int
+	GDay  map[string]int
+}
+
+func x8() *Ext8 {
+	e := &S.X8
+	if e.Boost == nil {
+		e.Boost = map[string]int64{}
+	}
+	if e.GSent == nil {
+		e.GSent = map[string]int{}
+	}
+	if e.GGot == nil {
+		e.GGot = map[string]int{}
+	}
+	if e.GDay == nil {
+		e.GDay = map[string]int{}
+	}
+	return e
+}
+
+func ledger(id string, d int, kind, note string) {
+	e := x8()
+	e.Led = append(e.Led, &Led{uid(), id, kind, note, d, now()})
+	if len(e.Led) > 20000 {
+		e.Led = e.Led[5000:]
+	}
+}
+
+type GiftT struct {
+	ID, Name, Icon string
+	Price          int
+}
+
+var giftList = []GiftT{{"rose", "Rose", "🌹", 10}, {"heart", "Heart", "💖", 25}, {"star", "Star", "⭐", 50}, {"crown", "Crown", "👑", 100}, {"rocket", "Rocket", "🚀", 250}, {"diamond", "Diamond", "💎", 500}}
+var boostTiers = map[string][2]int{"d1": {100, 86400}, "d3": {250, 3 * 86400}, "d7": {500, 7 * 86400}}
+
+// boosted returns up to 3 promoted people for the "who to follow" lists, rotating every 10 minutes
+func boosted(u *User) []map[string]any {
+	type be struct{ id, key string }
+	l := []be{}
+	bucket := strconv.FormatInt(now()/600, 10)
+	for id, t := range S.X8.Boost {
+		o := S.Users[id]
+		if t <= now() || id == u.ID || has(u.Following, id) || o == nil || o.Banned || o.Username == "" || blk(u, o) {
+			continue
+		}
+		h := sha256.Sum256([]byte(id + bucket))
+		l = append(l, be{id, hex.EncodeToString(h[:4])})
+	}
+	sort.Slice(l, func(a, b int) bool { return l[a].key < l[b].key })
+	out := []map[string]any{}
+	for i := 0; i < len(l) && i < 3; i++ {
+		m := uv(l[i].id)
+		m["Promoted"] = true
+		out = append(out, m)
+	}
+	return out
+}
+
+func purgeX8(id string) {
+	e := x8()
+	delete(e.Boost, id)
+	delete(e.GSent, id)
+	delete(e.GGot, id)
+	keep := e.Led[:0]
+	for _, l := range e.Led {
+		if l.User != id {
+			keep = append(keep, l)
+		}
+	}
+	e.Led = keep
+}
+
+func init() {
+	pushEv["gift"] = true
+	extra12()
+}
+
+func extra12() {
+	go func() { // forget old daily gift counters
+		for range time.Tick(30 * time.Minute) {
+			mu.Lock()
+			for k := range x8().GDay {
+				if !strings.HasSuffix(k, today()) {
+					delete(x8().GDay, k)
+				}
+			}
+			mu.Unlock()
+		}
+	}()
+
+	api("wallet", func(u *User, w http.ResponseWriter, r *http.Request) {
+		g := gpf(u.ID)
+		e := x8()
+		rows := []map[string]any{}
+		for i := len(e.Led) - 1; i >= 0 && len(rows) < 40; i-- {
+			if l := e.Led[i]; l.User == u.ID {
+				rows = append(rows, map[string]any{"D": l.D, "Kind": l.Kind, "Note": l.Note, "TS": l.TS})
+			}
+		}
+		js(w, map[string]any{"Coins": g.Coins, "Level": lvl(g.XP), "Rows": rows, "Sent": e.GSent[u.ID], "Got": e.GGot[u.ID], "Boost": e.Boost[u.ID]})
+	})
+	api("giftlist", func(u *User, w http.ResponseWriter, r *http.Request) {
+		js(w, map[string]any{"Gifts": giftList, "Coins": gpf(u.ID).Coins})
+	})
+	api("giftsend", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		o := S.Users[b["to"]]
+		var gt *GiftT
+		for i := range giftList {
+			if giftList[i].ID == b["id"] {
+				gt = &giftList[i]
+			}
+		}
+		if gt == nil || o == nil || o.ID == u.ID || o.Banned || blk(u, o) {
+			fail(w, 400, "You cannot send this gift")
+			return
+		}
+		e := x8()
+		key := u.ID + "|" + today()
+		if e.GDay[key] >= 50 {
+			fail(w, 400, "You reached today's gift limit")
+			return
+		}
+		g := gpf(u.ID)
+		if g.Coins < gt.Price {
+			fail(w, 400, "Not enough Ran Coin")
+			return
+		}
+		g.Coins -= gt.Price
+		back := gt.Price / 2 // the receiver gets half in Ran Coin
+		gpf(o.ID).Coins += back
+		e.GDay[key]++
+		e.GSent[u.ID]++
+		e.GGot[o.ID]++
+		ledger(u.ID, -gt.Price, "gift", "Sent a "+gt.Name+" to @"+o.Username)
+		ledger(o.ID, back, "gift", "Received a "+gt.Name+" from @"+u.Username)
+		S.Msgs = append(S.Msgs, Msg{From: u.ID, To: o.ID, Text: "🎁 Sent you a " + gt.Name + " " + gt.Icon, TS: now(), Exp: dexp(u.ID, o.ID)})
+		note(o.ID, u.ID, "gift", "")
+		push(o.ID, "msg")
+		save()
+		js(w, map[string]int{"Coins": g.Coins})
+	})
+	api("boostbuy", func(u *User, w http.ResponseWriter, r *http.Request) {
+		t, k := boostTiers[in(r)["tier"]]
+		if !k {
+			fail(w, 400, "Unknown boost")
+			return
+		}
+		e := x8()
+		if e.Boost[u.ID]-now() > 14*86400 {
+			fail(w, 400, "Your profile is already boosted for a long time")
+			return
+		}
+		g := gpf(u.ID)
+		if g.Coins < t[0] {
+			fail(w, 400, "Not enough Ran Coin")
+			return
+		}
+		g.Coins -= t[0]
+		start := e.Boost[u.ID]
+		if start < now() {
+			start = now()
+		}
+		e.Boost[u.ID] = start + int64(t[1])
+		ledger(u.ID, -t[0], "boost", "Profile boost")
+		save()
+		js(w, map[string]any{"Coins": g.Coins, "Until": e.Boost[u.ID]})
 	})
 }
