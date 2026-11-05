@@ -454,8 +454,8 @@ function newPost(){
 }
 
 let FB,AU={};
-const LEG={t:`<p><b>1. Using Amlink.</b> You must be at least 13 years old. Keep your login private. You are responsible for what happens on your account.</p><p><b>2. Your content.</b> You own what you post. By posting, you let Amlink store it and show it to other people as the app works.</p><p><b>3. Rules.</b> Do not post anything illegal, hateful, threatening or harassing. Do not post sexual content involving minors, spam, scams, malware or other people’s private information. Do not pretend to be someone else or break other people’s rights.</p><p><b>4. Moderation.</b> We may remove content, change verification and suspend or ban accounts that break these rules.</p><p><b>5. Messages.</b> Chats are private between the people in them. We may look at them only to investigate abuse reports or when the law requires it.</p><p><b>6. The service.</b> Amlink is provided as it is. We may change it, pause it or end it, and we do not promise it will always be available or error free.</p><p><b>7. Contact.</b> Amlink is developed and owned by Nwodili Yaemerie Convenant. Questions: whitefrostff@gmail.com.</p>`,
-p:`<p><b>What we collect.</b> Your name, email, date of birth, username, posts, comments, messages, photos, videos and voice notes you upload, and when you were last active.</p><p><b>Why.</b> To run your account, show your content, send notifications, keep people safe and check that you are old enough (13 or older). Your date of birth is never shown on your profile.</p><p><b>Who handles it.</b> Firebase (Google) handles email sign-in, Neon stores account data and messages, Supabase stores uploaded media, and Google handles Google sign-in. Uploaded images, and still frames taken from uploaded videos, are checked automatically for harmful content by a moderation service (OpenAI). We do not sell your personal data.</p><p><b>Who can see it.</b> Posts, comments, moments and your username are visible to other users. Messages are visible only to the people in the chat. You can hide your active status in Chat settings.</p><p><b>Deleting your data.</b> Email us and we will delete your account and data.</p><p><b>Children.</b> Amlink is not for children under 13.</p><p><b>Contact.</b> whitefrostff@gmail.com</p>`};
+const LEG={t:`<p><b>1. Using Amlink.</b> You must be at least 13 years old. Keep your login private. You are responsible for what happens on your account.</p><p><b>2. Your content.</b> You own what you post. By posting, you let Amlink store it and show it to other people as the app works.</p><p><b>3. Rules.</b> Do not post anything illegal, hateful, threatening or harassing. Do not post sexual content involving minors, spam, scams, malware or other people’s private information. Do not pretend to be someone else or break other people’s rights.</p><p><b>4. Moderation.</b> We may remove content, change verification and suspend or ban accounts that break these rules.</p><p><b>5. Messages.</b> Chats are private between the people in them. We may look at them only to investigate abuse reports or when the law requires it.</p><p><b>6. The service.</b> Amlink is provided as it is. We may change it, pause it or end it, and we do not promise it will always be available or error free.</p><p><b>7. Ran Coin.</b> Ran Coin is a virtual currency used inside Amlink. It has no cash value, cannot be exchanged for money, and can only be moved between people through in-app gifts. We may change prices, items and gift values.</p><p><b>8. Contact.</b> Amlink is developed and owned by Nwodili Yaemerie Convenant. Questions: whitefrostff@gmail.com.</p>`,
+p:`<p><b>What we collect.</b> Your name, email, date of birth, username, posts, comments, messages, photos, videos and voice notes you upload, and when you were last active.</p><p><b>Why.</b> To run your account, show your content, send notifications, keep people safe and check that you are old enough (13 or older). Your date of birth is never shown on your profile.</p><p><b>Who handles it.</b> Firebase (Google) handles email sign-in, Neon stores account data and messages, Supabase stores uploaded media, and Google handles Google sign-in. Uploaded images, and still frames taken from uploaded videos, are checked automatically for harmful content by a moderation service (OpenAI). We do not sell your personal data.</p><p><b>Who can see it.</b> Posts, comments, moments and your username are visible to other users. Messages are visible only to the people in the chat. You can hide your active status in Chat settings.</p><p><b>Deleting your data.</b> Email us and we will delete your account and data.</p><p><b>Children.</b> Amlink is not for children under 13.</p><p><b>Cookies and local storage.</b> Amlink uses only essential cookies and browser storage: to keep you signed in, remember your theme and settings, and keep the app working. Google (Google sign-in) and Firebase (email sign-in) may set their own cookies when you log in. Amlink does not use advertising or tracking cookies. You can clear this data in your browser settings, but you will be signed out.</p><p><b>Contact.</b> whitefrostff@gmail.com</p>`};
 function legal(k){modal(`<h3>${k=='t'?'Terms and Conditions':'Privacy Policy'}</h3><div class="leg">${LEG[k]}</div><button class="pri" data-a="mc">Close</button>`)}
 const age=d=>{const b=new Date(d),n=new Date();if(isNaN(b))return -1;let a=n.getFullYear()-b.getUTCFullYear();if(n<new Date(n.getFullYear(),b.getUTCMonth(),b.getUTCDate()))a--;return a};
 const FE={'auth/invalid-credential':'Wrong email or password.','auth/wrong-password':'Wrong email or password.','auth/user-not-found':'Wrong email or password.','auth/invalid-email':'Enter a valid email address.','auth/weak-password':'Use a password with at least 6 characters.','auth/too-many-requests':'Too many tries. Wait a moment and try again.','auth/network-request-failed':'No connection. Check your internet.'};
@@ -737,7 +737,7 @@ pfDraw=function(){pf0();const u=PF.U,me=PF.IsMe,a=$('#main .act');
   if(u.Pin){const l=document.querySelector(`#main .post .lk[data-i="${u.Pin}"]`);if(l){const p=l.closest('.post'),f=$('#main .post');if(f&&f!==p)f.before(p);p.insertAdjacentHTML('afterbegin','<small style="padding:8px 12px 0;display:block">📌 Pinned</small>')}}
   if(!me&&u.Priv&&!(ME.Following||[]).includes(u.ID)){const e=$('#main .empty');if(e)e.textContent='🔒 This account is private. Follow to see their posts.'}};
 async function disc(){try{const j=await A('discover');
-  const h='<h4>Who to follow</h4>'+(j.People.map(u=>`<div class="pr"><span data-a="pf" data-i="${u.ID}">${AV(u)}</span><div class="nm" data-a="pf" data-i="${u.ID}">${nm(u)}</div><button class="fl" data-a="fol" data-i="${u.ID}"></button></div>`).join('')||'<small>No suggestions yet.</small>')+'<h4>Trending</h4>'+(j.Tags.map(t=>`<button class="ht tgb" data-a="tag" data-q="${E(t.T)}">${E(t.T)} <small>${t.N} post${t.N==1?'':'s'}</small></button>`).join('')||'<small>No hashtags yet.</small>');
+  const h='<h4>Who to follow</h4>'+(j.People.map(u=>`<div class="pr"><span data-a="pf" data-i="${u.ID}">${AV(u)}</span><div class="nm" data-a="pf" data-i="${u.ID}">${nm(u)}${u.Promoted?'<br><small>Promoted</small>':''}</div><button class="fl" data-a="fol" data-i="${u.ID}"></button></div>`).join('')||'<small>No suggestions yet.</small>')+'<h4>Trending</h4>'+(j.Tags.map(t=>`<button class="ht tgb" data-a="tag" data-q="${E(t.T)}">${E(t.T)} <small>${t.N} post${t.N==1?'':'s'}</small></button>`).join('')||'<small>No hashtags yet.</small>');
   document.querySelectorAll('.dv').forEach(e=>e.innerHTML=h);paint()}catch(e){}}
 const pe0=people;
 people=function(){pe0();$('#pl').insertAdjacentHTML('beforebegin','<div class="dv"></div>');disc()};
@@ -2096,10 +2096,10 @@ openDr=function(){od();$('#dr').insertAdjacentHTML('beforeend','<p class="sg">Re
 
 async function ghub(){
   const j=await A('gme'),p=Math.max(0,Math.min(100,(j.XP-j.From)/(j.Next-j.From)*100));
-  modal(`<h3>Rewards hub</h3><div class="stg" style="padding:0"><div class="stc"><b>Lv ${j.Level}</b><small>${j.XP} XP</small></div><div class="stc"><b>🪙 ${j.Coins}</b><small>Coins</small></div><div class="stc"><b>🔥 ${j.Streak}</b><small>Day streak (best ${j.Best})</small></div></div>
+  modal(`<h3>Rewards hub</h3><div class="stg" style="padding:0"><div class="stc"><b>Lv ${j.Level}</b><small>${j.XP} XP</small></div><div class="stc"><b>🪙 ${j.Coins}</b><small>Ran Coin</small></div><div class="stc"><b>🔥 ${j.Streak}</b><small>Day streak (best ${j.Best})</small></div></div>
   <div class="ubar" style="height:8px"><i style="width:${p}%;animation:none;margin:0"></i></div><small class="sub">${j.Next-j.XP} XP to level ${j.Level+1}</small>
   <button class="pri" data-a="gclaim" ${j.Claim?'':'disabled'}>${j.Claim?'🎁 Spin your daily reward':'Come back tomorrow'}</button>
-  <div class="act" style="justify-content:center"><button class="ed" data-a="shop">🛍 Shop</button><button class="ed" data-a="inv">💌 Invite friends</button><button class="ed" data-a="gword">🔤 Daily word</button></div>
+  <div class="act" style="justify-content:center"><button class="ed" data-a="wal">👛 Wallet</button><button class="ed" data-a="shop">🛍 Shop</button><button class="ed" data-a="inv">💌 Invite friends</button><button class="ed" data-a="gword">🔤 Daily word</button></div>
   <p class="sg" style="padding:0">Daily challenges</p>`+j.Chal.map(c=>`<div class="cd" style="padding:12px;display:flex;justify-content:space-between"><span>${c.Done?'✅':'⬜'} ${E(c.T)}</span><small>${c.Have}/${c.N} · +${c.XP} XP</small></div>`).join('')+
   `<p class="sg" style="padding:0">Badges</p><div class="chips">${j.Badges.map(b=>`<button>${E(BD[b]||b)}</button>`).join('')||'<small class="sub">No badges yet. Post, comment and keep your streak.</small>'}</div>`)}
 
@@ -2329,7 +2329,7 @@ $('#app').addEventListener('click',async e=>{
 </style>
 <script>
 (()=>{
-const GN={ttt:['❌⭕','Tic-Tac-Toe','X and O. First to get 3 in a row.'],c4:['🔴🟡','Connect 4','Drop discs and get 4 in a line.'],rps:['✊✋','Rock Paper Scissors','Best of 3, played live.']};
+const GN={ttt:['❌⭕','Tic-Tac-Toe','X and O. First to get 3 in a row.'],c4:['🔴🟡','Connect 4','Drop discs and get 4 in a line.'],rps:['✊✋','Rock Paper Scissors','Best of 3, played live.'],chk:['🔴⚫','Checkers','Jump and capture. Reach the far side to become a king.'],bs:['🚢','Battleship','Find and sink the hidden fleet.'],dab:['🔲','Dots and Boxes','Close boxes to score. Complete one to go again.'],tri:['🧠','Trivia Battle','7 questions. Fastest minds win.']};
 const RP={r:'✊',p:'✋',s:'✌️'};
 const INTL={music:'🎵 Music',sports:'⚽ Sports',comedy:'😂 Comedy',gaming:'🎮 Gaming',food:'🍲 Food',travel:'✈️ Travel',fashion:'👗 Fashion',tech:'💻 Tech',art:'🎨 Art',study:'📚 Study'};
 let GT='play',GID=null,QT=null,XC={},WJ=null;
@@ -2374,7 +2374,7 @@ async function gbody(){
       h=`<div class="gc"><i>🐍</i><div><b>Snake</b><small>Eat, grow, do not crash. Top the leaderboard.</small><div class="gcb"><button class="ed" data-a="gplay" data-g="snake">▶ Play</button></div></div></div>
       <div class="gc"><i>🧠</i><div><b>Memory Match</b><small>Find all the pairs in the fewest moves.</small><div class="gcb"><button class="ed" data-a="gplay" data-g="memory">▶ Play</button></div></div></div>
       <div class="gc"><i>🔤</i><div><b>Daily Word</b><small>One 5-letter puzzle a day. Same word for everyone.</small><div class="gcb"><button class="ed" data-a="gword">▶ Play today’s word</button></div></div></div>
-      <p class="sg" style="padding:8px 16px 0">Rewards</p><div class="gcb" style="padding:0 12px 12px"><button class="ed" data-a="gh">🏆 Rewards hub</button><button class="ed" data-a="shop">🛍 Shop</button><button class="ed" data-a="inv">💌 Invite friends</button></div>`}
+      <p class="sg" style="padding:8px 16px 0">Rewards</p><div class="gcb" style="padding:0 12px 12px"><button class="ed" data-a="gh">🏆 Rewards hub</button><button class="ed" data-a="wal">👛 Wallet</button><button class="ed" data-a="boost">🚀 Boost</button><button class="ed" data-a="shop">🛍 Shop</button><button class="ed" data-a="inv">💌 Invite friends</button></div>`}
     else if(GT=='cup'){h=window.XCUP?await XCUP():''}
     else{
       const q=window.XRF?'&f=1':'';
@@ -2404,19 +2404,21 @@ async function quick(kind){
 
 /* the game board */
 async function gview(id){GID=id;drawGame(await A('gget?id='+id))}
+window.XGD=drawGame;
 function drawGame(g){
-  GID=g.ID;const me=g.Me,opp=me==1?g.B:g.A,mt=g.Turn==ME.ID,act=g.Status=='active';
+  window.XGC=g;GID=g.ID;const me=g.Me,opp=me==1?g.B:g.A,mt=g.Turn==ME.ID,act=g.Status=='active';
   let s;
-  if(act)s=g.Kind=='rps'?(g.My?'Waiting for @'+opp.Username+'…':'Pick your move'):(mt?'Your turn':'Waiting for @'+opp.Username+'…');
+  if(act)s=(g.Kind=='rps'||g.Kind=='tri')?(g.My?'Waiting for @'+opp.Username+'…':g.Kind=='tri'?'Pick your answer':'Pick your move'):(mt?'Your turn':'Waiting for @'+opp.Username+'…');
   else if(g.Status=='draw')s='It is a draw 🤝';
   else if(g.Win==ME.ID)s=g.Status=='resigned'?'You won, they resigned 🎉':'You won! 🎉';
   else s=g.Status=='resigned'?'You resigned':'@'+opp.Username+' won';
   let board='';
   if(g.Kind=='ttt')board='<div class="tb">'+g.Board.map((v,i)=>`<button data-a="gmv" data-m="${i}" ${(!act||!mt||v)?'disabled':''}>${v==1?'<span style="color:#ef4444">✕</span>':v==2?'<span style="color:#3b82f6">◯</span>':''}</button>`).join('')+'</div>';
   else if(g.Kind=='c4')board='<div class="c4">'+g.Board.map((v,i)=>`<button class="${v?'p'+v:''}" data-a="gmv" data-m="${i%7}" ${(!act||!mt)?'disabled':''} aria-label="Column ${i%7+1}"></button>`).join('')+'</div>';
-  else{const mineL=me==1?g.L1:g.L2,theirL=me==1?g.L2:g.L1,sc=me==1?[g.S1,g.S2]:[g.S2,g.S1];
+  else if(g.Kind=='rps'){const mineL=me==1?g.L1:g.L2,theirL=me==1?g.L2:g.L1,sc=me==1?[g.S1,g.S2]:[g.S2,g.S1];
     board=`<div class="rsc"><b>You ${sc[0]}</b><span>–</span><b>${sc[1]} @${E(opp.Username)}</b></div>`+(g.Rd?`<div class="rrv"><span>${RP[mineL]||''}</span><small>vs</small><span>${RP[theirL]||''}</span></div><p class="sub" style="text-align:center">${g.LW==0?'Tie. Go again.':g.LW==me?'You won the round':'They won the round'}</p>`:'')+(act?`<div class="rpick">${['r','p','s'].map(k=>`<button data-a="gmv" data-m="${k}" ${g.My?'disabled':''} class="${g.My==k?'sel':''}">${RP[k]}</button>`).join('')}</div>`:'')}
-  const mark=g.Kind=='ttt'?['✕','◯']:g.Kind=='c4'?['🔴','🟡']:['',''];
+  else if(window.XG2&&XG2[g.Kind])board=XG2[g.Kind](g,me,act,mt,opp);
+  const mark=g.Kind=='ttt'?['✕','◯']:g.Kind=='c4'?['🔴','🟡']:g.Kind=='chk'?['🔴','⚫']:g.Kind=='dab'?['🟥','🟦']:['',''];
   const html=`<div id="gbd" data-g="${g.ID}" style="display:grid;gap:14px"><div class="gvs">${AV(g.A)}<b>${nm(g.A)} ${mark[0]}</b><span>vs</span>${AV(g.B)}<b>${nm(g.B)} ${mark[1]}</b></div><p class="gst">${E(s)}</p>${board}${act?'<button class="ed" data-a="grs">🏳 Resign</button>':`<button class="pri" data-a="grm" data-k="${g.Kind}" data-u="${opp.ID}">🔁 Play again</button>`}</div>`;
   const bx=document.getElementById('gbd');
   if(bx&&bx.dataset.g==g.ID)bx.outerHTML=html;else modal('<h3>'+E(GN[g.Kind][1])+'</h3>'+html)}
@@ -2430,7 +2432,7 @@ L=async function(){await L2();decorate()};
 function decorate(){
   const mineB=XC.Bub||'',theirB=(typeof peer!='undefined'&&peer&&peer.Bub)||'';
   document.querySelectorAll('#ms .m').forEach(el=>{
-    const m=el.textContent.trim().match(/^🎮 (ttt|c4|rps) ([0-9a-f]{24})/);
+    const m=el.textContent.trim().match(/^🎮 (ttt|c4|rps|chk|bs|dab|tri) ([0-9a-f]{24})/);
     if(m){const me=el.classList.contains('me');el.removeAttribute('data-a');
       el.innerHTML=`<div class="gcard"><b>${GN[m[1]][0]} ${E(GN[m[1]][1])}</b><small>${me?'You sent a challenge':'You were challenged'}</small><button class="ed" data-a="gopen" data-i="${m[2]}">Open game</button></div>`}
     const c=el.classList.contains('me')?mineB:theirB;if(c)el.classList.add(c)})}
@@ -2453,7 +2455,7 @@ function wtext(){const em=WJ.G.map(g=>[...g.F].map(c=>c=='2'?'🟩':c=='1'?'🟨
 async function shop(){
   const j=await A('shop'),T={frame:'Avatar frames',name:'Name styles',bubble:'Chat bubbles'};
   const prev=it=>it.Type=='frame'?`<b class="av ${it.ID}">${E((ME.Username||'A')[0])}</b>`:it.Type=='name'?`<b class="${it.ID}">${E(ME.Username||'you')}</b>`:`<div class="m me ${it.ID}" style="max-width:none">Hello 👋</div>`;
-  modal(`<h3>Shop</h3><div class="stg" style="padding:0"><div class="stc"><b>🪙 ${j.Coins}</b><small>Your coins</small></div><div class="stc"><b>Lv ${j.Level}</b><small>Your level</small></div></div><small class="sub">Earn coins from the daily reward, challenges, games and invites.</small>`+
+  modal(`<h3>Shop</h3><div class="stg" style="padding:0"><div class="stc"><b>🪙 ${j.Coins}</b><small>Your Ran Coin</small></div><div class="stc"><b>Lv ${j.Level}</b><small>Your level</small></div></div><small class="sub">Earn Ran Coin from the daily reward, challenges, games and invites.</small>`+
     Object.keys(T).map(t=>`<p class="sg" style="padding:0">${T[t]}</p><div class="shg">`+j.Items.filter(i=>i.Type==t).map(it=>`<div class="shi">${prev(it)}<small>${E(it.Name)}</small>`+(it.Own?`<button class="ed" data-a="seq" data-i="${it.ID}" data-t="${it.Type}" data-e="${it.Eq?1:0}">${it.Eq?'Unequip':'Equip'}</button>`:`<button class="ed" data-a="sby" data-i="${it.ID}" ${j.Level<it.Lvl?'disabled':''}>${j.Level<it.Lvl?'Level '+it.Lvl:'🪙 '+it.Price}</button>`)+'</div>').join('')+'</div>').join(''))}
 async function invite(){
   const j=await A('refcode'),link=location.origin+'/?r='+j.Code;
@@ -2464,7 +2466,7 @@ async function ints(){const j=await A('intget');modal('<h3>Your interests</h3><p
 const ap=app;
 app=function(){ap();
   A('cosme').then(j=>{XC=j||{}}).catch(()=>{});
-  try{const c=localStorage.getItem('ref');if(c)A('refclaim',{code:c}).then(()=>toast('Invite bonus: +50 coins 🎉')).catch(()=>{}).finally(()=>{try{localStorage.removeItem('ref')}catch(e){}})}catch(e){}};
+  try{const c=localStorage.getItem('ref');if(c)A('refclaim',{code:c}).then(()=>toast('Invite bonus: +50 Ran Coin 🎉')).catch(()=>{}).finally(()=>{try{localStorage.removeItem('ref')}catch(e){}})}catch(e){}};
 const od=openDr;
 openDr=function(){od();$('#dr').insertAdjacentHTML('beforeend','<p class="sg">Games and rewards</p><div class="cd"><button class="sr" data-a="gtabgo"><i>🎮</i>Games<em>›</em></button><button class="sr" data-a="shop"><i>🛍</i>Shop<em>›</em></button><button class="sr" data-a="inv"><i>💌</i>Invite friends<em>›</em></button><button class="sr" data-a="ints"><i>❤️</i>Your interests<em>›</em></button></div>')};
 
@@ -2772,7 +2774,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a=vedit]')
 <script>
 (()=>{
 Object.assign(TXT,{flag:'Amlink: a post of yours is under review after reports',aok:'Amlink: your appeal was approved',ano:'Amlink: your appeal was not approved',duet:'made a duet with your reel'});
-const GK={ttt:'Tic-Tac-Toe',c4:'Connect 4',rps:'Rock Paper Scissors'};
+const GK={ttt:'Tic-Tac-Toe',c4:'Connect 4',rps:'Rock Paper Scissors',chk:'Checkers',bs:'Battleship',dab:'Dots and Boxes',tri:'Trivia Battle'};
 const mm=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
 let XMOD=false,DT=null;
 
@@ -2902,6 +2904,129 @@ $('#app').addEventListener('click',async e=>{
     else if(a=='apl2'){$('#app').classList.remove('dro');appeals()}
     else if(a=='apv'){await A('appealact',{id:i,v:d.v});appeals()}
     else if(a=='mrole'){await A('modrole',{id:i});admin()}
+  }catch(x){toast(x.message)}});
+})();
+</script>
+
+<!-- ===== Amlink Batch 5: Checkers, Battleship, Dots and Boxes, Trivia boards, Ran Coin wallet, gifts, boost, cookie notice ===== -->
+<style>
+.ckb{display:grid;grid-template-columns:repeat(8,1fr);max-width:360px;width:100%;margin:0 auto;border-radius:10px;overflow:hidden;border:3px solid #5b3a1e}
+.ck{aspect-ratio:1;border:0;padding:0;display:grid;place-items:center;position:relative}.ck:disabled{opacity:1}
+.ck.l{background:#f0d9b5}.ck.d{background:#b58863}.ck.s{box-shadow:inset 0 0 0 4px #39ff14}
+.ck.t::after{content:'';position:absolute;width:34%;height:34%;border-radius:50%;background:#0006}
+.ckp{width:78%;height:78%;border-radius:50%;display:grid;place-items:center;font-size:18px;color:#ffd700;box-shadow:inset 0 -3px 0 #0004,0 2px 3px #0006}
+.ckp.p1{background:#ef4444}.ckp.p2{background:#1f2937}
+.bsg{display:grid;grid-template-columns:repeat(10,1fr);gap:2px;max-width:340px;width:100%;margin:0 auto;background:#1e3a5f;padding:4px;border-radius:10px}
+.bc{aspect-ratio:1;border:0;padding:0;background:#2b5a8a;font-size:13px;display:grid;place-items:center;border-radius:3px;color:#fff}.bc:disabled{opacity:1}
+.bc.s{background:#94a3b8}.bc.h{background:#ef4444}.bc.m{background:#1d4ed8}
+.dab{display:grid;grid-template-columns:repeat(4,14px 60px) 14px;grid-template-rows:repeat(4,14px 60px) 14px;margin:0 auto;width:max-content}
+.dd{width:14px;height:14px;border-radius:50%;background:var(--fg)}
+.de{border:0;padding:0;background:var(--line);border-radius:6px}.de:disabled{opacity:1}
+.de.h{height:12px;align-self:center}.de.v{width:12px;justify-self:center}
+.de:not(:disabled){background:#9ca3af}.de.p1{background:#ef4444!important}.de.p2{background:#3b82f6!important}
+.dbx{display:grid;place-items:center;font-weight:800;font-size:20px}.dbx.p1{background:#ef444433;color:#ef4444}.dbx.p2{background:#3b82f633;color:#3b82f6}
+.tro{display:grid;gap:8px}.tro .ed{padding:12px;text-align:left}.tro .ed.sel{outline:2px solid var(--fg)}
+#ckb{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 76px);max-width:520px;margin:auto;z-index:10;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:16px;padding:12px 14px;box-shadow:0 10px 30px #0005;font-size:13px;display:grid;gap:10px}
+#ckb div{display:flex;gap:8px;justify-content:flex-end}
+.gftg{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.gftg button{border:1px solid var(--line);border-radius:16px;background:var(--card);padding:12px 4px;display:grid;gap:4px;justify-items:center;font-weight:700}
+.gftg button i{font-style:normal;font-size:30px}.gftg button small{color:var(--mut)}
+</style>
+<script>
+(()=>{
+Object.assign(TXT,{gift:'sent you a gift 🎁'});
+const ago2=t=>{const s=Date.now()/1000-t;return s<3600?Math.max(1,Math.floor(s/60))+'m':s<86400?Math.floor(s/3600)+'h':Math.floor(s/86400)+'d'};
+const XG2=window.XG2={};
+let CK=null,CKG=null,XTT=0;
+
+/* ---------- Checkers ---------- */
+XG2.chk=(g,me,act,mt)=>{
+  if(CKG!=g.ID){CK=null;CKG=g.ID}
+  const mv=g.Moves||[],from=new Set(mv.map(m=>m[0]));if(CK!=null&&!from.has(CK))CK=null;
+  const to=CK==null?[]:mv.filter(m=>m[0]==CK).map(m=>m[1]),idx=[...Array(64).keys()];if(me==2)idx.reverse();
+  return `<div class="ckb">${idx.map(i=>{const r=i>>3,c=i&7,dark=(r+c)%2==1,v=g.Board[i];
+    const pc=v?`<span class="ckp p${v==1||v==3?1:2}">${v>2?'♛':''}</span>`:'';
+    const can=dark&&act&&mt&&(from.has(i)||to.includes(i));
+    return `<button class="ck ${dark?'d':'l'}${CK==i?' s':''}${to.includes(i)?' t':''}" ${can?`data-a="chs" data-i="${i}"`:'disabled'} aria-label="Square">${pc}</button>`}).join('')}</div><small class="sub" style="text-align:center">${act&&mt?(g.Aux?'Keep jumping with the same piece':'Tap a piece, then a highlighted square. Jumps are compulsory.'):''}</small>`};
+
+/* ---------- Battleship ---------- */
+XG2.bs=(g,me,act,mt)=>{
+  const grid=h=>`<div class="bsg">${h}</div>`,of=g.OppF;
+  const enemy=grid(g.SH.map((v,i)=>`<button class="bc ${v==2?'h':v==1?'m':(of&&of[i]?'s':'')}" ${act&&mt&&!v?`data-a="bsf" data-i="${i}"`:'disabled'} aria-label="Fire">${v==2?'💥':v==1?'•':''}</button>`).join(''));
+  const mine=grid(g.F.map((s,i)=>{const sh=g.OS[i];return `<div class="bc ${s?'s':''} ${sh==2?'h':sh==1?'m':''}">${sh==2?'💥':sh==1?'•':''}</div>`}).join(''));
+  return `<small class="sub" style="text-align:center">${act?(mt?'Tap a square in enemy waters to fire':'Waiting for the other captain'):''}</small><b style="text-align:center">Enemy waters</b>${enemy}<small class="sub" style="text-align:center">You sank: ${(g.OppSunk||[]).join(', ')||'nothing yet'}</small><b style="text-align:center">Your fleet</b>${mine}<small class="sub" style="text-align:center">They sank: ${(g.MySunk||[]).join(', ')||'nothing yet'}</small>`};
+
+/* ---------- Dots and Boxes ---------- */
+XG2.dab=(g,me,act,mt,opp)=>{
+  let h='';
+  for(let gr=0;gr<9;gr++)for(let gc=0;gc<9;gc++){
+    const er=gr%2==0,ec=gc%2==0;
+    if(er&&ec)h+='<i class="dd"></i>';
+    else if(er){const i=(gr/2)*4+(gc-1)/2,o=g.Board[i];h+=`<button class="de h ${o?'p'+o:''}" ${!o&&act&&mt?`data-a="dae" data-i="${i}"`:'disabled'} aria-label="Line"></button>`}
+    else if(ec){const i=20+((gr-1)/2)*5+gc/2,o=g.Board[i];h+=`<button class="de v ${o?'p'+o:''}" ${!o&&act&&mt?`data-a="dae" data-i="${i}"`:'disabled'} aria-label="Line"></button>`}
+    else{const o=g.Bx[((gr-1)/2)*4+(gc-1)/2];h+=`<div class="dbx ${o?'p'+o:''}">${o?E(((o==1?g.A:g.B).Username||'?')[0].toUpperCase()):''}</div>`}}
+  return `<div class="rsc"><b>You ${me==1?g.S1:g.S2}</b><span>–</span><b>${me==1?g.S2:g.S1} @${E(opp.Username)}</b></div><div class="dab">${h}</div><small class="sub" style="text-align:center">${act&&mt?'Draw a line. Close a box to score and go again.':''}</small>`};
+
+/* ---------- Trivia Battle ---------- */
+XG2.tri=(g,me,act,mt,opp)=>{
+  let h=`<div class="rsc"><b>You ${me==1?g.S1:g.S2}</b><span>–</span><b>${me==1?g.S2:g.S1} @${E(opp.Username)}</b></div>`;
+  if(g.LQ){const la=(g.LA||[0])[0];h+=`<p class="sub" style="text-align:center">Last: ${E(g.LQ.T)}<br><b>${E(g.LQ.O[g.LQ.C])}</b> · you ${la==g.LQ.C+1?'✅ got it':la?'❌ missed':'⏱ ran out of time'}</p>`}
+  if(act&&g.Q){
+    h+=`<p class="gst">Question ${g.QN}/${g.QT} · <span id="trt">${g.Left}s</span></p><p style="text-align:center;font-weight:700;font-size:17px">${E(g.Q.T)}</p><div class="tro">${g.Q.O.map((o,i)=>`<button class="ed ${g.My==i+1?'sel':''}" data-a="tra" data-q="${g.QN-1}" data-o="${i}" ${g.My?'disabled':''}>${E(o)}</button>`).join('')}</div>`;
+    clearInterval(XTT);let left=g.Left;
+    XTT=setInterval(()=>{const e=document.getElementById('trt');if(!e||!document.getElementById('gbd')){clearInterval(XTT);return}
+      left--;e.textContent=Math.max(0,left)+'s';
+      if(left<-1){clearInterval(XTT);A('gget?id='+g.ID).then(x=>window.XGD(x)).catch(()=>{})}},1000)}
+  return h};
+
+/* ---------- Ran Coin wallet, gifts, boost ---------- */
+async function wallet(){
+  const j=await A('wallet'),on=j.Boost>Date.now()/1000;
+  modal(`<h3>Ran Coin wallet</h3><div class="stg" style="padding:0"><div class="stc"><b>🪙 ${j.Coins}</b><small>Ran Coin</small></div><div class="stc"><b>🎁 ${j.Sent} / ${j.Got}</b><small>Gifts sent / received</small></div></div>
+  <button class="pri" data-a="buyc">➕ Buy Ran Coin</button>
+  <div class="act" style="justify-content:center"><button class="ed" data-a="shop">🛍 Shop</button><button class="ed" data-a="boost">🚀 Boost profile</button></div>
+  ${on?`<small class="sub" style="text-align:center">Your profile is boosted until ${E(new Date(j.Boost*1000).toLocaleString())}</small>`:''}
+  <p class="sg" style="padding:0">History</p>`+(j.Rows.map(r=>`<div class="pr"><div class="nm">${E(r.Note)}<br><small>${ago2(r.TS)} ago</small></div><b style="color:${r.D>0?'#2fa84f':'inherit'}">${r.D>0?'+':''}${r.D}</b></div>`).join('')||'<p class="empty">No spending yet.</p>')+'<small class="sub">History shows shop purchases, gifts and boosts.</small>')}
+async function giftPicker(uid){
+  const j=await A('giftlist');
+  modal(`<h3>Send a gift</h3><p class="sub">Your balance: 🪙 ${j.Coins} Ran Coin. The person you gift receives half of the price in Ran Coin.</p><div class="gftg">${j.Gifts.map(g=>`<button data-a="gsend" data-id="${E(g.ID)}" data-u="${E(uid)}"><i>${g.Icon}</i>${E(g.Name)}<small>🪙 ${g.Price}</small></button>`).join('')}</div>`)}
+function boostMenu(){
+  modal(`<h3>Boost your profile</h3><p class="sub">Your profile is shown in “Who to follow” to people who do not follow you yet, marked as Promoted. Real people decide whether to follow you. Followers are never added for you.</p><div class="ctl"><button data-a="bst" data-t="d1"><i>⚡</i>24 hours<small>🪙 100</small></button><button data-a="bst" data-t="d3"><i>🚀</i>3 days<small>🪙 250</small></button><button data-a="bst" data-t="d7"><i>🌟</i>7 days<small>🪙 500</small></button></div>`)}
+
+/* gift buttons: profile, chat and reels */
+const pf5=pfDraw;
+pfDraw=function(){pf5();const a=document.querySelector('#main .act');if(a&&PF&&!PF.IsMe&&!a.querySelector('[data-a=gift]'))a.insertAdjacentHTML('beforeend',`<button class="ed" data-a="gift" data-u="${PF.U.ID}">🎁 Gift</button>`)};
+const ch5=chat;
+chat=async function(u){await ch5(u);const bar=document.querySelector('.ch .bar');if(bar&&!document.getElementById('gfb')){const mic=document.getElementById('mic');(mic||bar.lastElementChild).insertAdjacentHTML('beforebegin',`<button id="gfb" data-a="gift" data-u="${u.ID}" aria-label="Send a gift" style="font-size:20px">🎁</button>`)}};
+const rl5=reels;
+reels=function(){rl5();document.querySelectorAll('.reel').forEach(r=>{const l=r.querySelector('.lk'),p=l&&posts.find(x=>x.ID==l.dataset.i),rail=r.querySelector('.rail');if(p&&rail&&p.U.ID!=ME.ID&&!rail.querySelector('[data-a=gift]'))rail.insertAdjacentHTML('afterbegin',`<button data-a="gift" data-u="${p.U.ID}" aria-label="Send a gift">🎁<span>Gift</span></button>`)})};
+const od5=openDr;
+openDr=function(){od5();$('#dr').insertAdjacentHTML('beforeend','<p class="sg">Ran Coin</p><div class="cd"><button class="sr" data-a="wal"><i>👛</i>Wallet<em>›</em></button><button class="sr" data-a="boost"><i>🚀</i>Boost my profile<em>›</em></button></div>')};
+
+/* ---------- cookie notice ---------- */
+try{if(!localStorage.getItem('ck1')){const b=document.createElement('div');b.id='ckb';
+  b.innerHTML='<p>🍪 Amlink uses only essential cookies and browser storage to keep you signed in and remember your settings. Signing in with Google or email may also set cookies from Google or Firebase. We do not use advertising or tracking cookies.</p><div><button class="ed" data-ck="p">Cookie policy</button><button class="pri" data-ck="o" style="padding:8px 18px">Got it</button></div>';
+  document.body.appendChild(b)}}catch(e){}
+document.addEventListener('click',e=>{const b=e.target.closest('#ckb [data-ck]');if(!b)return;
+  if(b.dataset.ck=='o'){try{localStorage.setItem('ck1',String(Date.now()))}catch(x){}const k=document.getElementById('ckb');if(k)k.remove()}
+  else if(typeof legal=='function')legal('p')});
+
+/* ---------- clicks ---------- */
+$('#app').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,d=b.dataset,i=+d.i,g=window.XGC;
+  try{
+    if(a=='chs'){const mv=(g&&g.Moves)||[];
+      if(CK!=null&&mv.some(m=>m[0]==CK&&m[1]==i)){const from=CK;CK=null;window.XGD(await A('gmove',{id:g.ID,m:from+'-'+i}))}
+      else if(mv.some(m=>m[0]==i)){CK=i;window.XGD(g)}}
+    else if(a=='bsf')window.XGD(await A('gmove',{id:g.ID,m:String(i)}));
+    else if(a=='dae')window.XGD(await A('gmove',{id:g.ID,m:String(i)}));
+    else if(a=='tra'){b.disabled=true;window.XGD(await A('gmove',{id:g.ID,m:d.q+':'+d.o}))}
+    else if(a=='wal'){$('#app').classList.remove('dro');wallet()}
+    else if(a=='buyc')modal('<h3>Buy Ran Coin</h3><p>Buying Ran Coin with a card is not available yet. We are setting up secure payments. Until then you can earn Ran Coin from the daily reward, challenges, games, cups and invites.</p><button class="pri" data-a="mc">OK</button>');
+    else if(a=='gift')giftPicker(d.u);
+    else if(a=='gsend'){b.disabled=true;await A('giftsend',{to:d.u,id:d.id});toast('Gift sent 🎁');closeM()}
+    else if(a=='boost'){$('#app').classList.remove('dro');boostMenu()}
+    else if(a=='bst'){await A('boostbuy',{tier:d.t});toast('Your profile is boosted 🚀');wallet()}
   }catch(x){toast(x.message)}});
 })();
 </script>
