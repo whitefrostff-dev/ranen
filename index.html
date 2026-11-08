@@ -273,7 +273,7 @@ let T=null,ME,tab='feed',posts=[],cur,ppl=[],peer,poll,th='dark',gid,mut=true,rf
 try{T=localStorage.getItem('tk');th=localStorage.getItem('th')||th}catch(e){}
 document.documentElement.dataset.t=th;
 let CS={snd:1,pop:1,con:1};try{CS=Object.assign(CS,JSON.parse(localStorage.getItem('cs')||'{}'))}catch(e){}
-const nm=u=>(u.Nc?'<span class="'+E(u.Nc)+'">'+E(u.Username||'user')+'</span>':E(u.Username||'user'))+(u.Verified?VB:'');
+const nm=u=>(u.Nc?'<span class="'+E(u.Nc)+'">'+E(u.Username||'user')+'</span>':E(u.Username||'user'))+(u.Verified?VB:'')+(u.Bd&&window.bdg?bdg(u.Bd):'');
 const ago=t=>{const m=(Date.now()/1000-t)/60|0;return m<1?'now':m<60?m+'m':m<1440?(m/60|0)+'h':(m/1440|0)+'d'};
 async function A(p,b){const r=await fetch('/api/'+p,{method:b?'POST':'GET',headers:{'X-Token':T||'','Content-Type':'application/json'},body:b?JSON.stringify(b):undefined});const j=await r.json();if(r.status==401&&T)out();if(j&&j.error)throw new Error(j.error);return j}
 function toast(m){const t=$('#ts');t.textContent=m;t.hidden=false;clearTimeout(t.x);t.x=setTimeout(()=>t.hidden=true,2200)}
@@ -2096,7 +2096,7 @@ openDr=function(){od();$('#dr').insertAdjacentHTML('beforeend','<p class="sg">Re
 
 async function ghub(){
   const j=await A('gme'),p=Math.max(0,Math.min(100,(j.XP-j.From)/(j.Next-j.From)*100));
-  modal(`<h3>Rewards hub</h3><div class="stg" style="padding:0"><div class="stc"><b>Lv ${j.Level}</b><small>${j.XP} XP</small></div><div class="stc"><b>🪙 ${j.Coins}</b><small>Ran Coin</small></div><div class="stc"><b>🔥 ${j.Streak}</b><small>Day streak (best ${j.Best})</small></div></div>
+  modal(`<h3>Rewards hub</h3><div class="stg" style="padding:0"><div class="stc"><b>Lv ${j.Level}</b><small>${j.XP} XP</small></div><div class="stc"><b>🪙 ${j.Inf?'∞':j.Coins}</b><small>Ran Coin</small></div><div class="stc"><b>🔥 ${j.Streak}</b><small>Day streak (best ${j.Best})</small></div></div>
   <div class="ubar" style="height:8px"><i style="width:${p}%;animation:none;margin:0"></i></div><small class="sub">${j.Next-j.XP} XP to level ${j.Level+1}</small>
   <button class="pri" data-a="gclaim" ${j.Claim?'':'disabled'}>${j.Claim?'🎁 Spin your daily reward':'Come back tomorrow'}</button>
   <div class="act" style="justify-content:center"><button class="ed" data-a="wal">👛 Wallet</button><button class="ed" data-a="shop">🛍 Shop</button><button class="ed" data-a="inv">💌 Invite friends</button><button class="ed" data-a="gword">🔤 Daily word</button></div>
@@ -2110,9 +2110,10 @@ async function lboards(){
   const sec=(t,l)=>`<p class="sg" style="padding:0">${t}</p>`+(l.map((r,i)=>`<div class="pr"><b>${i+1}</b>${AV(r.U)}<div class="nm">${nm(r.U)}</div><b>${r.V}</b></div>`).join('')||'<small class="sub">No scores yet</small>');
   modal('<h3>Leaderboards</h3>'+sec('⭐ Top XP',x)+sec('🐍 Snake',s)+sec('🧠 Memory',m))}
 
-async function submit(g,s){try{const j=await A('gscore',{game:g,score:s});toast(j.New?'New best: '+j.Best+' 🎉':'Score '+s+' · best '+j.Best);const bx=document.querySelector('#md .box');if(bx&&!bx.querySelector('[data-a=shsc]'))bx.insertAdjacentHTML('beforeend',`<button class="pri" data-a="shsc" data-g="${g}" data-s="${s}">📤 Challenge friends to beat ${s}</button>`)}catch(e){toast(e.message)}}
+async function submit(g,s){try{const j=await A('gscore',{game:g,score:s,tok:(window.XTOK&&XTOK[g])||''});toast(j.New?'New best: '+j.Best+' 🎉':'Score '+s+' · best '+j.Best);const bx=document.querySelector('#md .box');if(bx&&!bx.querySelector('[data-a=shsc]'))bx.insertAdjacentHTML('beforeend',`<button class="pri" data-a="shsc" data-g="${g}" data-s="${s}">📤 Challenge friends to beat ${s}</button>`)}catch(e){toast(e.message)}}
 
 function snake(){
+  window.XTOK=window.XTOK||{};A('gstart',{game:'snake'}).then(j=>{XTOK.snake=j.tok}).catch(()=>{});
   modal('<h3>Snake</h3><canvas id="snc" width="300" height="300" style="width:100%;max-width:300px;margin:0 auto;display:block;background:#000;border-radius:12px;touch-action:none"></canvas><p id="sn1" class="sub" style="text-align:center">Score 0 · swipe or use arrow keys</p><div class="act" style="justify-content:center"><button class="ed" data-a="sdir" data-d="-1,0">◀</button><button class="ed" data-a="sdir" data-d="0,-1">▲</button><button class="ed" data-a="sdir" data-d="0,1">▼</button><button class="ed" data-a="sdir" data-d="1,0">▶</button></div>');
   const c=$('#snc'),x=c.getContext('2d'),N=15,Z=20;
   let sn=[[7,7],[6,7],[5,7]],d=[1,0],nd=d,sc=0,f,t;
@@ -2132,6 +2133,7 @@ function snake(){
     x.fillStyle='#8fe3ff';sn.forEach(s=>x.fillRect(s[0]*Z,s[1]*Z,Z-2,Z-2))},120)}
 
 function memory(){
+  window.XTOK=window.XTOK||{};A('gstart',{game:'memory'}).then(j=>{XTOK.memory=j.tok}).catch(()=>{});
   const em=['🍎','🚀','🎧','🔥','🐱','⚽'],cards=[...em,...em].sort(()=>Math.random()-.5),done=new Set();let op=[],mv=0,lock=false;const t0=Date.now();
   modal('<h3>Memory Match</h3><p id="mmv" class="sub" style="text-align:center">Moves 0</p><div id="mg" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px"></div>');
   const draw=()=>{const g=$('#mg');if(!g)return;g.innerHTML=cards.map((e,i)=>`<button class="ed" data-i="${i}" style="font-size:30px;height:72px">${done.has(i)||op.includes(i)?e:'❓'}</button>`).join('');$('#mmv').textContent='Moves '+mv};
@@ -2356,7 +2358,7 @@ go=async function(t){
 async function hub(){
   let me={Coins:0,Level:1,Streak:0};try{me=await A('gme')}catch(e){}
   const tabs=[['play','🎮 Play'],['mine','⚔️ My games'],['cup','🏅 Cups'],['solo','🕹 Solo'],['rank','🏆 Rankings']];
-  $('#main').innerHTML=`<div class="ch2"><b>Games</b><span class="gpill">🪙 ${me.Coins} · Lv ${me.Level} · 🔥 ${me.Streak}</span></div><div class="atb">${tabs.map(([k,l])=>`<button data-a="gtab" data-k="${k}" class="${GT==k?'on':''}">${l}</button>`).join('')}</div><div id="gbody"></div>`;
+  $('#main').innerHTML=`<div class="ch2"><b>Games</b><span class="gpill">🪙 ${me.Inf?'∞':me.Coins} · Lv ${me.Level} · 🔥 ${me.Streak}</span></div><div class="atb">${tabs.map(([k,l])=>`<button data-a="gtab" data-k="${k}" class="${GT==k?'on':''}">${l}</button>`).join('')}</div><div id="gbody"></div>`;
   await gbody()}
 const stt=g=>g.Status=='active'?(g.Mine?'your move':'their move'):g.Status=='draw'?'draw':g.Status=='won'?(g.Win==ME.ID?'you won':'they won'):(g.Win==ME.ID?'they resigned':'you resigned');
 async function gbody(){
@@ -2378,9 +2380,9 @@ async function gbody(){
     else if(GT=='cup'){h=window.XCUP?await XCUP():''}
     else{
       const q=window.XRF?'&f=1':'';
-      const [x,s,m]=await Promise.all([A('gboard?g=xp'+q),A('gboard?g=snake'+q),A('gboard?g=memory'+q)]);
+      const [x,s,m,wn]=await Promise.all([A('gboard?g=xp'+q),A('gboard?g=snake'+q),A('gboard?g=memory'+q),A('gboard?g=wins'+q)]);
       const sec=(t,l)=>`<p class="sg" style="padding:8px 16px 0">${t}</p>`+(l.map((r,i)=>`<div class="pr"><b>${i+1}</b>${AV(r.U)}<div class="nm">${nm(r.U)}</div><b>${r.V}</b></div>`).join('')||'<small class="sub" style="padding:0 16px">No scores yet</small>');
-      h=`<div class="atb"><button data-a="rkf" data-v="0" class="${window.XRF?'':'on'}">🌍 Everyone</button><button data-a="rkf" data-v="1" class="${window.XRF?'on':''}">👥 Friends</button></div>`+sec('⭐ Top XP',x)+sec('🐍 Snake',s)+sec('🧠 Memory Match',m)}
+      h=`<div class="atb"><button data-a="rkf" data-v="0" class="${window.XRF?'':'on'}">🌍 Everyone</button><button data-a="rkf" data-v="1" class="${window.XRF?'on':''}">👥 Friends</button></div>`+sec('⭐ Top XP',x)+sec('🏅 Most multiplayer wins',wn)+sec('🐍 Snake',s)+sec('🧠 Memory Match',m)}
   }catch(e){h='<p class="empty">'+E(e.message)+'</p>'}
   box.innerHTML=h}
 
@@ -2453,10 +2455,10 @@ function wtext(){const em=WJ.G.map(g=>[...g.F].map(c=>c=='2'?'🟩':c=='1'?'🟨
 
 /* ================= SHOP, INVITES, INTERESTS ================= */
 async function shop(){
-  const j=await A('shop'),T={frame:'Avatar frames',name:'Name styles',bubble:'Chat bubbles'};
-  const prev=it=>it.Type=='frame'?`<b class="av ${it.ID}">${E((ME.Username||'A')[0])}</b>`:it.Type=='name'?`<b class="${it.ID}">${E(ME.Username||'you')}</b>`:`<div class="m me ${it.ID}" style="max-width:none">Hello 👋</div>`;
-  modal(`<h3>Shop</h3><div class="stg" style="padding:0"><div class="stc"><b>🪙 ${j.Coins}</b><small>Your Ran Coin</small></div><div class="stc"><b>Lv ${j.Level}</b><small>Your level</small></div></div><small class="sub">Earn Ran Coin from the daily reward, challenges, games and invites.</small>`+
-    Object.keys(T).map(t=>`<p class="sg" style="padding:0">${T[t]}</p><div class="shg">`+j.Items.filter(i=>i.Type==t).map(it=>`<div class="shi">${prev(it)}<small>${E(it.Name)}</small>`+(it.Own?`<button class="ed" data-a="seq" data-i="${it.ID}" data-t="${it.Type}" data-e="${it.Eq?1:0}">${it.Eq?'Unequip':'Equip'}</button>`:`<button class="ed" data-a="sby" data-i="${it.ID}" ${j.Level<it.Lvl?'disabled':''}>${j.Level<it.Lvl?'Level '+it.Lvl:'🪙 '+it.Price}</button>`)+'</div>').join('')+'</div>').join(''))}
+  const j=await A('shop'),T={badge:'Profile badges',frame:'Avatar frames',name:'Name styles',bubble:'Chat bubbles'};
+  const prev=it=>it.Type=='badge'?(window.bdg?bdg(it.ID):''):it.Type=='frame'?`<b class="av ${it.ID}">${E((ME.Username||'A')[0])}</b>`:it.Type=='name'?`<b class="${it.ID}">${E(ME.Username||'you')}</b>`:`<div class="m me ${it.ID}" style="max-width:none">Hello 👋</div>`;
+  modal(`<h3>Shop</h3><div class="stg" style="padding:0"><div class="stc"><b>🪙 ${j.Inf?'∞':j.Coins}</b><small>Your Ran Coin</small></div><div class="stc"><b>Lv ${j.Level}</b><small>Your level</small></div></div><small class="sub">Earn Ran Coin from the daily reward, challenges, games and invites.</small>`+
+    Object.keys(T).map(t=>`<p class="sg" style="padding:0">${T[t]}</p><div class="shg">`+j.Items.filter(i=>i.Type==t).map(it=>`<div class="shi">${prev(it)}<small>${E(it.Name)}</small>`+(it.Own?`<button class="ed" data-a="seq" data-i="${it.ID}" data-t="${it.Type}" data-e="${it.Eq?1:0}">${it.Eq?'Unequip':'Equip'}</button>`:`<button class="ed" data-a="sby" data-i="${it.ID}" ${j.Level<it.Lvl&&!j.Inf?'disabled':''}>${j.Level<it.Lvl&&!j.Inf?'Level '+it.Lvl:(j.Inf?'Free':'🪙 '+it.Price)}</button>`)+'</div>').join('')+'</div>').join(''))}
 async function invite(){
   const j=await A('refcode'),link=location.origin+'/?r='+j.Code;
   modal(`<h3>Invite friends</h3><p class="sub">You and your friend each get 🪙 50 when they join with your link. You have invited ${j.N} so far.</p><input id="rfl" readonly value="${E(link)}"><button class="pri" data-a="rfs" data-l="${E(link)}">📤 Share invite</button>`)}
@@ -2982,14 +2984,14 @@ XG2.tri=(g,me,act,mt,opp)=>{
 /* ---------- Ran Coin wallet, gifts, boost ---------- */
 async function wallet(){
   const j=await A('wallet'),on=j.Boost>Date.now()/1000;
-  modal(`<h3>Ran Coin wallet</h3><div class="stg" style="padding:0"><div class="stc"><b>🪙 ${j.Coins}</b><small>Ran Coin</small></div><div class="stc"><b>🎁 ${j.Sent} / ${j.Got}</b><small>Gifts sent / received</small></div></div>
+  modal(`<h3>Ran Coin wallet</h3><div class="stg" style="padding:0"><div class="stc"><b>🪙 ${j.Inf?'∞':j.Coins}</b><small>Ran Coin</small></div><div class="stc"><b>🎁 ${j.Sent} / ${j.Got}</b><small>Gifts sent / received</small></div></div>
   <button class="pri" data-a="buyc">➕ Buy Ran Coin</button>
   <div class="act" style="justify-content:center"><button class="ed" data-a="shop">🛍 Shop</button><button class="ed" data-a="boost">🚀 Boost profile</button></div>
   ${on?`<small class="sub" style="text-align:center">Your profile is boosted until ${E(new Date(j.Boost*1000).toLocaleString())}</small>`:''}
-  <p class="sg" style="padding:0">History</p>`+(j.Rows.map(r=>`<div class="pr"><div class="nm">${E(r.Note)}<br><small>${ago2(r.TS)} ago</small></div><b style="color:${r.D>0?'#2fa84f':'inherit'}">${r.D>0?'+':''}${r.D}</b></div>`).join('')||'<p class="empty">No spending yet.</p>')+'<small class="sub">History shows shop purchases, gifts and boosts.</small>')}
+  <p class="sg" style="padding:0">History</p>`+(j.Rows.map(r=>`<div class="pr"><div class="nm">${E(r.Note)}<br><small>${ago2(r.TS)} ago</small></div><b style="color:${r.D>0?'#2fa84f':'inherit'}">${r.D>0?'+':''}${r.D}</b></div>`).join('')||'<p class="empty">Nothing here yet.</p>')+'<small class="sub">Everything you earn and spend appears here.</small>')}
 async function giftPicker(uid){
   const j=await A('giftlist');
-  modal(`<h3>Send a gift</h3><p class="sub">Your balance: 🪙 ${j.Coins} Ran Coin. The person you gift receives half of the price in Ran Coin.</p><div class="gftg">${j.Gifts.map(g=>`<button data-a="gsend" data-id="${E(g.ID)}" data-u="${E(uid)}"><i>${g.Icon}</i>${E(g.Name)}<small>🪙 ${g.Price}</small></button>`).join('')}</div>`)}
+  modal(`<h3>Send a gift</h3><p class="sub">Your balance: 🪙 ${j.Inf?'∞':j.Coins} Ran Coin. The person you gift receives half of the price in Ran Coin.</p><div class="gftg">${j.Gifts.map(g=>`<button data-a="gsend" data-id="${E(g.ID)}" data-u="${E(uid)}"><i>${g.Icon}</i>${E(g.Name)}<small>🪙 ${g.Price}</small></button>`).join('')}</div>`)}
 function boostMenu(){
   modal(`<h3>Boost your profile</h3><p class="sub">Your profile is shown in “Who to follow” to people who do not follow you yet, marked as Promoted. Real people decide whether to follow you. Followers are never added for you.</p><div class="ctl"><button data-a="bst" data-t="d1"><i>⚡</i>24 hours<small>🪙 100</small></button><button data-a="bst" data-t="d3"><i>🚀</i>3 days<small>🪙 250</small></button><button data-a="bst" data-t="d7"><i>🌟</i>7 days<small>🪙 500</small></button></div>`)}
 
@@ -3028,6 +3030,43 @@ $('#app').addEventListener('click',async e=>{
     else if(a=='boost'){$('#app').classList.remove('dro');boostMenu()}
     else if(a=='bst'){await A('boostbuy',{tier:d.t});toast('Your profile is boosted 🚀');wallet()}
   }catch(x){toast(x.message)}});
+})();
+</script>
+
+<!-- ===== Amlink Batch 6: classy profile badges ===== -->
+<style>
+.bdg{display:inline-flex;align-items:center;gap:3px;font-size:9.5px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;padding:2px 8px 2px 5px;border-radius:999px;margin-left:5px;vertical-align:middle;line-height:1.35;position:relative;overflow:hidden;white-space:nowrap;box-shadow:inset 0 1px 0 #ffffff70,0 2px 6px -2px #0007;font-style:normal}
+.bdg svg{width:11px;height:11px;fill:currentColor;flex:none;filter:drop-shadow(0 1px 0 #0003)}
+.bdg::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 35%,#ffffffb0 50%,transparent 65%);transform:translateX(-130%);animation:bdsh 3.4s ease-in-out infinite;pointer-events:none}
+@keyframes bdsh{55%,100%{transform:translateX(130%)}}
+.bd_vip{background:linear-gradient(135deg,#fde68a,#d4a017 55%,#b8860b);color:#3b2700}
+.bd_star{background:linear-gradient(135deg,#f1f5f9,#94a3b8);color:#1e293b}
+.bd_flame{background:linear-gradient(135deg,#ffb347,#f43f5e);color:#fff;box-shadow:inset 0 1px 0 #ffffff70,0 0 10px -2px #f43f5e}
+.bd_crown{background:linear-gradient(135deg,#6d28d9,#c084fc 55%,#fbbf24);color:#fff;box-shadow:inset 0 1px 0 #ffffff70,0 0 10px -2px #a855f7}
+.bd_diamond{background:linear-gradient(135deg,#a5f3fc,#a5b4fc 55%,#f5d0fe);color:#0b2540;box-shadow:inset 0 1px 0 #ffffffa0,0 0 12px -2px #67e8f9}
+.bd_royal{background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fde68a;box-shadow:inset 0 0 0 1px #fbbf24,0 2px 10px -2px #1e3a8a}
+.bd_legend{background:var(--sh) 0 0/200% 100%;animation:shine 5s linear infinite;color:#111;box-shadow:inset 0 1px 0 #ffffffa0,0 0 14px -2px #e3a6ff}
+.bd_elite{background:linear-gradient(135deg,#0a0a0a,#2b2b2b);color:#fbbf24;box-shadow:inset 0 0 0 1px #fbbf24,0 0 12px -3px #fbbf24}
+.shi .bdg{font-size:12px;padding:4px 11px 4px 8px;margin:6px 0}.shi .bdg svg{width:14px;height:14px}
+@media(prefers-reduced-motion:reduce){.bdg::after,.bd_legend{animation:none}}
+</style>
+<script>
+(()=>{
+const IC={
+shield:'<svg viewBox="0 0 24 24"><path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z"/></svg>',
+star:'<svg viewBox="0 0 24 24"><path d="M12 2l3 7 7 .6-5.3 4.7 1.6 7.2L12 17.8 5.7 21.5l1.6-7.2L2 9.6 9 9z"/></svg>',
+flame:'<svg viewBox="0 0 24 24"><path d="M12 2c1 4 6 6 6 11a6 6 0 01-12 0c0-2.2 1-3.5 2.2-4.8.2 1.8 1 2.8 2 3C9.2 7 10.5 4.5 12 2z"/></svg>',
+crown:'<svg viewBox="0 0 24 24"><path d="M3 19l-1.500-11 5.500 4.500L12 4l5 8.500L22.500 8 21 19z"/></svg>',
+diamond:'<svg viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 13L2 9z"/></svg>',
+bolt:'<svg viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 10-12h-7z"/></svg>'};
+const BD={bd_vip:['VIP','shield'],bd_star:['Star','star'],bd_flame:['Flame','flame'],bd_crown:['Crown','crown'],bd_diamond:['Diamond','diamond'],bd_royal:['Royal','shield'],bd_legend:['Legend','bolt'],bd_elite:['Elite','crown']};
+window.bdg=id=>BD[id]?`<span class="bdg ${id}" title="${BD[id][0]}">${IC[BD[id][1]]}${BD[id][0]}</span>`:'';
+
+/* the badge also shows in the profile header and on reels (they do not use the shared name helper) */
+const pf6=pfDraw;
+pfDraw=function(){pf6();const h=document.querySelector('#main .pfn h2');if(h&&PF&&PF.U&&PF.U.Bd&&!h.querySelector('.bdg'))h.insertAdjacentHTML('beforeend',bdg(PF.U.Bd))};
+const rl6=reels;
+reels=function(){rl6();document.querySelectorAll('.reel').forEach(r=>{const l=r.querySelector('.lk'),p=l&&posts.find(x=>x.ID==l.dataset.i),n=r.querySelector('.rnm b');if(p&&p.U.Bd&&n&&!n.querySelector('.bdg'))n.insertAdjacentHTML('beforeend',bdg(p.U.Bd))})};
 })();
 </script>
 
