@@ -320,6 +320,9 @@ func uv(id string) map[string]any {
 		if c.Bub != "" {
 			m["Bub"] = c.Bub
 		}
+		if c.Badge != "" {
+			m["Bd"] = c.Badge
+		}
 	}
 	return m
 }
@@ -4603,6 +4606,7 @@ func extra8() {
 // =====================================================================
 
 type GP struct {
+	ID                      string
 	XP, Coins, Streak, Best int
 	Day, Claim, CDay        string
 	Badges, Done            []string
@@ -4633,6 +4637,7 @@ func gpf(id string) *GP {
 		g = &GP{}
 		e.G[id] = g
 	}
+	g.ID = id
 	if g.Cnt == nil {
 		g.Cnt = map[string]int{}
 	}
@@ -4661,6 +4666,7 @@ func badge(g *GP, b string) {
 	if !has(g.Badges, b) {
 		g.Badges = append(g.Badges, b)
 		g.Coins += 20
+		ledger(g.ID, 20, "badge", "Achievement badge unlocked")
 	}
 }
 func checkBadges(g *GP) {
@@ -4698,6 +4704,7 @@ func award(id, kind string) {
 			g.Done = append(g.Done, c.K)
 			g.XP += c.XP
 			g.Coins += 10
+			ledger(id, 10, "challenge", "Daily challenge: "+c.T)
 		}
 	}
 	checkBadges(g)
@@ -4741,7 +4748,7 @@ func extra9() {
 			ch = append(ch, map[string]any{"T": c.T, "N": c.N, "Have": h, "Done": has(g.Done, c.K), "XP": c.XP})
 		}
 		save()
-		js(w, map[string]any{"XP": g.XP, "Level": l, "From": 50 * (l - 1) * (l - 1), "Next": 50 * l * l, "Coins": g.Coins, "Streak": g.Streak, "Best": g.Best, "Badges": g.Badges, "Claim": g.Claim != today(), "Chal": ch})
+		js(w, map[string]any{"XP": g.XP, "Level": l, "From": 50 * (l - 1) * (l - 1), "Next": 50 * l * l, "Coins": g.Coins, "Streak": g.Streak, "Best": g.Best, "Badges": g.Badges, "Claim": g.Claim != today(), "Chal": ch, "Inf": u.Admin})
 	})
 
 	api("gclaim", func(u *User, w http.ResponseWriter, r *http.Request) {
@@ -4760,6 +4767,7 @@ func extra9() {
 		}
 		p += st * 5
 		g.Coins += p
+		ledger(u.ID, p, "reward", "Daily reward")
 		g.Claim = today()
 		save()
 		js(w, map[string]int{"Won": p, "Coins": g.Coins})
@@ -4773,6 +4781,27 @@ func extra9() {
 		if !k || sc <= 0 || sc > mx {
 			fail(w, 400, "Score rejected")
 			return
+		}
+		tk, tokOK := gTok[b["tok"]]
+		delete(gTok, b["tok"])
+		el := int(now() - tk.ts)
+		if !tokOK || tk.user != u.ID || tk.game != game || el < 3 {
+			fail(w, 400, "Score rejected. Start a new game and try again")
+			return
+		}
+		if game == "snake" && (sc%10 != 0 || float64(el) < float64(sc/10)*0.4) {
+			fail(w, 400, "Score rejected")
+			return
+		}
+		if game == "memory" {
+			lim := 820 - 5*(el-2)
+			if lim < 50 {
+				lim = 50
+			}
+			if sc > lim {
+				fail(w, 400, "Score rejected")
+				return
+			}
 		}
 		e := x4()
 		if e.Sc[game] == nil {
@@ -4799,6 +4828,12 @@ func extra9() {
 		if game == "xp" {
 			for id, g := range x4().G {
 				l = append(l, row{id, g.XP})
+			}
+		} else if game == "wins" {
+			for id, g := range x4().G {
+				if n := g.Cnt["t_gwin"]; n > 0 {
+					l = append(l, row{id, n})
+				}
 			}
 		} else {
 			for id, v := range x4().Sc[game] {
@@ -5634,6 +5669,7 @@ func extraB() {
 type Cos struct {
 	Own              []string
 	Frame, Name, Bub string
+	Badge            string
 }
 type Game struct {
 	Tour string // set when the game belongs to a cup
@@ -5832,6 +5868,7 @@ func payGame(g *Game) {
 			gw.Cnt["gwin"]++
 			gw.XP += 25
 			gw.Coins += 10
+			ledger(g.Win, 10, "game", "Won a multiplayer game")
 		}
 		gw.Cnt["t_gwin"]++
 		badge(gw, "gamer")
@@ -5944,6 +5981,14 @@ var shopItems = []ShopItem{
 	{"bb_sunset", "bubble", "Sunset bubbles", 120, 2},
 	{"bb_forest", "bubble", "Forest bubbles", 120, 3},
 	{"bb_night", "bubble", "Midnight bubbles", 200, 4},
+	{"bd_vip", "badge", "VIP badge", 300, 1},
+	{"bd_star", "badge", "Star badge", 400, 2},
+	{"bd_flame", "badge", "Flame badge", 600, 3},
+	{"bd_crown", "badge", "Crown badge", 900, 4},
+	{"bd_diamond", "badge", "Diamond badge", 1500, 5},
+	{"bd_royal", "badge", "Royal badge", 2000, 6},
+	{"bd_legend", "badge", "Legend badge", 3500, 8},
+	{"bd_elite", "badge", "Elite badge", 5000, 10},
 }
 
 func shopItem(id string) *ShopItem {
@@ -5962,6 +6007,8 @@ func setEq(c *Cos, it *ShopItem) {
 		c.Name = it.ID
 	case "bubble":
 		c.Bub = it.ID
+	case "badge":
+		c.Badge = it.ID
 	}
 }
 
@@ -6068,6 +6115,7 @@ func extra10() {
 		for range time.Tick(10 * time.Minute) {
 			mu.Lock()
 			e := x6()
+			forfeitStale(e)
 			for id, g := range e.Games {
 				if (g.Status != "active" && now()-g.Upd > 3*86400) || now()-g.Upd > 7*86400 {
 					delete(e.Games, id)
@@ -6372,6 +6420,7 @@ func extra10() {
 			left := 6 - len(ws.G)
 			gg.XP += 20 + left*5
 			gg.Coins += 10 + left*5
+			ledger(u.ID, 10+left*5, "word", "Solved the Daily Word")
 			gg.Cnt["t_word"]++
 			badge(gg, "wordsmith")
 			award(u.ID, "play")
@@ -6391,13 +6440,13 @@ func extra10() {
 			for _, id := range c.Own {
 				own[id] = true
 			}
-			eq[c.Frame], eq[c.Name], eq[c.Bub] = true, true, true
+			eq[c.Frame], eq[c.Name], eq[c.Bub], eq[c.Badge] = true, true, true, true
 		}
 		items := []map[string]any{}
 		for _, it := range shopItems {
 			items = append(items, map[string]any{"ID": it.ID, "Type": it.Type, "Name": it.Name, "Price": it.Price, "Lvl": it.Lvl, "Own": own[it.ID], "Eq": eq[it.ID]})
 		}
-		js(w, map[string]any{"Items": items, "Coins": g.Coins, "Level": lvl(g.XP)})
+		js(w, map[string]any{"Items": items, "Coins": g.Coins, "Level": lvl(g.XP), "Inf": u.Admin})
 	})
 	api("shopbuy", func(u *User, w http.ResponseWriter, r *http.Request) {
 		it := shopItem(in(r)["id"])
@@ -6416,16 +6465,15 @@ func extra10() {
 			fail(w, 400, "You already own this")
 			return
 		}
-		if lvl(g.XP) < it.Lvl {
+		if !u.Admin && lvl(g.XP) < it.Lvl {
 			fail(w, 400, fmt.Sprintf("Reach level %d to unlock this", it.Lvl))
 			return
 		}
-		if g.Coins < it.Price {
+		if !spendCoins(u, g, it.Price) {
 			fail(w, 400, "Not enough Ran Coin")
 			return
 		}
-		g.Coins -= it.Price
-		ledger(u.ID, -it.Price, "shop", "Bought "+it.Name)
+		ledger(u.ID, spentAmt(u, it.Price), "shop", "Bought "+it.Name+adminNote(u))
 		c.Own = append(c.Own, it.ID)
 		setEq(c, it)
 		save()
@@ -6447,6 +6495,8 @@ func extra10() {
 				c.Name = ""
 			case "bubble":
 				c.Bub = ""
+			case "badge":
+				c.Badge = ""
 			default:
 				fail(w, 400, "Unknown type")
 				return
@@ -6467,7 +6517,7 @@ func extra10() {
 		if c == nil {
 			c = &Cos{}
 		}
-		js(w, map[string]string{"Frame": c.Frame, "Name": c.Name, "Bub": c.Bub})
+		js(w, map[string]string{"Frame": c.Frame, "Name": c.Name, "Bub": c.Bub, "Badge": c.Badge})
 	})
 
 	// ----- invites -----
@@ -6499,6 +6549,8 @@ func extra10() {
 		gi, gu := gpf(inv), gpf(u.ID)
 		gi.Coins += 50
 		gu.Coins += 50
+		ledger(inv, 50, "invite", "A friend joined with your invite link")
+		ledger(u.ID, 50, "invite", "Joined with an invite link")
 		gi.XP += 20
 		gu.XP += 20
 		if e.RefN[inv] >= 3 {
@@ -6654,10 +6706,12 @@ func tourAdvance(g *Game) {
 		}
 		gw := gpf(m.Win)
 		gw.Coins += 100
+		ledger(m.Win, 100, "cup", "Won a cup")
 		gw.XP += 60
 		badge(gw, "champion")
 		gr := gpf(ru)
 		gr.Coins += 40
+		ledger(ru, 40, "cup", "Cup runner-up")
 		gr.XP += 20
 		for _, p := range t.Players {
 			push(p, "game:"+g.ID)
@@ -6687,6 +6741,7 @@ func puzzleCheck(g *Group, u *User, t string) {
 			gg.Cnt["puz"]++
 			gg.XP += 5
 			gg.Coins += 2
+			ledger(u.ID, 2, "party", "Won an emoji guess")
 		}
 		g.Msgs = append(g.Msgs, Msg{From: u.ID, To: g.ID, Text: "✅ Got it! The answer was " + pz.Ans, TS: now()})
 	}
@@ -7636,10 +7691,10 @@ func extra12() {
 				rows = append(rows, map[string]any{"D": l.D, "Kind": l.Kind, "Note": l.Note, "TS": l.TS})
 			}
 		}
-		js(w, map[string]any{"Coins": g.Coins, "Level": lvl(g.XP), "Rows": rows, "Sent": e.GSent[u.ID], "Got": e.GGot[u.ID], "Boost": e.Boost[u.ID]})
+		js(w, map[string]any{"Coins": g.Coins, "Level": lvl(g.XP), "Rows": rows, "Sent": e.GSent[u.ID], "Got": e.GGot[u.ID], "Boost": e.Boost[u.ID], "Inf": u.Admin})
 	})
 	api("giftlist", func(u *User, w http.ResponseWriter, r *http.Request) {
-		js(w, map[string]any{"Gifts": giftList, "Coins": gpf(u.ID).Coins})
+		js(w, map[string]any{"Gifts": giftList, "Coins": gpf(u.ID).Coins, "Inf": u.Admin})
 	})
 	api("giftsend", func(u *User, w http.ResponseWriter, r *http.Request) {
 		b := in(r)
@@ -7661,17 +7716,16 @@ func extra12() {
 			return
 		}
 		g := gpf(u.ID)
-		if g.Coins < gt.Price {
+		if !spendCoins(u, g, gt.Price) {
 			fail(w, 400, "Not enough Ran Coin")
 			return
 		}
-		g.Coins -= gt.Price
 		back := gt.Price / 2 // the receiver gets half in Ran Coin
 		gpf(o.ID).Coins += back
 		e.GDay[key]++
 		e.GSent[u.ID]++
 		e.GGot[o.ID]++
-		ledger(u.ID, -gt.Price, "gift", "Sent a "+gt.Name+" to @"+o.Username)
+		ledger(u.ID, spentAmt(u, gt.Price), "gift", "Sent a "+gt.Name+" to @"+o.Username+adminNote(u))
 		ledger(o.ID, back, "gift", "Received a "+gt.Name+" from @"+u.Username)
 		S.Msgs = append(S.Msgs, Msg{From: u.ID, To: o.ID, Text: "🎁 Sent you a " + gt.Name + " " + gt.Icon, TS: now(), Exp: dexp(u.ID, o.ID)})
 		note(o.ID, u.ID, "gift", "")
@@ -7691,18 +7745,109 @@ func extra12() {
 			return
 		}
 		g := gpf(u.ID)
-		if g.Coins < t[0] {
+		if !spendCoins(u, g, t[0]) {
 			fail(w, 400, "Not enough Ran Coin")
 			return
 		}
-		g.Coins -= t[0]
 		start := e.Boost[u.ID]
 		if start < now() {
 			start = now()
 		}
 		e.Boost[u.ID] = start + int64(t[1])
-		ledger(u.ID, -t[0], "boost", "Profile boost")
+		ledger(u.ID, spentAmt(u, t[0]), "boost", "Profile boost"+adminNote(u))
 		save()
 		js(w, map[string]any{"Coins": g.Coins, "Until": e.Boost[u.ID]})
+	})
+}
+
+// =====================================================================
+// ---------- Batch 6: unlimited Ran Coin for admins, score verification, abandoned games ----------
+// =====================================================================
+
+// spendCoins takes a price from a balance. Admins have unlimited Ran Coin and are never charged.
+func spendCoins(u *User, g *GP, price int) bool {
+	if u.Admin {
+		return true
+	}
+	if g.Coins < price {
+		return false
+	}
+	g.Coins -= price
+	return true
+}
+
+// spentAmt is the amount to write in the history: negative for a normal user, 0 for an admin
+func spentAmt(u *User, price int) int {
+	if u.Admin {
+		return 0
+	}
+	return -price
+}
+
+func adminNote(u *User) string {
+	if u.Admin {
+		return " (free for admins)"
+	}
+	return ""
+}
+
+// ---------- solo-game scores must come from a game the server saw start ----------
+type gTokE struct {
+	user, game string
+	ts         int64
+}
+
+var gTok = map[string]gTokE{}
+
+// ---------- games nobody finishes ----------
+// forfeitStale ends games where nobody has moved for 2 days, so people are never stuck at the open-games limit
+func forfeitStale(e *Ext6) {
+	for _, g := range e.Games {
+		if g.Status != "active" || g.Tour != "" || now()-g.Upd < 2*86400 {
+			continue
+		}
+		loser := g.A
+		switch g.Kind {
+		case "rps":
+			if g.P1 != "" && g.P2 == "" {
+				loser = g.B
+			}
+		case "tri":
+			if g.A1 != 0 && g.A2 == 0 {
+				loser = g.B
+			}
+		default:
+			if g.Turn == g.B {
+				loser = g.B
+			}
+		}
+		winner := g.A
+		if loser == g.A {
+			winner = g.B
+		}
+		g.Status, g.Win, g.Paid, g.Upd = "resigned", winner, true, now()
+		push(winner, "game:"+g.ID)
+	}
+}
+
+func init() { extra13() }
+
+func extra13() {
+	api("gstart", func(u *User, w http.ResponseWriter, r *http.Request) {
+		game := in(r)["game"]
+		if game != "snake" && game != "memory" {
+			fail(w, 400, "Unknown game")
+			return
+		}
+		if len(gTok) > 5000 {
+			for k, t := range gTok {
+				if now()-t.ts > 3600 {
+					delete(gTok, k)
+				}
+			}
+		}
+		tok := uid() + uid()
+		gTok[tok] = gTokE{u.ID, game, now()}
+		js(w, map[string]string{"tok": tok})
 	})
 }
