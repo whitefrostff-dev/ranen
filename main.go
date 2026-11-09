@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -42,6 +43,8 @@ type User struct {
 	Saved                         []string
 	Avatar, Cover                 string
 	Blocked                       []string
+	CloseFriends                  []string
+	ProfileStatus                 string
 }
 type Comment struct {
 	ID, Parent string
@@ -80,6 +83,7 @@ type Group struct {
 }
 type Status struct {
 	ID, User, Text, Media, Kind string
+	Audience                    string // public, followers, close
 	TS                          int64
 }
 type ChPost struct {
@@ -1049,6 +1053,52 @@ func main() {
 		js(w, out)
 	})
 
+	// ---------- Close friends and profile status ----------
+	api("closefriends", func(u *User, w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			out := []map[string]any{}
+			for _, id := range u.CloseFriends {
+				if S.Users[id] != nil && !S.Users[id].Banned {
+					out = append(out, uv(id))
+				}
+			}
+			js(w, out)
+			return
+		}
+		b := in(r)
+		id := b["id"]
+		target := S.Users[id]
+		if target == nil || id == u.ID || target.Banned || blk(u, target) {
+			fail(w, 400, "Choose a valid account")
+			return
+		}
+		if has(u.CloseFriends, id) {
+			u.CloseFriends = del(u.CloseFriends, id)
+		} else {
+			if len(u.CloseFriends) >= 100 {
+				fail(w, 400, "Close friends is limited to 100 people")
+				return
+			}
+			u.CloseFriends = append(u.CloseFriends, id)
+		}
+		save()
+		js(w, map[string]any{"ok": true, "members": len(u.CloseFriends)})
+	})
+	api("profilestatus", func(u *User, w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			js(w, map[string]string{"status": u.ProfileStatus})
+			return
+		}
+		v := strings.TrimSpace(in(r)["status"])
+		if rn(v) > 32 {
+			fail(w, 400, "Status must be 32 characters or fewer")
+			return
+		}
+		u.ProfileStatus = v
+		save()
+		js(w, map[string]string{"status": v})
+	})
+
 	// ---------- Moments (24h status) ----------
 	api("status", func(u *User, w http.ResponseWriter, r *http.Request) {
 		b := in(r)
@@ -1060,7 +1110,15 @@ func main() {
 			fail(w, 400, "Add text, a photo or a video")
 			return
 		}
-		S.Statuses = append(S.Statuses, &Status{uid(), u.ID, b["text"], b["media"], k, now()})
+		aud := b["audience"]
+		if aud != "followers" && aud != "close" {
+			aud = "followers"
+		}
+		if aud == "close" && len(u.CloseFriends) == 0 {
+			fail(w, 400, "Add close friends before sharing to them")
+			return
+		}
+		S.Statuses = append(S.Statuses, &Status{ID: uid(), User: u.ID, Text: b["text"], Media: b["media"], Kind: k, Audience: aud, TS: now()})
 		save()
 		js(w, ok)
 	})
@@ -1071,7 +1129,19 @@ func main() {
 				continue
 			}
 			keep = append(keep, s)
-			if s.User == u.ID || has(u.Following, s.User) {
+			owner := S.Users[s.User]
+			visible := s.User == u.ID
+			if owner != nil && s.User != u.ID {
+				switch s.Audience {
+				case "close":
+					visible = has(owner.CloseFriends, u.ID)
+				case "followers":
+					visible = has(owner.Following, u.ID)
+				default:
+					visible = has(u.Following, s.User)
+				}
+			}
+			if visible {
 				out = append(out, map[string]any{"ID": s.ID, "U": uv(s.User), "Text": s.Text, "Media": s.Media, "Kind": s.Kind, "TS": s.TS})
 			}
 		}
@@ -1458,7 +1528,7 @@ func priv(v, o *User) bool {
 }
 
 var xfiles = map[string][2]string{
-	"/sw.js": {"text/javascript", swJS},
+	"/sw.js":         {"text/javascript", swJS},
 	"/manifest.json": {"application/manifest+json", `{"name":"Amlink","short_name":"Amlink","start_url":"/","scope":"/","display":"standalone","background_color":"#000000","theme_color":"#000000","icons":[{"src":"/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}`},
 	"/icon.svg":      {"image/svg+xml", `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd978"/><stop offset=".35" stop-color="#8fe3ff"/><stop offset=".7" stop-color="#e3a6ff"/><stop offset="1" stop-color="#ffd978"/></linearGradient></defs><rect width="512" height="512" fill="#000"/><text x="256" y="350" font-family="Arial,sans-serif" font-size="300" font-weight="700" text-anchor="middle" fill="url(#g)">A</text></svg>`},
 }
@@ -4293,7 +4363,7 @@ func extra7() {
 type POpt struct {
 	Poster string
 	Alt    string
-	CM     int // who can comment: 0 everyone, 1 people the author follows, 2 nobody
+	CM     int     // who can comment: 0 everyone, 1 people the author follows, 2 nobody
 	Dur    float64 // length in seconds of an edited video
 	Duet   string  // id of the reel this one is a duet with
 }
@@ -4733,7 +4803,7 @@ func touch(id string) {
 func init() { extra9() }
 
 func extra9() {
-	caps := map[string]int{"snake": 2000, "memory": 1000}
+	caps := map[string]int{"snake": 2000, "memory": 1000, "taprush": 5000, "tilemerge": 50000}
 
 	api("gme", func(u *User, w http.ResponseWriter, r *http.Request) {
 		touch(u.ID)
@@ -5672,10 +5742,10 @@ type Cos struct {
 	Badge            string
 }
 type Game struct {
-	Tour string // set when the game belongs to a cup
-	Aux, Qi, A1, A2, Lq, La1, La2, Mv int // checkers chain, trivia state, move counter
-	QTS                              int64
-	F1, F2, Sh1, Sh2, Bx, Qs         []int // battleship fleets and shots, dots-and-boxes owners, trivia questions
+	Tour                              string // set when the game belongs to a cup
+	Aux, Qi, A1, A2, Lq, La1, La2, Mv int    // checkers chain, trivia state, move counter
+	QTS                               int64
+	F1, F2, Sh1, Sh2, Bx, Qs          []int // battleship fleets and shots, dots-and-boxes owners, trivia questions
 	ID, Kind, A, B, Turn, Status, Win string
 	Board                             []int
 	P1, P2, L1, L2                    string // rock-paper-scissors picks and the last revealed round
@@ -6071,10 +6141,10 @@ func interestBoost(uid string, p *Post) float64 {
 
 // ---------- word index for post search ----------
 var (
-	wordIx = map[string][]*Post{}
-	wxN    int
-	wxLast string
-	wxAt   int64
+	wordIx  = map[string][]*Post{}
+	wxN     int
+	wxLast  string
+	wxAt    int64
 	wordTok = regexp.MustCompile(`[\p{L}\p{N}_]{3,}`)
 )
 
@@ -7835,7 +7905,7 @@ func init() { extra13() }
 func extra13() {
 	api("gstart", func(u *User, w http.ResponseWriter, r *http.Request) {
 		game := in(r)["game"]
-		if game != "snake" && game != "memory" {
+		if game != "snake" && game != "memory" && game != "taprush" && game != "tilemerge" {
 			fail(w, 400, "Unknown game")
 			return
 		}
@@ -7849,5 +7919,119 @@ func extra13() {
 		tok := uid() + uid()
 		gTok[tok] = gTokE{u.ID, game, now()}
 		js(w, map[string]string{"tok": tok})
+	})
+}
+
+// ---------- Amlink self-hosted livestream control plane ----------
+// The media plane is a self-hosted LiveKit server. Render only runs this API;
+// the LiveKit SFU itself must run on a VPS with the required UDP ports open.
+type amLiveRoom struct {
+	Room, Owner, Username, Title string
+	Created                      int64
+}
+
+var amLiveRooms = map[string]amLiveRoom{}
+
+func amLiveJWT(apiKey, secret, userID, username, room string, host bool) (string, error) {
+	header, _ := json.Marshal(map[string]string{"alg": "HS256", "typ": "JWT"})
+	grant := map[string]any{"roomJoin": true, "room": room, "canSubscribe": true, "canPublish": host, "canPublishData": true}
+	claims := map[string]any{"iss": apiKey, "sub": userID, "name": username, "nbf": time.Now().Unix() - 5, "exp": time.Now().Unix() + 1800, "video": grant}
+	payload, err := json.Marshal(claims)
+	if err != nil {
+		return "", err
+	}
+	enc := base64.RawURLEncoding
+	unsigned := enc.EncodeToString(header) + "." + enc.EncodeToString(payload)
+	mac := hmac.New(sha256.New, []byte(secret))
+	_, _ = mac.Write([]byte(unsigned))
+	return unsigned + "." + enc.EncodeToString(mac.Sum(nil)), nil
+}
+
+func init() { extraLiveAmlink() }
+func extraLiveAmlink() {
+	api("livestreams", func(u *User, w http.ResponseWriter, r *http.Request) {
+		if !u.Admin {
+			fail(w, 403, "Amlink Live is coming soon. It is currently available to admins only.")
+			return
+		}
+		out := make([]map[string]any, 0, len(amLiveRooms))
+		for _, v := range amLiveRooms {
+			if owner := S.Users[v.Owner]; owner != nil && !owner.Banned {
+				out = append(out, map[string]any{"Room": v.Room, "Owner": v.Owner, "Username": v.Username, "Title": v.Title, "Created": v.Created})
+			}
+		}
+		js(w, out)
+	})
+	api("livestart", func(u *User, w http.ResponseWriter, r *http.Request) {
+		if !u.Admin {
+			fail(w, 403, "Amlink Live is coming soon. It is currently available to admins only.")
+			return
+		}
+		if strings.TrimSpace(os.Getenv("LIVEKIT_URL")) == "" || os.Getenv("LIVEKIT_API_KEY") == "" || os.Getenv("LIVEKIT_API_SECRET") == "" {
+			fail(w, 503, "Livestream server is not configured yet")
+			return
+		}
+		for _, v := range amLiveRooms {
+			if v.Owner == u.ID {
+				fail(w, 409, "You already have an active livestream")
+				return
+			}
+		}
+		b := in(r)
+		title := strings.TrimSpace(b["title"])
+		if title == "" {
+			title = "Live on Amlink"
+		}
+		title = cut(title)
+		room := "amlink-" + uid()
+		amLiveRooms[room] = amLiveRoom{Room: room, Owner: u.ID, Username: u.Username, Title: title, Created: now()}
+		js(w, map[string]any{"Room": room, "Title": title})
+	})
+	api("liveend", func(u *User, w http.ResponseWriter, r *http.Request) {
+		if !u.Admin {
+			fail(w, 403, "Amlink Live is coming soon. It is currently available to admins only.")
+			return
+		}
+		room := in(r)["room"]
+		v, ok := amLiveRooms[room]
+		if !ok {
+			fail(w, 404, "Livestream not found")
+			return
+		}
+		if v.Owner != u.ID && !u.Admin {
+			fail(w, 403, "Only the host can end this livestream")
+			return
+		}
+		delete(amLiveRooms, room)
+		js(w, map[string]bool{"ok": true})
+	})
+	api("livetoken", func(u *User, w http.ResponseWriter, r *http.Request) {
+		if !u.Admin {
+			fail(w, 403, "Amlink Live is coming soon. It is currently available to admins only.")
+			return
+		}
+		b := in(r)
+		room := b["room"]
+		v, ok := amLiveRooms[room]
+		if !ok {
+			fail(w, 404, "This livestream has ended or does not exist")
+			return
+		}
+		if owner := S.Users[v.Owner]; owner == nil || owner.Banned || blk(u, owner) {
+			fail(w, 403, "You cannot join this livestream")
+			return
+		}
+		key, secret, url := os.Getenv("LIVEKIT_API_KEY"), os.Getenv("LIVEKIT_API_SECRET"), strings.TrimSpace(os.Getenv("LIVEKIT_URL"))
+		if key == "" || secret == "" || url == "" {
+			fail(w, 503, "Livestream server is not configured yet")
+			return
+		}
+		host := u.ID == v.Owner
+		tok, err := amLiveJWT(key, secret, u.ID, u.Username, room, host)
+		if err != nil {
+			fail(w, 500, "Could not create livestream access token")
+			return
+		}
+		js(w, map[string]any{"url": url, "token": tok, "host": host, "owner": v.Owner, "username": v.Username, "title": v.Title})
 	})
 }
