@@ -305,7 +305,25 @@ nav button.on{color:var(--acc)}nav button.pl2{width:42px;height:42px;flex:0 0 42
 }
 @media(min-width:900px){#tb .top-notif{margin-left:auto}}
 
-</style></head>
+</style><style>
+.am-feature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.am-feature-card{text-align:left;display:flex;flex-direction:column;gap:8px;min-height:110px;cursor:pointer}.am-feature-card small,.am-feature-card span{color:var(--mut)}.am-feature-list{display:grid;gap:10px;margin-top:14px}.am-stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.am-stat-grid .rpc{display:flex;flex-direction:column;gap:5px}.am-stat-grid b{font-size:24px}.am-setting{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.am-chiprow{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.am-reel-poll{padding:10px;border-top:1px solid var(--line);display:grid;gap:8px}.am-reel-poll .am-chiprow button{flex:1}@media(max-width:420px){.am-feature-grid{grid-template-columns:1fr}.am-stat-grid b{font-size:20px}}
+</style>
+
+<style id="amlink-native-dialog-replacement">
+#am-confirm{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;padding:20px;background:rgba(0,0,0,.62);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+#am-confirm[hidden]{display:none!important}
+#am-confirm .am-confirm-card{width:min(100%,390px);padding:24px;border:1px solid rgba(255,255,255,.16);border-radius:28px;background:linear-gradient(145deg,rgba(35,37,44,.98),rgba(12,13,17,.98));color:#fff;box-shadow:0 24px 80px rgba(0,0,0,.45);animation:amDialogIn .18s ease-out}
+#am-confirm .am-confirm-icon{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:rgba(255,255,255,.1);font-size:23px;margin-bottom:15px}
+#am-confirm h3{font-size:20px;margin:0 0 8px;font-weight:750}
+#am-confirm p{font-size:14px;line-height:1.55;color:rgba(255,255,255,.72);margin:0 0 22px;white-space:pre-wrap}
+#am-confirm .am-confirm-actions{display:flex;justify-content:flex-end;gap:10px}
+#am-confirm button{border:0;border-radius:14px;padding:11px 18px;font-weight:700}
+#am-confirm .am-cancel{background:rgba(255,255,255,.1);color:#fff}
+#am-confirm .am-danger{background:#fff;color:#111}
+@keyframes amDialogIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){#am-confirm .am-confirm-card{animation:none}}
+</style>
+</head>
 <body>
 <svg width="0" height="0" style="position:absolute"><symbol id="vf" viewBox="0 0 24 24"><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5" fill="#1877f2"/><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5" fill="#1877f2" transform="rotate(45 12 12)"/><circle cx="12" cy="12" r="8.6" fill="#1877f2"/><path d="M7.4 12.4l3.1 3.1 6.2-6.6" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></symbol></svg>
 <div id="app" class="out">
@@ -324,6 +342,7 @@ nav button.on{color:var(--acc)}nav button.pl2{width:42px;height:42px;flex:0 0 42
   <div id="au" hidden><div class="ah"><button data-a="ab2" aria-label="Back">‹</button><div class="dots" id="dots"></div></div><div id="st"></div></div>
   <div id="md" hidden></div>
   <div id="ts" hidden></div>
+  <div id="am-confirm" hidden role="presentation"></div>
 </div>
 <script>
 const $=s=>document.querySelector(s),E=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -332,10 +351,12 @@ let T=null,ME,tab='feed',posts=[],cur,ppl=[],peer,poll,th='dark',gid,mut=true,rf
 try{T=localStorage.getItem('tk');th=localStorage.getItem('th')||th}catch(e){}
 document.documentElement.dataset.t=th;
 let CS={snd:1,pop:1,con:1};try{CS=Object.assign(CS,JSON.parse(localStorage.getItem('cs')||'{}'))}catch(e){}
-const nm=u=>(u.Nc?'<span class="'+E(u.Nc)+'">'+E(u.Username||'user')+'</span>':E(u.Username||'user'))+(u.Verified?VB:'')+(u.Bd&&window.bdg?bdg(u.Bd):'');
+const PB='<span class="am-president-badge" title="Community President" aria-label="Community President">♛ President</span>';
+const nm=u=>(u.Nc?'<span class="'+E(u.Nc)+'">'+E(u.Username||'user')+'</span>':E(u.Username||'user'))+(u.Verified?VB:'')+(u.President?PB:'')+(u.Bd&&window.bdg?bdg(u.Bd):'');
 const ago=t=>{const m=(Date.now()/1000-t)/60|0;return m<1?'now':m<60?m+'m':m<1440?(m/60|0)+'h':(m/1440|0)+'d'};
 async function A(p,b){const r=await fetch('/api/'+p,{method:b?'POST':'GET',headers:{'X-Token':T||'','Content-Type':'application/json'},body:b?JSON.stringify(b):undefined});const j=await r.json();if(r.status==401&&T)out();if(j&&j.error)throw new Error(j.error);return j}
 function toast(m){const t=$('#ts');t.textContent=m;t.hidden=false;clearTimeout(t.x);t.x=setTimeout(()=>t.hidden=true,2200)}
+function amConfirm(message,opts={}){return new Promise(resolve=>{const root=$('#am-confirm');if(!root)return resolve(false);const title=opts.title||'Are you sure?';const icon=opts.icon||'✦';const yes=opts.confirmText||'Confirm';const no=opts.cancelText||'Cancel';root.innerHTML=`<div class="am-confirm-card" role="dialog" aria-modal="true" aria-labelledby="am-confirm-title"><div class="am-confirm-icon" aria-hidden="true">${E(icon)}</div><h3 id="am-confirm-title">${E(title)}</h3><p>${E(message)}</p><div class="am-confirm-actions"><button type="button" class="am-cancel" data-am-choice="no">${E(no)}</button><button type="button" class="am-danger" data-am-choice="yes">${E(yes)}</button></div></div>`;root.hidden=false;const finish=value=>{root.hidden=true;root.innerHTML='';document.removeEventListener('keydown',key);resolve(value)};const key=e=>{if(e.key==='Escape')finish(false);if(e.key==='Enter')finish(true)};root.onclick=e=>{const choice=e.target.closest('[data-am-choice]');if(choice)finish(choice.dataset.amChoice==='yes');else if(e.target===root)finish(false)};document.addEventListener('keydown',key);root.querySelector('[data-am-choice="no"]').focus()})}
 function out(){try{localStorage.removeItem('tk')}catch(e){}location.reload()}
 function modal(h,keep){const m=$('#md');m.innerHTML='<div class="box">'+h+'</div>';m.dataset.k=keep?1:'';m.hidden=false}
 const closeM=()=>$('#md').hidden=true;
@@ -404,7 +425,7 @@ function sadd(){
 function reels(){
   let v=posts.filter(p=>p.Kind=='video');
   if(rf=='f')v=v.filter(p=>(ME.Following||[]).includes(p.U.ID)||p.U.ID==ME.ID);
-  $('#main').innerHTML=`<div class="rt"><button data-a="rf" data-v="f" class="${rf=='f'?'on':''}">Following</button><button data-a="rf" data-v="y" class="${rf=='y'?'on':''}">For You</button></div><div class="rl">`+(v.length?v.map(p=>`<section class="reel"><video data-a="pp" src="${E(p.Media)}" loop ${mut?'muted ':''}playsinline preload="metadata"></video><div class="shade"></div><div class="info"><b>@${E(p.U.Username)}${p.U.Verified?VB:''}</b><span>${E(p.Text)}</span></div><div class="rail"><div class="ra">${AV(p.U)}${p.U.ID==ME.ID||(ME.Following||[]).includes(p.U.ID)?'':`<button class="pl" data-a="rfol" data-i="${p.U.ID}" aria-label="Follow">＋</button>`}</div><button class="lk" data-a="like" data-i="${p.ID}">✦<span>Spark</span></button><button class="cm" data-a="cm" data-i="${p.ID}">▤<span>Thread</span></button><button data-a="sh" data-i="${p.ID}">⤴<span>Echo</span></button><button data-a="mu">${mut?'🔇':'🔊'}</button></div></section>`).join(''):'<p class="empty" style="color:#fff;padding-top:30vh">No reels here yet. Post a video from Home.</p>')+'</div>';
+  $('#main').innerHTML=`<div class="rt"><button data-a="rf" data-v="f" class="${rf=='f'?'on':''}">Following</button><button data-a="rf" data-v="y" class="${rf=='y'?'on':''}">For You</button></div><div class="rl">`+(v.length?v.map(p=>`<section class="reel"><video data-a="pp" src="${E(p.Media)}" loop ${mut?'muted ':''}playsinline preload="metadata"></video><div class="shade"></div><div class="info"><b>@${E(p.U.Username)}${p.U.Verified?VB:''}${p.U.President?PB:''}</b><span>${E(p.Text)}</span></div><div class="rail"><div class="ra">${AV(p.U)}${p.U.ID==ME.ID||(ME.Following||[]).includes(p.U.ID)?'':`<button class="pl" data-a="rfol" data-i="${p.U.ID}" aria-label="Follow">＋</button>`}</div><button class="lk" data-a="like" data-i="${p.ID}">✦<span>Spark</span></button><button class="cm" data-a="cm" data-i="${p.ID}">▤<span>Thread</span></button><button data-a="sh" data-i="${p.ID}">⤴<span>Echo</span></button><button data-a="mu">${mut?'🔇':'🔊'}</button></div></section>`).join(''):'<p class="empty" style="color:#fff;padding-top:30vh">No reels here yet. Post a video from Home.</p>')+'</div>';
   paint();
   const io=new IntersectionObserver(es=>es.forEach(e=>{const vd=e.target.querySelector('video');e.isIntersecting?vd.play().catch(()=>{}):vd.pause()}),{threshold:.7});
   document.querySelectorAll('.reel').forEach(r=>io.observe(r));
@@ -583,7 +604,7 @@ $('#app').onclick=async e=>{
     else if(a=='send')send();
     else if(a=='un')askName(0);
     else if(a=='th'){th=th=='dark'?'light':'dark';document.documentElement.dataset.t=th;try{localStorage.setItem('th',th)}catch(x){}}
-    else if(a=='out')out();else if(a=='cset')cset();else if(a=='tg'){const k=b.dataset.k;if(k=='act')ME=await A('active',{});else{CS[k]=b.checked;try{localStorage.setItem('cs',JSON.stringify(CS))}catch(x){}if(k=='con')pl()}}else if(a=='mic')mic();else if(a=='adm')admin();else if(a=='ban'){const x=await A('ban',{id:i});b.textContent=x.Banned?'Unban':'Ban'}else if(a=='delp'){if(confirm('Delete this post?')){await A('delpost',{id:i});go(tab)}}
+    else if(a=='out')out();else if(a=='cset')cset();else if(a=='tg'){const k=b.dataset.k;if(k=='act')ME=await A('active',{});else{CS[k]=b.checked;try{localStorage.setItem('cs',JSON.stringify(CS))}catch(x){}if(k=='con')pl()}}else if(a=='mic')mic();else if(a=='adm')admin();else if(a=='ban'){const x=await A('ban',{id:i});b.textContent=x.Banned?'Unban':'Ban'}else if(a=='delp'){if(await amConfirm('Delete this post?')){await A('delpost',{id:i});go(tab)}}
     else if(a=='dr')openDr();
     else if(a=='dc')$('#app').classList.remove('dro');
     else if(a=='nv')go(b.dataset.t);
@@ -644,7 +665,7 @@ function pfDraw(){
  posts=[...ps,...(j.S||[])];
  const tb=(v,t)=>`<button class="${ptab==v?'on':''}" data-a="pt" data-v="${v}">${t}</button>`;
  const tile=p=>`<button class="tl" data-a="pv" data-i="${p.ID}">${p.Kind=='video'?`<video src="${E(p.Media)}#t=0.1" muted playsinline preload="metadata"></video><span class="tp">▶</span>`:`<img src="${E((p.Opt&&p.Opt.Poster)||p.Media)}" loading="lazy" alt="">`}</button>`;
- $('#main').innerHTML=`<div class="cov"${j.Cover?` style="background:url('${E(j.Cover)}') center/cover"`:''}></div><div class="pfc"><span class="rng avw">${AV(u,'big')}${u.On?'<i class="od big"></i>':''}</span><div class="pfn"><h2>${E(j.Name||u.Username)}${u.Verified?VB:''}</h2><small>@${E(u.Username)}${me?'':stat(u)?' · '+stat(u):''}</small></div>`+
+ $('#main').innerHTML=`<div class="cov"${j.Cover?` style="background:url('${E(j.Cover)}') center/cover"`:''}></div><div class="pfc"><span class="rng avw">${AV(u,'big')}${u.On?'<i class="od big"></i>':''}</span><div class="pfn"><h2>${E(j.Name||u.Username)}${u.Verified?VB:''}${u.President?PB:''}</h2><small>@${E(u.Username)}${me?'':stat(u)?' · '+stat(u):''}</small></div>`+
  (j.Bio?`<p class="bio">${E(j.Bio)}</p>`:me?'<button class="lnk" data-a="ep">Add a bio</button>':'')+
  `<div class="act">${me?'<button class="ed" data-a="ep">Edit profile</button>':`<button class="fl" data-a="fol" data-i="${u.ID}"></button><button class="ed" data-a="dm" data-i="${u.ID}">Message</button>`}<button class="ed" data-a="psh">Share</button>${me?'':`<button class="ed" data-a="blk" data-i="${u.ID}">${j.Blocked?'Unblock':'Block'}</button>`}</div>`+
  `<div class="pst"><div><b>${ps.length}</b><small>Posts</small></div><div data-a="fls" data-t="followers" data-i="${u.ID}"><b>${j.Followers}</b><small>Followers</small></div><div data-a="fls" data-t="following" data-i="${u.ID}"><b>${j.Following}</b><small>Following</small></div><div><b>${j.Likes}</b><small>Likes</small></div></div></div>`+
@@ -673,11 +694,11 @@ $('#app').addEventListener('click',async e=>{
   else if(a=='spost')shr('Check this out on Amlink','/?p='+i);
   else if(a=='psh')shr('@'+PF.U.Username+' on Amlink');
   else if(a=='svd'){await go('me');ptab='s';pfDraw()}
-  else if(a=='dme'){if(confirm('Delete your account and all your data? This cannot be undone.')){await A('delme',{});out()}}
+  else if(a=='dme'){if(await amConfirm('Delete your account and all your data? This cannot be undone.')){await A('delme',{});out()}}
   else if(a=='adt'){adt=b.dataset.v;admin()}
   else if(a=='arole'){await A('adminrole',{id:i});admin()}
-  else if(a=='udel'){if(confirm('Delete this user and all their posts?')){await A('deluser',{id:i});admin()}}
-  else if(a=='pdel'){if(confirm('Delete this post?')){await A('delpost',{id:i});admin()}}
+  else if(a=='udel'){if(await amConfirm('Delete this user and all their posts?')){await A('deluser',{id:i});admin()}}
+  else if(a=='pdel'){if(await amConfirm('Delete this post?')){await A('delpost',{id:i});admin()}}
   else if(a=='rdis'){await A('repclr',{id:i});admin()}
   else if(a=='ann'){await A('notice',{text:$('#an').value});toast('Notice updated');nt()}
  }catch(x){toast(x.message)}});
@@ -686,7 +707,7 @@ async function nt(){if(!T)return;try{const c=await A('config');let b=$('#ann');i
 setTimeout(nt,2500);setInterval(nt,60000);
 
 /* v3: profile photos, inbox, post links, lists, explore, block, edit and more */
-const AV=(u,c)=>u.Av?`<b class="av ${c||''} ${E(u.Fr||'')}" style="background:url('${E(u.Av)}') center/cover"></b>`:`<b class="av ${c||''} ${E(u.Fr||'')}">${E((u.Username||'?')[0])}</b>`;
+const AV=(u,c)=>u.Av?`<b class="av ${c||''} ${E(u.Fr||'')} ${u.President?'am-president-avatar':''}" style="background:url('${E(u.Av)}') center/cover"></b>`:`<b class="av ${c||''} ${E(u.Fr||'')} ${u.President?'am-president-avatar':''}">${E((u.Username||'?')[0])}</b>`;
 var tg=t=>E(t).replace(/#(\w+)/g,'<a class="ht" data-a="tag" data-q="#$1">#$1</a>');
 async function upf(id,old){const f=$(id).files[0];return f?await up(f):(old||'')}
 async function L(){const m=await A('msgs?w='+peer.ID),b=$('#ms');if(!b)return;b.innerHTML=m.map(x=>`<div class="m ${x.From==ME.ID?'me':''}">${msgM(x)}${E(x.Text)}${x.From==ME.ID?`<small> ${x.Read?'✓✓':'✓'}</small>`:''}</div>`).join('');b.scrollTop=b.scrollHeight}
@@ -823,7 +844,7 @@ $('#app').addEventListener('click',async e=>{
     else if(a=='nrow'){const x=NL[+d.n];if(x.Type=='freq')reqs();else if(x.Type=='msg')chat(x.U);else if(x.Post){const p=await A('onep?id='+x.Post);posts=[p];modal(postH(p)+'<button class="pri" data-a="mc">Close</button>');paint()}else opf(x.U.ID)}
     else if(a=='ncl'){await A('nclear',{});alerts()}
     else if(a=='atp'){const j=await A('byname',{u:d.u});closeM();opf(j.id)}
-    else if(a=='uns'){if(confirm('Unsend this message?')){await A('unsend',{to:peer.ID,ts:d.ts});L()}}
+    else if(a=='uns'){if(await amConfirm('Unsend this message?')){await A('unsend',{to:peer.ID,ts:d.ts});L()}}
     else if(a=='mrx'){await A('mreact',{id:i,e:d.e});toast('Reaction sent '+d.e)}
     else if(a=='mrp'){const t=$('#mrp').value.trim();if(t){await A('mreply',{id:i,text:t});$('#mrp').value='';toast('Reply sent')}}
     else if(a=='mst')xms(i);
@@ -1038,7 +1059,7 @@ $('#app').addEventListener('click',async e=>{const b=e.target.closest('[data-a]'
     else if(a=='sess')xsess();
     else if(a=='srv'){await A('revoke',{id:i});xsess()}
     else if(a=='sra'){await A('revoke',{all:'1'});xsess()}
-    else if(a=='srm'){if(confirm('Log out of every device, including this one?')){await A('revoke',{all:'1',me:'1'});out()}}
+    else if(a=='srm'){if(await amConfirm('Log out of every device, including this one?')){await A('revoke',{all:'1',me:'1'});out()}}
     else if(a=='xmq')xmq();
     else if(a=='mq'){await A('modact',{id:i,op:d.o});xmq()}
     else if(a=='mws'){await A('modwords',{w:$('#mw').value});toast('Blocked words saved')}
@@ -1160,7 +1181,7 @@ $('#app').addEventListener('click',async e=>{
     else if(a=='mrep'){RP9=LM.find(x=>x.ID==d.id)||null;cl();rpbar();$('#mi')&&$('#mi').focus()}
     else if(a=='rpx'){RP9=null;rpbar()}
     else if(a=='med'){cl();const x=LM.find(y=>y.ID==d.id),t=prompt('Edit message',x?x.Text:'');if(t&&t.trim()){await A('mact',{id:d.id,op:'edit',text:t});L()}}
-    else if(a=='mun'){cl();if(confirm('Unsend this message?')){await A('mact',{id:d.id,op:'unsend'});L()}}
+    else if(a=='mun'){cl();if(await amConfirm('Unsend this message?')){await A('mact',{id:d.id,op:'unsend'});L()}}
     else if(a=='mw9')modal(`<h3>Muted words</h3><small>Posts with these words are hidden from your feeds. Separate with commas.</small><textarea id="mwt" maxlength="500">${E(V9.W.join(', '))}</textarea><button class="pri" data-a="mws9">Save</button>`);
     else if(a=='mws9'){const j=await A('mw',{w:$('#mwt').value});V9.W=j.W||[];closeM();toast('Muted words saved')}
     else if(a=='tgf'){const j=await A('tagfol',{t:d.t});V9.Tags=j.Tags||[];explore(d.t)}
@@ -1597,6 +1618,8 @@ $('#app').addEventListener('click',async e=>{
 
 <!-- ===== Amlink v13: verification requests, communities, disappearing messages, calls ===== -->
 <style>
+.am-president-badge{display:inline-flex;align-items:center;gap:3px;margin-left:5px;padding:2px 7px;border:1px solid #c99a35;border-radius:999px;background:linear-gradient(135deg,#fff2bf,#d9a52d);color:#382500;font-size:10px;font-weight:800;vertical-align:middle;white-space:nowrap;box-shadow:0 1px 5px #d9a52d55}
+.am-president-avatar{outline:2px solid #d9a52d;outline-offset:2px}
 .cjb{border:1.5px solid var(--fg);color:var(--fg);padding:3px 12px;font-size:13px;border-radius:18px;background:none;font-weight:600}
 .cjb.on{background:var(--fg);color:var(--bg)}
 #call{position:absolute;inset:0;z-index:60;background:#0b0b0e;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;animation:pgin .28s ease}
@@ -1650,10 +1673,19 @@ async function cmo(id){
   clearInterval(poll);tab='cm';$('#app').classList.add('fs');
   const c=await A('comm?id='+id);CM=Object.assign(c,{id});posts=c.Posts;
   $('#main').innerHTML=`<div class="chh"><button data-a="cmb" aria-label="Back">‹</button><b>${E(c.Name)}</b>${c.Mod?'<button data-a="cmg" style="margin-left:auto;font-size:20px" aria-label="Manage">⚙</button>':''}</div>`+
-    `<div style="padding:12px 16px;display:grid;gap:8px"><p>${c.Desc?E(c.Desc):'<small>No description yet.</small>'}</p><small>${c.N} member${c.N==1?'':'s'}</small><div class="act" style="justify-content:flex-start"><button class="cjb${c.Joined?' on':''}" data-a="cmj2" data-i="${id}">${c.Joined?'Joined':'Join'}</button>${c.Rules?'<button class="ed" data-a="cmr">Rules</button>':''}${c.Joined?'<button class="ed" data-a="cmp">＋ Post</button>':''}</div></div>`+
+    `<div style="padding:12px 16px;display:grid;gap:8px"><p>${c.Desc?E(c.Desc):'<small>No description yet.</small>'}</p><small>${c.N} member${c.N==1?'':'s'}</small><div class="act" style="justify-content:flex-start"><button class="cjb${c.Joined?' on':''}" data-a="cmj2" data-i="${id}">${c.Joined?'Joined':'Join'}</button>${c.Rules?'<button class="ed" data-a="cmr">Rules</button>':''}${c.Joined?'<button class="ed" data-a="cmp">＋ Post</button>':''}</div></div><div id="cmelection" style="padding:0 16px 14px"><div class="cd" style="padding:12px">Loading monthly community election…</div></div>`+
     (posts.map(postH).join('')||'<p class="empty">No posts yet.</p>');
   paint();
+  await cmelection(id);
   if(c.Mod)document.querySelectorAll('#main .post').forEach(el=>{const l=el.querySelector('.lk'),p=l&&posts.find(x=>x.ID==l.dataset.i);if(p&&p.U.ID!=ME.ID)el.querySelector('header').insertAdjacentHTML('beforeend',`<button class="dl" data-a="cdp" data-i="${p.ID}">Remove</button>`)})}
+async function cmelection(id){
+  const box=$('#cmelection');if(!box)return;
+  try{const j=await A('commelection?id='+encodeURIComponent(id));
+    const president=j.President&&j.President.ID?`${AV(j.President)} <b>${nm(j.President)}</b>`:'<b>Not elected yet</b>';
+    const candidates=(j.Candidates||[]).map(x=>`<div class="pr" style="padding:8px 0">${AV(x.U)}<div style="flex:1;min-width:0"><b>${nm(x.U)}</b><small>${x.Votes} vote${x.Votes===1?'':'s'}</small></div>${j.Joined&&x.U.ID!==ME.ID?`<button class="ed" data-a="cmvote" data-i="${id}" data-u="${x.U.ID}">${j.MyVote===x.U.ID?'Your vote':'Vote'}</button>`:''}</div>`).join('');
+    box.innerHTML=`<div class="cd" style="padding:12px;display:grid;gap:9px"><div style="display:flex;justify-content:space-between;align-items:center"><b>🗳️ Community President</b><small>${E(j.Period||'')}</small></div><div>Current president: ${president}</div><small>Members elect a new president every month. The president represents the community but does not automatically receive moderator powers.</small>${j.CanNominate?`<button class="ed" data-a="cmnom" data-i="${id}">Nominate myself</button>`:j.Joined&&!j.Candidates?.some(x=>x.U.ID===ME.ID)?`<small>Nomination eligibility: ${j.Followers||0}/100 followers · ${j.Engagement||0}/500 engagement points (last 30 days).</small>`:''}<div><b>This month's candidates</b></div>${candidates||'<small>No candidates yet. Be the first to nominate yourself.</small>'}${j.Joined?'<small>You can change your vote until the month ends.</small>':'<small>Join this community to nominate or vote.</small>'}</div>`;
+  }catch(e){box.innerHTML=`<div class="cd" style="padding:12px"><small>Election information unavailable: ${E(e.message)}</small></div>`}
+}
 function cmnew(){
   modal('<h3>New community</h3><label class="fl2">Name<input id="cn1" maxlength="40" placeholder="e.g. Lagos Foodies"></label><label class="fl2">What is it about?<textarea id="cn2" maxlength="200"></textarea></label><label class="fl2">Rules (optional)<textarea id="cn3" maxlength="500"></textarea></label><p class="er" id="er"></p><button class="pri" id="cnb">Create community</button>');
   $('#cnb').onclick=async()=>{const b=$('#cnb');b.disabled=true;
@@ -1781,10 +1813,12 @@ $('#app').addEventListener('click',async e=>{
     else if(a=='cmr')modal('<h3>Community rules</h3><p style="white-space:pre-wrap">'+E(CM.Rules)+'</p><button class="pri" data-a="mc">Close</button>');
     else if(a=='cmp')cmpost();
     else if(a=='cmg')cmg();
+    else if(a=='cmnom'){await A('commelection',{id:i,op:'nominate'});await cmelection(i);toast('You are nominated for this month’s election')}
+    else if(a=='cmvote'){await A('commelection',{id:i,op:'vote',candidate:d.u});await cmelection(i);toast('Your vote has been counted')}
     else if(a=='cse'){await A('commact',{id:CM.id,op:'edit',desc:$('#cde').value,rules:$('#cru').value});closeM();toast('Saved');cmo(CM.id)}
-    else if(a=='cka'){if(d.o=='del'){if(!confirm('Delete this community and all its posts?'))return;await A('commact',{id:CM.id,op:'del'});closeM();cms('')}
+    else if(a=='cka'){if(d.o=='del'){if(!await amConfirm('Delete this community and all its posts?'))return;await A('commact',{id:CM.id,op:'del'});closeM();cms('')}
       else{await A('commact',{id:CM.id,op:d.o,uid:i});await cmo(CM.id);cmg()}}
-    else if(a=='cdp'){if(confirm('Remove this post from the community?')){await A('delpost',{id:i});cmo(CM.id)}}
+    else if(a=='cdp'){if(await amConfirm('Remove this post from the community?')){await A('delpost',{id:i});cmo(CM.id)}}
     else if(a=='dsp')dsp();
     else if(a=='dss'){await A('disapset',{to:peer.ID,secs:d.s});closeM();toast(d.s=='0'?'Disappearing messages are off':'Disappearing messages are on');L()}
     else if(a=='cvo')startCall(peer,false);
@@ -1936,7 +1970,7 @@ reels=function(){rl14();
     const l=r.querySelector('.lk'),p=l&&posts.find(x=>x.ID==l.dataset.i);if(!p)return;
     const v=r.querySelector('video');if(v&&p.Opt&&p.Opt.Poster)v.poster=p.Opt.Poster;if(v)v.dataset.dur=(p.Opt&&p.Opt.Dur)||0;
     const inf=r.querySelector('.info');
-    if(inf)inf.innerHTML=`<div class="rnm"><b>@${E(p.U.Username)}${p.U.Verified?VB:''}</b>${p.U.ID==ME.ID||(ME.Following||[]).includes(p.U.ID)?'':`<button class="rfb" data-a="rfol" data-i="${p.U.ID}">Follow</button>`}</div>${p.Text?`<p class="rcp">${tg(p.Text)}</p>`:''}<div class="rmu">🎵 Original sound · @${E(p.U.Username)}</div>`;
+    if(inf)inf.innerHTML=`<div class="rnm"><b>@${E(p.U.Username)}${p.U.Verified?VB:''}${p.U.President?PB:''}</b>${p.U.ID==ME.ID||(ME.Following||[]).includes(p.U.ID)?'':`<button class="rfb" data-a="rfol" data-i="${p.U.ID}">Follow</button>`}</div>${p.Text?`<p class="rcp">${tg(p.Text)}</p>`:''}<div class="rmu">🎵 Original sound · @${E(p.U.Username)}</div>`;
     r.insertAdjacentHTML('afterbegin',`<button class="rvm" data-a="mu" aria-label="Sound">${mut?'🔇':'🔊'}</button>`)})};
 const curReel=()=>$$('.reel').map(r=>[Math.abs(r.getBoundingClientRect().top),r]).sort((a,b)=>a[0]-b[0]).map(x=>x[1])[0];
 addEventListener('keydown',e=>{
@@ -2040,8 +2074,8 @@ function showCv(){const z=$('#stpv'),v=z&&z.querySelector('video');if(!z||!v)ret
   if(!u){if(i)i.remove();return}
   if(!i){i=document.createElement('img');i.className='cvov';i.alt='';i.dataset.a='stpp';z.insertBefore(i,z.querySelector('.ov')||z.querySelector('.chg'))}
   i.src=u;v.pause()}
-function stuClose(ask){
-  const c=$('#stc');if(ask&&(ST.f||XF.length||(c&&c.value.trim()))&&!confirm('Discard this post?'))return;
+async function stuClose(ask){
+  const c=$('#stc');if(ask&&(ST.f||XF.length||(c&&c.value.trim()))&&!await amConfirm('Discard this post?'))return;
   const o=$('#stu');if(o)o.remove();ST={};XF=[];window.XDUET=''}
 function drafts(tgl){const b=$('#stdls');if(!b)return;if(tgl&&b.dataset.o){b.innerHTML='';b.dataset.o='';return}b.dataset.o='1';
   const l=LS('dr9','[]');b.innerHTML=l.map((d,k)=>`<div class="pr"><div class="nm"><small>${E(d.t.slice(0,80))}</small></div><button class="ed" data-a="stdu" data-k="${k}">Use</button><button class="ed" data-a="stdd" data-k="${k}" aria-label="Delete draft">✕</button></div>`).join('')||'<small class="sub">No drafts yet.</small>'}
@@ -2131,7 +2165,7 @@ $('#app').addEventListener('click',async e=>{
   const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,d=b.dataset;
   try{
     if(a=='fwg'){xfeed='fwg';try{localStorage.setItem('xf',xfeed)}catch(x){}go('feed')}
-    else if(a=='stux')stuClose(true);
+    else if(a=='stux')await stuClose(true);
     else if(a=='stup')stuPost();
     else if(a=='stuch'){if(ST.k=='reel'){ST.f=null;ST.cvs=[];ST.cuu=[];ST.dur=0}else{XF.splice(ST.i,1);ST.i=0}stuPv()}
     else if(a=='stsel'){ST.i=+d.i;stuPv()}
@@ -2146,7 +2180,7 @@ $('#app').addEventListener('click',async e=>{
     else if(a=='scdl'){await A('schedel',{id:d.i});schl()}
     else if(a=='cols'){cols()}
     else if(a=='cget')cget(d.n);
-    else if(a=='cdel'){if(confirm('Delete this collection? The posts stay.')){await A('colldel',{name:d.n});cols()}}
+    else if(a=='cdel'){if(await amConfirm('Delete this collection? The posts stay.')){await A('colldel',{name:d.n});cols()}}
     else if(a=='shx')shut();
     else if(a=='shf'){shut();friendPick(d.i)}
     else if(a=='shc'){shut();try{await navigator.clipboard.writeText(plink(d.i));toast('Link copied')}catch(x){prompt('Copy this link',plink(d.i))}}
@@ -2353,11 +2387,11 @@ $('#app').addEventListener('click',async e=>{
     else if(a=='nst'){try{await A('nsset',{k:d.k,on:b.checked?'1':'0'});toast('Saved')}catch(x){b.checked=!b.checked;throw x}}
     else if(a=='hln')hln();
     else if(a=='hlo')hview(PF.U.ID,i);
-    else if(a=='hld'){if(confirm('Delete this highlight?')){await A('hldel',{id:i});closeM();opf(ME.ID)}}
+    else if(a=='hld'){if(await amConfirm('Delete this highlight?')){await A('hldel',{id:i});closeM();opf(ME.ID)}}
     else if(a=='tgl')cp(location.origin+'/tag/'+d.t);
     else if(a=='cmn')cmenu();
     else if(a=='cmu'){const j=await A('mute',{id:i});toast(j.Muted?'Muted':'Unmuted');closeM()}
-    else if(a=='cbk'){if(confirm('Block this person? You will not see each other.')){ME=await A('block',{id:i});closeM();toast('Blocked');go('people')}}
+    else if(a=='cbk'){if(await amConfirm('Block this person? You will not see each other.')){ME=await A('block',{id:i});closeM();toast('Blocked');go('people')}}
     else if(a=='mrpt'){const s=$('#msh');if(s)s.hidden=true;const r=prompt('Why are you reporting this message?');if(r!==null){await A('mreport',{id:d.id,reason:r});toast('Thanks, we will review it')}}
     else if(a=='bkp'){await dlf('backup','amlink-backup.json');toast('Backup downloaded')}
     else if(a=='alg'){await dlf('auditlog','amlink-audit-log.json')}
@@ -2568,7 +2602,7 @@ $('#app').addEventListener('click',async e=>{
     else if(a=='gnw2'){b.disabled=true;const j=await A('gnew',{to:d.u,kind:d.k});toast('Challenge sent 🎮');gview(j.id)}
     else if(a=='gopen')gview(i);
     else if(a=='gmv')drawGame(await A('gmove',{id:GID,m:d.m}));
-    else if(a=='grs'){if(confirm('Resign this game?'))drawGame(await A('gresign',{id:GID}))}
+    else if(a=='grs'){if(await amConfirm('Resign this game?'))drawGame(await A('gresign',{id:GID}))}
     else if(a=='grm'){const j=await A('gnew',{to:d.u,kind:d.k});gview(j.id)}
     else if(a=='gch'&&typeof peer!='undefined'&&peer)modal(`<h3>Challenge ${E(peer.Username)}</h3><div class="ctl">${Object.entries(GN).map(([k,v])=>`<button data-a="gnw" data-k="${k}"><i>${v[0].slice(0,2)}</i>${E(v[1])}<small>${E(v[2])}</small></button>`).join('')}</div>`);
     else if(a=='gnw'){const j=await A('gnew',{to:peer.ID,kind:d.k});closeM();L().catch(()=>{});gview(j.id)}
@@ -3458,6 +3492,190 @@ window.addEventListener('beforeunload',()=>{if(liveRoom)liveRoom.disconnect()});
  },{passive:true});
 })();
 
+</script>
+
+
+<!-- Amlink monochrome crystal-glass + navigation, reels controls, long-press, arcade and marketplace upgrade -->
+<style id="amlink-crystal-v1">
+:root{--bg:#fff!important;--fg:#080808!important;--mut:#686868!important;--card:#f5f5f5!important;--line:#dedede!important;--acc:#111!important;--sh:linear-gradient(110deg,#111,#777,#eee,#777,#111)!important}
+[data-t="dark"]{--bg:#050505!important;--fg:#fff!important;--mut:#aaa!important;--card:#151515!important;--line:#303030!important;--acc:#fff!important}
+html,body{background:var(--bg)!important;color:var(--fg)!important}
+#tb{display:grid!important;grid-template-columns:1fr auto auto auto auto;grid-template-rows:48px 42px;gap:5px 9px;padding:7px 12px 8px!important;min-height:0!important;background:rgba(255,255,255,.68)!important;border-bottom:1px solid #aaa!important;backdrop-filter:blur(28px) saturate(160%)!important;-webkit-backdrop-filter:blur(28px) saturate(160%)!important;box-shadow:0 8px 24px #0000000b}
+[data-t="dark"] #tb{background:rgba(5,5,5,.7)!important;border-color:#333!important}
+#tb .brandmark{grid-column:1;grid-row:1;align-self:center;background:none!important;color:var(--fg)!important;animation:none!important;font-size:25px!important;letter-spacing:-1.5px}
+#tb .branddot{color:var(--fg)!important}
+#tb>.primary-swipe-nav{grid-column:1/-1;grid-row:2;width:100%;justify-content:space-around;background:rgba(255,255,255,.48)!important;border:1px solid #ffffffc9;border-radius:16px!important;box-shadow:inset 0 1px 0 #fff,0 5px 18px #0000000b;backdrop-filter:blur(24px)}
+[data-t="dark"] #tb>.primary-swipe-nav{background:#ffffff0d!important;border-color:#ffffff20}
+#tb .primary-swipe-nav button{flex:1;color:var(--mut)!important;background:transparent!important;box-shadow:none!important;border-radius:12px!important;font-size:13px!important;padding:8px 4px!important}
+#tb .primary-swipe-nav button.on{background:rgba(0,0,0,.09)!important;color:var(--fg)!important;box-shadow:inset 0 1px 1px #fff,0 2px 8px #00000012!important}
+[data-t="dark"] #tb .primary-swipe-nav button.on{background:#ffffff20!important}
+#tb>.top-notif{grid-column:4;grid-row:1;width:40px;height:40px;border-radius:50%!important;background:#ffffff9c!important;border:1px solid #fff!important;backdrop-filter:blur(20px)}
+#tb>.menu-trigger{grid-column:5;grid-row:1;width:40px;height:40px;border-radius:50%!important;background:#ffffff9c!important;border:1px solid #fff!important;backdrop-filter:blur(20px)}
+#tb>.am-create-top{grid-column:2;grid-row:1;width:40px;height:40px;border-radius:50%;border:1px solid #fff;background:#ffffff9c;display:grid;place-items:center;font-size:24px}
+#tb>.am-search-top{grid-column:3;grid-row:1;justify-self:center;margin-right:0;width:40px;height:40px;border-radius:50%;border:1px solid #fff;background:#ffffff9c;display:grid;place-items:center;font-size:20px}
+nav{background:rgba(255,255,255,.68)!important;border-top:1px solid #ffffff!important;backdrop-filter:blur(28px) saturate(160%)!important;-webkit-backdrop-filter:blur(28px) saturate(160%)!important;box-shadow:0 -8px 25px #0000000c;padding-top:5px!important}
+[data-t="dark"] nav{background:rgba(5,5,5,.72)!important;border-color:#ffffff24!important}
+nav button{color:var(--mut)!important}nav button.on{color:var(--fg)!important}
+nav button.pl2{background:linear-gradient(145deg,#080808,#555)!important;color:white!important;border:1px solid #aaa!important;box-shadow:0 5px 18px #0003!important}
+.post,.comp,.cd,.pr,.stc,.rpc{background:color-mix(in srgb,var(--bg) 82%,var(--card))!important;border-color:var(--line)!important;backdrop-filter:blur(18px)}
+.post{box-shadow:0 8px 28px #0000000a!important}
+.pri,.am-shine{background:linear-gradient(145deg,#090909,#555)!important;color:#fff!important;border:1px solid #aaa!important}
+.lg{background:none!important;color:var(--fg)!important}
+#app.reels-mode #tb,#app.reels-mode #ann{display:none!important}
+#app.reels-mode nav{display:flex!important;position:relative;z-index:12;flex:0 0 auto;height:66px}
+#app.reels-mode nav button{display:none!important}
+#app.reels-mode nav button[data-t="feed"],#app.reels-mode nav button[data-t="alerts"],#app.reels-mode nav button[data-t="me"]{display:flex!important;flex:1!important}
+#app.reels-mode #main{overflow:hidden!important;background:#000!important}
+#app.reels-mode .rl{height:100%!important;overflow-y:auto!important;scroll-snap-type:y mandatory!important}
+#app.reels-mode .reel{height:100%!important;min-height:100%!important;scroll-snap-align:start!important}
+#app.reels-mode .reel video{height:100%!important;width:100%!important;object-fit:cover!important}
+#app.reels-mode .rt{position:absolute!important;z-index:5;top:10px;left:0;right:0;display:flex;justify-content:center;background:transparent!important}
+#app.reels-mode nav button{background:transparent!important}
+.reel .am-reel-more{position:absolute;right:11px;bottom:210px;width:44px;height:44px;border:1px solid #ffffff65;border-radius:50%;background:#0007;color:#fff;font-size:23px;z-index:4;backdrop-filter:blur(12px)}
+.am-menu{position:fixed;inset:0;z-index:1000;background:#0008;display:flex;align-items:flex-end;justify-content:center}
+.am-menu-card{width:min(100%,520px);max-height:78dvh;overflow:auto;background:rgba(255,255,255,.92);color:#080808;border:1px solid #fff;border-radius:24px 24px 0 0;padding:18px 14px calc(20px + env(safe-area-inset-bottom));backdrop-filter:blur(28px);box-shadow:0 -12px 50px #0003}
+[data-t="dark"] .am-menu-card{background:rgba(18,18,18,.94);color:#fff;border-color:#444}
+.am-menu-card h3{padding:3px 5px 12px}.am-menu-card button{width:100%;text-align:left;padding:13px 12px;border:0;border-bottom:1px solid #8883;background:transparent;color:inherit;font-weight:650}
+.am-longpress{outline:2px solid #777!important;outline-offset:2px!important}
+.am-page{height:100%;overflow:auto;padding:16px 14px 28px}.am-page h2{font-size:25px;margin:4px 0 8px}.am-page .am-sub{color:var(--mut);font-size:13px;margin-bottom:15px}
+.am-market-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.am-product{border:1px solid var(--line);border-radius:17px;overflow:hidden;background:var(--card)}.am-product img{width:100%;aspect-ratio:1/1;object-fit:cover;background:#ddd}.am-product .am-pbody{padding:10px}.am-product b{display:block}.am-product small{display:block;margin:3px 0 8px}.am-product button{border:1px solid var(--line);border-radius:10px;padding:7px 10px;background:var(--bg);font-weight:700}
+.am-game-wrap{height:100%;min-height:450px;display:flex;flex-direction:column;gap:10px;padding:12px}.am-game-head{display:flex;justify-content:space-between;align-items:center}.am-game-canvas{width:100%;flex:1;min-height:350px;max-height:65vh;background:radial-gradient(ellipse at center,#202020,#030303 72%);border:1px solid #666;border-radius:18px;touch-action:none}.am-game-controls{display:flex;justify-content:center;gap:12px}.am-game-controls button{min-width:100px;padding:12px;border:1px solid #888;border-radius:13px;background:#111;color:#fff;font-weight:800}
+@media(min-width:900px){#app.reels-mode #main{grid-column:2}#tb>.primary-swipe-nav{max-width:none}}
+</style>
+<script id="amlink-upgrade-v1">
+(()=>{
+const $=s=>document.querySelector(s), app=$('#app'), main=$('#main'), nav=$('nav');
+// Facebook-like two-row top: action controls above a separate section row.
+const tb=$('#tb');
+if(tb){
+  const brand=tb.querySelector('.brandmark'), seg=tb.querySelector('.primary-swipe-nav'), bell=tb.querySelector('.top-notif'), menu=tb.querySelector('.menu-trigger');
+  const create=document.createElement('button');create.className='am-create-top';create.type='button';create.textContent='+';create.setAttribute('aria-label','Create');create.onclick=()=>{if(typeof plus==='function')plus()};
+  const search=document.createElement('button');search.className='am-search-top';search.type='button';search.textContent='⌕';search.setAttribute('aria-label','Search');search.onclick=()=>{if(typeof explore==='function')explore('')};
+  if(brand&&seg&&bell&&menu){tb.insertBefore(create,bell);tb.insertBefore(search,bell);tb.insertBefore(seg,bell)}
+}
+// Pure monochrome palette and avoid forcing the app's old coloured theme.
+try{document.documentElement.dataset.t=localStorage.getItem('th')==='dark'?'dark':'light'}catch(e){}
+
+// Full-screen reels: hide top header and announcement; bottom has Home, Inbox, Profile only.
+const originalGo=go;
+go=async function(t){
+  const result=await originalGo(t);
+  app.classList.toggle('reels-mode',t==='reels');
+  if(t==='reels'){
+    nav.innerHTML=`<button data-t="feed" aria-label="Home"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1z"/></svg>Home</button><button data-t="alerts" aria-label="Inbox"><svg viewBox="0 0 24 24"><path d="M4 4h16v12H9l-5 4z"/></svg>Inbox</button><button data-t="me" aria-label="Profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>Profile</button>`;
+    nav.querySelector('[data-t="feed"]').classList.add('on');
+    addReelMenus();
+  }else restoreNav();
+  return result;
+};
+const navOriginal=`<button data-t="feed"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1z"/></svg>Home</button><button data-t="people"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c2.8 0 4.5 1.8 4.5 4.5"/></svg>Friends</button><button data-t="games"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 10v5M4.5 12.5h5M16 11.5h.01M18.5 14h.01"/></svg>Games</button><button class="pl2" data-a="plus" aria-label="Create">+</button><button data-t="alerts"><svg viewBox="0 0 24 24"><path d="M4 4h16v12H9l-5 4z"/></svg>Inbox<b id="nb" hidden></b></button><button data-t="me"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>Profile</button>`;
+function restoreNav(){if(!app.classList.contains('reels-mode'))nav.innerHTML=navOriginal}
+function addReelMenus(){document.querySelectorAll('.reel').forEach(r=>{if(r.querySelector('.am-reel-more'))return;const b=document.createElement('button');b.className='am-reel-more';b.type='button';b.textContent='⋮';b.setAttribute('aria-label','Video options');b.onclick=e=>{e.stopPropagation();const v=r.querySelector('video');const id=r.querySelector('[data-a="like"]')?.dataset.i;showMenu('Video options',[
+['Download video',()=>downloadVideo(v)],['Save video',()=>saveItem('reel',id)],['Share video',()=>shareVideo(v)],['Copy video link',()=>copyText(location.href+(id?'?p='+id:''))],['Playback speed',()=>speedMenu(v)],['Picture in picture',()=>{if(document.pictureInPictureElement)document.exitPictureInPicture();else if(v?.requestPictureInPicture)v.requestPictureInPicture()}],['Report video',()=>reportItem(id)]
+])};r.appendChild(b)})}
+function showMenu(title,items){document.querySelector('.am-menu')?.remove();const wrap=document.createElement('div');wrap.className='am-menu';wrap.innerHTML=`<div class="am-menu-card"><h3>${title}</h3>${items.map((x,i)=>`<button data-mi="${i}">${x[0]}</button>`).join('')}<button data-close="1">Cancel</button></div>`;wrap.addEventListener('click',e=>{if(e.target===wrap||e.target.dataset.close){wrap.remove();return}const i=e.target.dataset.mi;if(i!==undefined){wrap.remove();try{items[+i][1]()}catch(err){toast(err.message||'Action unavailable')}}});document.body.appendChild(wrap)}
+async function downloadVideo(v){if(!v?.src)return toast('Video is not ready');try{const a=document.createElement('a');a.href=v.currentSrc||v.src;a.download='amlink-video.mp4';a.target='_blank';a.click()}catch(e){toast('Download is unavailable for this video')}}
+async function shareVideo(v){const url=v?.currentSrc||location.href;if(navigator.share)navigator.share({title:'Amlink video',url}).catch(()=>{});else copyText(url)}
+function copyText(t){if(navigator.clipboard?.writeText)navigator.clipboard.writeText(t).then(()=>toast('Copied')).catch(()=>prompt('Copy',t));else prompt('Copy',t)}
+function saveItem(kind,id){if(!id)return toast('Could not identify this post');let a=[];try{a=JSON.parse(localStorage.getItem('am_saved')||'[]')}catch(e){}if(!a.some(x=>x.id===id)){a.push({kind,id});localStorage.setItem('am_saved',JSON.stringify(a))}toast('Saved on this device')}
+function speedMenu(v){if(!v)return;showMenu('Playback speed',[['0.5×',()=>v.playbackRate=.5],['0.75×',()=>v.playbackRate=.75],['Normal',()=>v.playbackRate=1],['1.25×',()=>v.playbackRate=1.25],['1.5×',()=>v.playbackRate=1.5],['2×',()=>v.playbackRate=2]])}
+async function reportItem(id){if(!id)return toast('Could not identify this post');const reason=prompt('Why are you reporting this video?');if(reason!==null){try{await A('report',{id,reason});toast('Report submitted')}catch(e){toast(e.message||'Could not submit report')}}}
+
+// Replace browser-native three-dot behavior on video posts with a consistent Amlink action sheet.
+function addFeedVideoActions(){document.querySelectorAll('.post video').forEach(v=>{if(v.parentElement.querySelector('.am-video-options'))return;const b=document.createElement('button');b.className='am-video-options';b.type='button';b.textContent='⋮';b.style.cssText='position:absolute;right:12px;top:8px;z-index:3;border:1px solid #aaa;border-radius:50%;width:36px;height:36px;background:#0009;color:#fff;font-size:22px';const parent=v.parentElement;parent.style.position='relative';parent.appendChild(b);b.onclick=()=>showMenu('Video options',[['Download video',()=>downloadVideo(v)],['Save video',()=>saveItem('post',v.closest('.post')?.querySelector('[data-a="like"]')?.dataset.i)],['Playback speed',()=>speedMenu(v)],['Picture in picture',()=>v.requestPictureInPicture?.()],['Copy page link',()=>copyText(location.href)]])})}
+const oldHome=home;home=function(){oldHome();addFeedVideoActions();injectRecommendedReels()};
+function injectRecommendedReels(){const list=Array.isArray(posts)?posts.filter(p=>p.Kind==='video'):[];if(!list.length)return;const chosen=list[Math.floor(Math.random()*list.length)];if(!chosen)return;const card=document.createElement('article');card.className='post am-recommended';card.innerHTML=`<header><b>Suggested reel</b><small>Recommended for you</small><button data-a="nv" data-t="reels">Watch</button></header><video src="${String(chosen.Media||'').replaceAll('"','&quot;')}" controls playsinline preload="metadata"></video><p>${String(chosen.Text||'').replaceAll('<','&lt;')}</p>`;const postsEls=document.querySelectorAll('#main .post');if(postsEls.length>1)postsEls[Math.max(1,Math.floor(postsEls.length/2))].after(card);addFeedVideoActions()}
+
+// Long-press quick actions on posts, reels, comments, messages and user rows.
+let pressTimer=null,pressTarget=null,longTriggered=false;
+main.addEventListener('pointerdown',e=>{const el=e.target.closest('.post,.reel,.pr,.m,.mo');if(!el||e.target.closest('button,input,textarea,video'))return;pressTarget=el;longTriggered=false;pressTimer=setTimeout(()=>{longTriggered=true;el.classList.add('am-longpress');const post=el.closest('.post'),reel=el.closest('.reel'),id=post?.querySelector('[data-a="like"]')?.dataset.i||reel?.querySelector('[data-a="like"]')?.dataset.i;showMenu('Quick actions',[
+['Save',()=>saveItem(reel?'reel':'post',id)],['Share',()=>{if(id)copyText(location.origin+'/?p='+id)}],['Copy link',()=>copyText(location.href)],['Report',()=>reportItem(id)],['Cancel',()=>{}]
+]);setTimeout(()=>el.classList.remove('am-longpress'),500)},560)},{passive:true});
+['pointerup','pointercancel','pointerleave'].forEach(ev=>main.addEventListener(ev,()=>{clearTimeout(pressTimer);pressTimer=null},{passive:true}));
+
+// 2D arcade shooter: single-player, touch and keyboard controls, no weapons or real-world content.
+function shooter(){main.innerHTML=`<div class="am-game-wrap"><div class="am-game-head"><button data-am="games-back">‹ Games</button><b>Star Defender · 2D</b><b id="am-score">0</b></div><p class="am-sub">Move your ship and tap FIRE to clear incoming targets. Use ◀ ▶ or drag on the playfield.</p><canvas id="am-shoot" class="am-game-canvas" aria-label="2D arcade shooting game"></canvas><div class="am-game-controls"><button id="am-left">◀ LEFT</button><button id="am-fire">FIRE ●</button><button id="am-right">RIGHT ▶</button></div><div id="am-over" hidden></div></div>`;const c=$('#am-shoot'),ctx=c.getContext('2d'),scoreEl=$('#am-score');let W=0,H=0,score=0,lives=3,ship=0,shots=[],targets=[],keys={},running=true,last=0,spawn=0;function size(){const r=c.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);W=r.width;H=r.height;c.width=W*d;c.height=H*d;ctx.setTransform(d,0,0,d,0,0);ship=W/2}size();new ResizeObserver(size).observe(c);function reset(){score=0;lives=3;shots=[];targets=[];running=true;scoreEl.textContent='0';$('#am-over').hidden=true;last=performance.now();requestAnimationFrame(loop)}function loop(t){if(!running)return;const dt=Math.min((t-last)/16,2);last=t;ctx.clearRect(0,0,W,H);ctx.fillStyle='#fff';for(let i=0;i<45;i++){const x=(i*83)%W,y=(i*137+t*.025)%H;ctx.fillRect(x,y,1.3,1.3)}if(keys.left)ship-=5*dt;if(keys.right)ship+=5*dt;ship=Math.max(18,Math.min(W-18,ship));ctx.fillStyle='#fff';ctx.beginPath();ctx.moveTo(ship,H-35);ctx.lineTo(ship-15,H-10);ctx.lineTo(ship+15,H-10);ctx.fill();spawn+=dt;if(spawn>34){spawn=0;targets.push({x:18+Math.random()*(W-36),y:-15,r:10+Math.random()*7,s:1+Math.random()*1.7})}shots.forEach(s=>s.y-=8*dt);targets.forEach(a=>a.y+=a.s*dt);shots=shots.filter(s=>s.y>-10);for(let i=targets.length-1;i>=0;i--){const a=targets[i];ctx.fillStyle='#aaa';ctx.beginPath();ctx.arc(a.x,a.y,a.r,0,Math.PI*2);ctx.fill();for(let j=shots.length-1;j>=0;j--){if(Math.hypot(a.x-shots[j].x,a.y-shots[j].y)<a.r+4){targets.splice(i,1);shots.splice(j,1);score+=10;scoreEl.textContent=score;break}}if(a.y>H-8){targets.splice(i,1);lives--;if(lives<=0){running=false;$('#am-over').hidden=false;$('#am-over').innerHTML=`<b>Game over · ${score} points</b><button id="am-restart">Play again</button>`;$('#am-restart').onclick=reset}}}ctx.fillStyle='#fff';ctx.font='13px system-ui';ctx.fillText('Lives: '+lives,12,20);requestAnimationFrame(loop)}function fire(){if(running)shots.push({x:ship,y:H-40})}function hold(id,k){const b=$(id);b.onpointerdown=e=>{e.preventDefault();keys[k]=true};['pointerup','pointerleave','pointercancel'].forEach(n=>b.addEventListener(n,()=>keys[k]=false))}hold('#am-left','left');hold('#am-right','right');$('#am-fire').onclick=fire;c.onpointermove=e=>{if(e.buttons){const r=c.getBoundingClientRect();ship=e.clientX-r.left}};c.onclick=fire;window.addEventListener('keydown',keyDown);function keyDown(e){if(e.key==='ArrowLeft')keys.left=true;if(e.key==='ArrowRight')keys.right=true;if(e.code==='Space'){e.preventDefault();fire()}}window.addEventListener('keyup',e=>{if(e.key==='ArrowLeft')keys.left=false;if(e.key==='ArrowRight')keys.right=false});reset();const oldBack=()=>{running=false;window.removeEventListener('keydown',keyDown);go('games')};document.querySelector('[data-am="games-back"]').onclick=oldBack}
+
+// Add the arcade game entry to the existing games hub without removing its existing games.
+const goBeforeShooter=go;go=async function(t){const result=await goBeforeShooter(t);if(t==='games'){const box=document.createElement('div');box.className='rpc';box.innerHTML='<b>🚀 Star Defender</b><p>New 2D arcade shooter · single player</p><button class="ed" id="am-play-shooter">Play now</button>';main.prepend(box);$('#am-play-shooter').onclick=shooter}return result};
+
+// Marketplace page with local draft listings; it clearly labels the current storage scope.
+async function market(){main.innerHTML=`<section class="am-page"><h2>Marketplace</h2><p class="am-sub">Discover products shared by the Amlink community. Listings created here are saved on this device in this version.</p><button class="pri" id="am-add-product">＋ List a product</button><div style="display:flex;gap:8px;margin:14px 0"><input id="am-market-q" placeholder="Search products" style="flex:1;min-width:0;padding:11px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--fg)"><select id="am-market-cat" style="padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--fg)"><option>All</option><option>Fashion</option><option>Electronics</option><option>Home</option><option>Other</option></select></div><div id="am-products" class="am-market-grid"></div></section>`;let data=[];try{data=await A('market')}catch(e){toast('Could not load marketplace: '+e.message)}function draw(){const q=$('#am-market-q').value.toLowerCase(),cat=$('#am-market-cat').value;const rows=data.filter(x=>(cat==='All'||x.cat===cat)&&(`${x.name} ${x.desc}`).toLowerCase().includes(q));$('#am-products').innerHTML=rows.map((x,i)=>`<article class="am-product">${x.image?`<img src="${x.image}" alt="">`:'<div style="aspect-ratio:1;background:#ddd;display:grid;place-items:center;color:#555;font-size:36px">◇</div>'}<div class="am-pbody"><b>${esc(x.name)}</b><strong>${esc(x.price)}</strong><small>${esc(x.cat)} · ${esc(x.desc)}</small><button data-contact="${i}">Contact seller</button></div></article>`).join('')||'<p class="am-sub">No listings match your search yet.</p>';$('#am-products').querySelectorAll('[data-contact]').forEach(b=>b.onclick=()=>toast('Contact seller: '+(x.username||'seller')))}function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}$('#am-market-q').oninput=draw;$('#am-market-cat').onchange=draw;$('#am-add-product').onclick=()=>{showMenu('Create marketplace listing',[]);document.querySelector('.am-menu')?.remove();const m=document.createElement('div');m.className='am-menu';m.innerHTML=`<div class="am-menu-card"><h3>List a product</h3><input id="amp-name" placeholder="Product name" maxlength="70" style="width:100%;padding:11px;margin:5px 0;border:1px solid #888;border-radius:10px"><input id="amp-price" placeholder="Price (e.g. ₦25,000)" maxlength="30" style="width:100%;padding:11px;margin:5px 0;border:1px solid #888;border-radius:10px"><select id="amp-cat" style="width:100%;padding:11px;margin:5px 0"><option>Fashion</option><option>Electronics</option><option>Home</option><option>Other</option></select><textarea id="amp-desc" placeholder="Short description" maxlength="180" style="width:100%;padding:11px;margin:5px 0;border:1px solid #888;border-radius:10px"></textarea><input id="amp-image" type="file" accept="image/*"><button id="amp-save">Publish listing</button><button data-close="1">Cancel</button></div>`;m.onclick=e=>{if(e.target===m||e.target.dataset.close)m.remove()};document.body.appendChild(m);$('#amp-save').onclick=()=>{const name=$('#amp-name').value.trim(),price=$('#amp-price').value.trim();if(!name||!price)return toast('Enter product name and price');const f=$('#amp-image').files[0];const save=async image=>{try{const item=await A('market',{name,price,category:$('#amp-cat').value,description:$('#amp-desc').value,image});data.unshift(item);m.remove();draw();toast('Listing published for everyone')}catch(e){toast(e.message)}};if(f){up(f).then(save).catch(e=>toast(e.message))}else save('')}};draw()}
+// Add Marketplace into the existing slide-out drawer.
+const drawer0=openDr;openDr=function(){drawer0();const d=$('#dr');if(d&&!d.querySelector('[data-am="market"]')){const b=document.createElement('button');b.className='sr';b.dataset.am='market';b.innerHTML='<i>🛍</i>Marketplace<em>›</em>';d.appendChild(b)}};
+document.addEventListener('click',e=>{if(e.target.closest('[data-am="market"]')){app.classList.remove('dro');market()} });
+
+
+// Amlink Connect feature pack: local-first interactive surfaces. These drafts/preferences
+// remain on this device until matching authenticated API endpoints are enabled.
+const amEsc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const amLocal=(k,d=[])=>{try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(d))}catch(_){return d}};
+function amPage(title,sub,body){main.innerHTML=`<section class="am-page"><button class="ed" id="am-feature-back">‹ Back</button><h2>${title}</h2><p class="am-sub">${sub}</p>${body}</section>`;$('#am-feature-back').onclick=()=>openDr()}
+async function smartFeedPage(){let saved={mode:'For you',topics:['Friends','Comedy','Technology'],hideSponsored:false};try{const v=await A('feedprefs');if(v)saved=v}catch(e){}amPage('Your feed, your rules','Choose what you want to see. Preferences sync with your Amlink account.',`<div class="rpc"><b>Feed mode</b><div class="am-chiprow">${['For you','Following','Friends','Local'].map(x=>`<button class="ed" data-feedmode="${x}">${x}</button>`).join('')}</div></div><div class="rpc"><b>Topics you want more of</b>${['Friends','Comedy','Technology','Sports','Education','Music','Business','Gaming'].map(x=>`<label class="am-setting"><span>${x}</span><input type="checkbox" data-topic="${x}" ${saved.topics?.includes(x)?'checked':''}></label>`).join('')}<label class="am-setting"><span>Hide sponsored recommendations</span><input type="checkbox" id="am-hide-ads" ${saved.hideSponsored?'checked':''}></label><button class="pri" id="am-feed-save">Save preferences</button></div>`);document.querySelectorAll('[data-feedmode]').forEach(b=>{b.style.opacity=b.dataset.feedmode===saved.mode?'1':'.65';b.onclick=()=>{saved.mode=b.dataset.feedmode;document.querySelectorAll('[data-feedmode]').forEach(x=>x.style.opacity=x===b?'1':'.65')}});$('#am-feed-save').onclick=async()=>{saved.topics=[...document.querySelectorAll('[data-topic]:checked')].map(x=>x.dataset.topic);saved.hideSponsored=$('#am-hide-ads').checked;try{await A('feedprefs',{mode:saved.mode,topics:saved.topics.join(','),hideSponsored:String(saved.hideSponsored)});toast('Feed preferences synced to your account')}catch(e){toast(e.message)}}}
+
+async function communitiesPage(){let groups=[];try{groups=await A('comms')}catch(e){toast(e.message)}amPage('Communities','Find people around shared interests and build something together.',`<button class="pri" id="am-new-group">＋ Create a community</button><div id="am-groups" class="am-feature-list"></div>`);const draw=()=>{$('#am-groups').innerHTML=groups.map(g=>`<article class="rpc"><b>${amEsc(g.Name)}</b><p>${amEsc(g.Desc||'')}</p><small>${g.N||0} members</small><button class="ed" data-join="${amEsc(g.ID)}">${g.Joined?'Leave community':'Join community'}</button></article>`).join('')||'<p class="am-sub">No communities found yet. Create the first one.</p>'};$('#am-new-group').onclick=async()=>{const name=prompt('Community name?');if(!name?.trim())return;const desc=prompt('What is this community about?')||'';try{await A('commcreate',{name:name.trim(),desc,rules:''});groups=await A('comms');draw();toast('Community created')}catch(e){toast(e.message)}};$('#am-groups').onclick=async e=>{const b=e.target.closest('[data-join]');if(!b)return;try{await A('commjoin',{id:b.dataset.join});groups=await A('comms');draw()}catch(err){toast(err.message)}};draw()}
+
+async function creatorStudio(){let stats={posts:(Array.isArray(posts)?posts.length:0),reels:0,likes:0,followers:0};try{stats=await A('creatorstats')}catch(e){}amPage('Creator Studio','Your content activity from the Amlink server.',`<div class="am-stat-grid"><div class="rpc"><b>${stats.posts||0}</b><small>Posts</small></div><div class="rpc"><b>${stats.reels||0}</b><small>Reels</small></div><div class="rpc"><b>${stats.followers||0}</b><small>Followers</small></div><div class="rpc"><b>${stats.likes||0}</b><small>Likes received</small></div></div><div class="rpc"><h3>Creator checklist</h3><p>✓ Complete your profile</p><p>＋ Publish original content regularly</p><p>＋ Follow community guidelines</p><p>＋ Build an audience before monetisation</p></div><div class="rpc"><b>Monetisation</b><p class="am-sub">Eligibility and earnings are not enabled yet. Payouts require verified analytics, fraud checks and a payment provider.</p><button class="ed" disabled>Monetisation coming later</button></div>`)}
+
+async function memoriesPage(){let saved=[];try{saved=await A('memories')}catch(e){}amPage('Amlink Memories','Your saved items sync with your Amlink account.',`<div class="rpc"><b>${saved.length} saved item${saved.length===1?'':'s'}</b><div id="am-memory-list"></div></div>`);$('#am-memory-list').innerHTML=saved.map(x=>`<p class="am-setting"><span>${amEsc(x)}</span><button class="ed" data-remove-memory="${amEsc(x)}">Remove</button></p>`).join('')||'<p>No saved memories yet. Use Save from a post or Reel menu.</p>';$('#am-memory-list').onclick=async e=>{const b=e.target.closest('[data-remove-memory]');if(!b)return;try{await A('memories',{id:b.dataset.removeMemory,op:'remove'});memoriesPage()}catch(err){toast(err.message)}}}
+
+async function collabPage(){let items=[];try{items=await A('collabs')}catch(e){}amPage('Amlink Collaboration','Your collaboration projects are saved to your Amlink account.',`<button class="pri" id="am-collab-new">＋ Start a collaboration</button><div id="am-collab-list"></div>`);const draw=()=>$('#am-collab-list').innerHTML=items.map(x=>`<article class="rpc"><b>${amEsc(x.title)}</b><p>${amEsc(x.kind)} · ${amEsc(x.note)}</p><small>Saved to your account</small></article>`).join('')||'<p class="am-sub">No collaboration projects yet.</p>';$('#am-collab-new').onclick=async()=>{const title=prompt('Project name?');if(!title?.trim())return;const kind=prompt('Type: Shared post, photo collection, or livestream','Shared post')||'Shared post';const note=prompt('What should collaborators contribute?')||'';try{const item=await A('collabs',{title,kind,note});items.unshift(item);draw()}catch(e){toast(e.message)}};draw()}
+
+function socialMapPage(){amPage('Local Discoveries','Explore public activities by searching a place. Amlink does not access your precise location here.',`<div class="rpc"><label>Choose a city or area<input id="am-map-place" placeholder="e.g. Ikeja, Lagos" maxlength="80" style="display:block;width:100%;padding:12px;margin-top:8px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--fg)"></label><button class="pri" id="am-map-search">Find public activities</button></div><div id="am-map-results" class="rpc"><p class="am-sub">Search for a place to see the discovery preview.</p></div><p class="am-sub">Live maps, events and business listings need a location/events provider and moderation before launch.</p>`);$('#am-map-search').onclick=()=>{const place=$('#am-map-place').value.trim();if(!place)return toast('Enter a city or area');$('#am-map-results').innerHTML=`<b>Discoveries near ${amEsc(place)}</b><p>No public events have been connected yet.</p><p class="am-sub">This is a location search preview; it does not publish or share your location.</p>`}}
+function amConnect(){amPage('Amlink Connect','One place for communities, creators, collaboration and discovery.',`<div class="am-feature-grid">${[['Smart Feed','Tune recommendations','feed'],['Communities','Join interest groups','communities'],['Creator Studio','Review your creator activity','creator'],['Memories','Your saved moments','memories'],['Collaboration','Create together','collab'],['Social Map','Discover public activities','map']].map(x=>`<button class="rpc am-feature-card" data-feature="${x[2]}"><b>${x[0]}</b><small>${x[1]}</small><span>Open →</span></button>`).join('')}</div><div class="rpc"><b>Already in Amlink</b><p>Marketplace, livestreams and games remain available in their existing sections.</p><button class="ed" data-am="market">Open Marketplace</button></div>`);$('#main').querySelectorAll('[data-feature]').forEach(b=>b.onclick=()=>({feed:smartFeedPage,communities:communitiesPage,creator:creatorStudio,memories:memoriesPage,collab:collabPage,map:socialMapPage}[b.dataset.feature])())}
+const amBaseDrawer=openDr;openDr=function(){amBaseDrawer();const d=$('#dr');if(!d)return;const links=[['Amlink Connect','connect'],['Communities','communities'],['Creator Studio','creator'],['Your Feed Controls','feed'],['Memories','memories'],['Collaboration','collab'],['Local Discoveries','map']];links.forEach(([label,key])=>{if(d.querySelector(`[data-am-feature="${key}"]`))return;const b=document.createElement('button');b.className='sr';b.dataset.amFeature=key;b.innerHTML=`<i>◇</i>${label}<em>›</em>`;d.appendChild(b)})};
+document.addEventListener('click',e=>{const b=e.target.closest('[data-am-feature]');if(!b)return;app.classList.remove('dro');({connect:amConnect,communities:communitiesPage,creator:creatorStudio,feed:smartFeedPage,memories:memoriesPage,collab:collabPage,map:socialMapPage}[b.dataset.amFeature]||amConnect)()});
+// Add optional poll interaction to video posts without altering the existing Reel player.
+function addReelPollPrompt(){document.querySelectorAll('.post video').forEach(v=>{const post=v.closest('.post');if(!post||post.querySelector('.am-reel-poll'))return;const box=document.createElement('div');box.className='am-reel-poll';box.innerHTML='<button class="ed">＋ Ask viewers</button>';post.appendChild(box);box.querySelector('button').onclick=()=>{const question=prompt('Ask viewers a question');if(!question?.trim())return;const a=prompt('Option 1','Yes')||'Yes',b=prompt('Option 2','No')||'No';box.innerHTML=`<b>${amEsc(question)}</b><div class="am-chiprow"><button class="ed">${amEsc(a)}</button><button class="ed">${amEsc(b)}</button></div><small>Poll preview · votes are not synced yet</small>`;box.querySelectorAll('button').forEach(x=>x.onclick=()=>toast('Poll voting will activate with the backend update.'))}})}
+const amHomeBase=home;home=function(){amHomeBase();addReelPollPrompt()};
+
+})();
+</script>
+
+<script>
+/* Amlink feature blueprint: global participation, creator collaboration and notification sound preferences. */
+(()=>{
+const escW=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function worldPage(){
+  amPage('Amlink World','Join a shared worldwide prompt. Your entry is published as a normal Amlink post so people can like, comment and share it.',
+  `<article class="rpc"><small class="am-sub">GLOBAL CREATIVE PROMPT</small><h3>Show us one thing that represents your world 🌍</h3><p>Share a place, tradition, idea, talent or everyday moment from where you live. Keep personal details private.</p><button class="pri" id="am-world-join">＋ Share my entry</button></article><div class="rpc"><b>How it works</b><p>1. Create an entry using the normal post composer.</p><p>2. Add <b>#AmlinkWorld</b> so others can discover it.</p><p>3. Like, comment and share entries from around the world.</p><p class="am-sub">Country leaderboards and official global challenge voting are planned; they are not active in this build.</p></div>`);
+  $('#am-world-join').onclick=async()=>{const text=prompt('What would you like to share with the world?');if(!text?.trim())return;try{await A('post',{text:text.trim()+'\n\n#AmlinkWorld'});toast('Your Amlink World entry is posted');go('feed')}catch(e){toast(e.message)}};
+}
+function chainPage(){
+  const vids=(Array.isArray(posts)?posts:[]).filter(p=>p.Kind==='video'&&p.U&&p.U.ID!==ME.ID);
+  amPage('Amlink Chain','Continue a creator’s idea with a video response or duet. The original creator stays credited.',
+  `<div class="rpc"><b>Find a video to continue</b><p class="am-sub">Choose a video from your current feed or Reels and use its Duet action.</p><button class="pri" id="am-chain-reels">Explore Reels</button><button class="ed" id="am-chain-feed">Browse posts</button></div><div class="rpc"><b>How Chain works</b><p>• Pick a public video that allows remixing.</p><p>• Create a response using the existing Duet workflow.</p><p>• Credit the original creator and follow their reuse settings.</p><p class="am-sub">A single stitched multi-creator timeline is a future upgrade; this version uses the existing Duet feature.</p></div>`);
+  $('#am-chain-reels').onclick=()=>go('reels');$('#am-chain-feed').onclick=()=>go('feed');
+}
+function battleRoomsPage(){
+  amPage('Amlink Battle Rooms','Play and compete with friends while keeping Amlink’s normal social-media experience.',
+  `<div class="am-feature-grid"><button class="rpc am-feature-card" id="am-battle-games"><b>Multiplayer Games</b><small>Invite friends and play existing Amlink games.</small><span>Open games →</span></button><button class="rpc am-feature-card" id="am-battle-party"><b>Party Games</b><small>Open the existing party-game experience from a chat.</small><span>Find a chat →</span></button><button class="rpc am-feature-card" id="am-battle-ranks"><b>Rankings</b><small>See existing game rankings and cups.</small><span>View rankings →</span></button></div><p class="am-sub">Dedicated public tournament rooms and spectator mode are future additions, not enabled yet.</p>`);
+  $('#am-battle-games').onclick=()=>go('games');$('#am-battle-ranks').onclick=()=>{GT='rank';go('games')};$('#am-battle-party').onclick=()=>go('alerts');
+}
+function featureDirectory(){
+  amPage('Discover Amlink features','A normal social network with extra ways to discover, create and connect.',
+  `<div class="am-feature-grid">${[
+  ['Amlink World','Worldwide creative prompts and community posts','world'],['Amlink Chain','Continue videos with the existing Duet feature','chain'],['Battle Rooms','Multiplayer games and rankings','battle'],['Trending Radar','Discover popular posts and creators','trending'],['Translator','Language support for global conversations','translator'],['Remix Studio','Create video responses and duets','chain'],['Creator Studio','Review your creator activity','creator'],['Collaboration','Plan projects with other creators','collab'],['Communities','Find people around shared interests','communities'],['Smart Feed','Choose what you want to see','feed'],['Memories','Review saved moments','memories'],['Local Discoveries','Explore public activities by place','map']
+  ].map(x=>`<button class="rpc am-feature-card" data-amx="${x[2]}"><b>${x[0]}</b><small>${x[1]}</small><span>Open →</span></button>`).join('')}</div><div class="rpc"><b>Core social features stay central</b><p>Home feed, posts, Reels, Stories, comments, likes, sharing, messaging, profiles, notifications, communities and Marketplace remain part of Amlink.</p></div>`);
+  $('#main').querySelectorAll('[data-amx]').forEach(b=>b.onclick=()=>({world:worldPage,chain:chainPage,battle:battleRoomsPage,trending:()=>go('people'),translator:()=>toast('Translation integration is planned; it is not active yet.'),creator:creatorStudio,collab:collabPage,communities:communitiesPage,feed:smartFeedPage,memories:memoriesPage,map:socialMapPage}[b.dataset.amx]||featureDirectory)());
+}
+const nsetOld=nset;
+nset=async function(){
+  const j=await A('nsget');let sounds={};try{sounds=await A('notificationsounds')||{}}catch(e){}
+  const row=(k,t,s,on)=>`<div class="row"><div>${t}<small>${s}</small></div><label class="sw"><input type="checkbox" data-a="nst" data-k="${k}"${on?' checked':''}><span></span></label></div>`;
+  const cats=[['default','Default alerts'],['messages','Messages'],['social','Likes and comments'],['followers','New followers'],['live','Live events'],['games','Game invitations'],['communities','Community activity']];
+  const opts=[['default','Amlink default'],['chime','Chime'],['soft','Soft'],['pulse','Pulse'],['bell','Bell'],['off','Off']];
+  modal('<h3>Notifications & sounds</h3><p class="sub">Choose what Amlink alerts you about and preview a tone before saving. Safety and account notices stay enabled.</p>'+row('likes','Likes and reactions','Likes on your posts',!j.Off.likes)+row('comments','Comments and replies','On your posts and comments',!j.Off.comments)+row('follows','Follows and requests','New followers and requests',!j.Off.follows)+row('messages','Message alerts','New private messages',!j.Off.messages)+row('mentions','Mentions','When someone tags you',!j.Off.mentions)+row('reposts','Reposts','When someone shares your post',!j.Off.reposts)+'<p class="sg">Notification sounds</p>'+cats.map(([k,t])=>`<div class="row"><div>${t}<small>Choose a sound for this category</small></div><select data-sound="${k}" style="max-width:145px;padding:8px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--fg)">${opts.map(([v,l])=>`<option value="${v}" ${(sounds[k]||'default')===v?'selected':''}>${l}</option>`).join('')}</select></div>`).join('')+'<button class="pri" id="am-sound-preview">Preview selected sound</button><p class="sub">Sound choices are saved to your Amlink account and apply to in-app alerts where supported. Browser and Android system push sounds are controlled by device/browser notification settings.</p><p class="sg">Privacy</p>'+row('RR','Read receipts','Show ✓✓ when you read messages',j.RR));
+  const play=tone=>{if(tone==='off')return toast('Sounds are turned off for this category');try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return toast('Audio preview is not supported');const c=new C(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);const f={default:660,chime:880,soft:440,pulse:520,bell:990}[tone]||660;o.frequency.value=f;o.type=tone==='pulse'?'square':'sine';g.gain.setValueAtTime(.0001,c.currentTime);g.gain.exponentialRampToValueAtTime(.12,c.currentTime+.02);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+.28);o.start();o.stop(c.currentTime+.3);o.onended=()=>c.close()}catch(e){toast('Could not play preview')}};
+  $('#am-sound-preview').onclick=()=>{const tone=document.querySelector('[data-sound="default"]')?.value||'default';play(tone)};
+  document.querySelectorAll('[data-sound]').forEach(sel=>sel.onchange=async()=>{try{await A('notificationsounds',{category:sel.dataset.sound,tone:sel.value});play(sel.value);toast('Sound preference saved')}catch(e){toast(e.message)}});
+};
+// Add a feature-directory shortcut without changing the established main navigation.
+const openBase=openDr;openDr=function(){openBase();const d=$('#dr');if(d&&!d.querySelector('[data-amx-open]')){const b=document.createElement('button');b.className='sr';b.dataset.amxOpen='1';b.innerHTML='<i>◇</i>Explore Amlink features<em>›</em>';d.appendChild(b)}};
+document.addEventListener('click',e=>{if(e.target.closest('[data-amx-open]')){app.classList.remove('dro');featureDirectory()}});
+// Add signature experiences to the existing Amlink Connect landing page.
+const oldConnect=amConnect;amConnect=function(){oldConnect();const grid=$('#main .am-feature-grid');if(!grid)return;grid.insertAdjacentHTML('afterbegin',`<button class="rpc am-feature-card" data-feature="world"><b>Amlink World</b><small>Join worldwide creative prompts</small><span>Open →</span></button><button class="rpc am-feature-card" data-feature="chain"><b>Amlink Chain</b><small>Continue videos with Duets</small><span>Open →</span></button><button class="rpc am-feature-card" data-feature="battle"><b>Battle Rooms</b><small>Play existing multiplayer games</small><span>Open →</span></button>`);$('#main').querySelectorAll('[data-feature]').forEach(b=>{const map={world:worldPage,chain:chainPage,battle:battleRoomsPage};if(map[b.dataset.feature])b.onclick=map[b.dataset.feature]})};
+})();
 </script>
 
 </body>
