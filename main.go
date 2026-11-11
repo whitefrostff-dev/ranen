@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
-	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -43,8 +42,6 @@ type User struct {
 	Saved                         []string
 	Avatar, Cover                 string
 	Blocked                       []string
-	CloseFriends                  []string
-	ProfileStatus                 string
 }
 type Comment struct {
 	ID, Parent string
@@ -83,7 +80,6 @@ type Group struct {
 }
 type Status struct {
 	ID, User, Text, Media, Kind string
-	Audience                    string // public, followers, close
 	TS                          int64
 }
 type ChPost struct {
@@ -109,6 +105,7 @@ type State struct {
 	X7       Ext7
 	X8       Ext8
 	X9       Ext9
+	X10      Ext10
 	Users    map[string]*User
 	Posts    []*Post
 	Msgs     []Msg
@@ -314,15 +311,7 @@ func uv(id string) map[string]any {
 	if u.Hide {
 		seen = 0
 	}
-	president := false
-	for _, c := range x2().Comms {
-		rollCommunityElection(c)
-		if c.President == id {
-			president = true
-			break
-		}
-	}
-	m := map[string]any{"ID": u.ID, "Username": u.Username, "Verified": u.Verified, "President": president, "On": now()-u.Seen < 120 && !u.Hide, "Seen": seen, "Av": u.Avatar, "Priv": x().Priv[u.ID], "Pin": x().Pin[u.ID]}
+	m := map[string]any{"ID": u.ID, "Username": u.Username, "Verified": u.Verified, "On": now()-u.Seen < 120 && !u.Hide, "Seen": seen, "Av": u.Avatar, "Priv": x().Priv[u.ID], "Pin": x().Pin[u.ID]}
 	if c := S.X6.Cos[u.ID]; c != nil {
 		if c.Frame != "" {
 			m["Fr"] = c.Frame
@@ -339,6 +328,16 @@ func uv(id string) map[string]any {
 	}
 	return m
 }
+func hasExternalSocialLink(text string) bool {
+	lower := strings.ToLower(text)
+	for _, host := range []string{"tiktok.com", "vm.tiktok.com", "instagram.com", "instagr.am", "facebook.com", "fb.watch", "youtube.com", "youtu.be", "x.com", "twitter.com", "snapchat.com", "pinterest.com", "threads.net", "linkedin.com", "t.me", "telegram.me"} {
+		if strings.Contains(lower, host) {
+			return true
+		}
+	}
+	return false
+}
+
 func pv(p *Post) map[string]any {
 	cs := []map[string]any{}
 	for _, c := range p.Comments {
@@ -1062,52 +1061,6 @@ func main() {
 		js(w, out)
 	})
 
-	// ---------- Close friends and profile status ----------
-	api("closefriends", func(u *User, w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet {
-			out := []map[string]any{}
-			for _, id := range u.CloseFriends {
-				if S.Users[id] != nil && !S.Users[id].Banned {
-					out = append(out, uv(id))
-				}
-			}
-			js(w, out)
-			return
-		}
-		b := in(r)
-		id := b["id"]
-		target := S.Users[id]
-		if target == nil || id == u.ID || target.Banned || blk(u, target) {
-			fail(w, 400, "Choose a valid account")
-			return
-		}
-		if has(u.CloseFriends, id) {
-			u.CloseFriends = del(u.CloseFriends, id)
-		} else {
-			if len(u.CloseFriends) >= 100 {
-				fail(w, 400, "Close friends is limited to 100 people")
-				return
-			}
-			u.CloseFriends = append(u.CloseFriends, id)
-		}
-		save()
-		js(w, map[string]any{"ok": true, "members": len(u.CloseFriends)})
-	})
-	api("profilestatus", func(u *User, w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet {
-			js(w, map[string]string{"status": u.ProfileStatus})
-			return
-		}
-		v := strings.TrimSpace(in(r)["status"])
-		if rn(v) > 32 {
-			fail(w, 400, "Status must be 32 characters or fewer")
-			return
-		}
-		u.ProfileStatus = v
-		save()
-		js(w, map[string]string{"status": v})
-	})
-
 	// ---------- Moments (24h status) ----------
 	api("status", func(u *User, w http.ResponseWriter, r *http.Request) {
 		b := in(r)
@@ -1119,15 +1072,7 @@ func main() {
 			fail(w, 400, "Add text, a photo or a video")
 			return
 		}
-		aud := b["audience"]
-		if aud != "followers" && aud != "close" {
-			aud = "followers"
-		}
-		if aud == "close" && len(u.CloseFriends) == 0 {
-			fail(w, 400, "Add close friends before sharing to them")
-			return
-		}
-		S.Statuses = append(S.Statuses, &Status{ID: uid(), User: u.ID, Text: b["text"], Media: b["media"], Kind: k, Audience: aud, TS: now()})
+		S.Statuses = append(S.Statuses, &Status{uid(), u.ID, b["text"], b["media"], k, now()})
 		save()
 		js(w, ok)
 	})
@@ -1138,19 +1083,7 @@ func main() {
 				continue
 			}
 			keep = append(keep, s)
-			owner := S.Users[s.User]
-			visible := s.User == u.ID
-			if owner != nil && s.User != u.ID {
-				switch s.Audience {
-				case "close":
-					visible = has(owner.CloseFriends, u.ID)
-				case "followers":
-					visible = has(owner.Following, u.ID)
-				default:
-					visible = has(u.Following, s.User)
-				}
-			}
-			if visible {
+			if s.User == u.ID || has(u.Following, s.User) {
 				out = append(out, map[string]any{"ID": s.ID, "U": uv(s.User), "Text": s.Text, "Media": s.Media, "Kind": s.Kind, "TS": s.TS})
 			}
 		}
@@ -2737,16 +2670,17 @@ func extra3() {
 
 // Ext2 holds the v8 data.
 type Ext2 struct {
-	Views map[string]int
-	Rep   map[string]string   // repost id -> original post id
-	MW    map[string][]string // muted words per user
-	Hid   map[string][]string // "not interested" post ids per user
-	Tags  map[string][]string // followed hashtags per user
-	Push  map[string][]string // web push endpoints per user
-	PinC  map[string]string   // post id -> pinned comment id
-	VReq  map[string]*VRq     // verification requests by user id
-	Comms []*Comm             // communities
-	Disap map[string]int64    // disappearing-message timer per chat (seconds)
+	Views         map[string]int
+	Rep           map[string]string        // repost id -> original post id
+	MW            map[string][]string      // muted words per user
+	Hid           map[string][]string      // "not interested" post ids per user
+	Tags          map[string][]string      // followed hashtags per user
+	Push          map[string][]string      // web push endpoints per user
+	PinC          map[string]string        // post id -> pinned comment id
+	VReq          map[string]*VRq          // verification requests by user id
+	Comms         []*Comm                  // communities
+	CommElections map[string]*CommElection // monthly community elections
+	Disap         map[string]int64         // disappearing-message timer per chat (seconds)
 }
 
 var (
@@ -2787,6 +2721,9 @@ func x2() *Ext2 {
 	}
 	if e.VReq == nil {
 		e.VReq = map[string]*VRq{}
+	}
+	if e.CommElections == nil {
+		e.CommElections = map[string]*CommElection{}
 	}
 	if e.Disap == nil {
 		e.Disap = map[string]int64{}
@@ -3129,6 +3066,162 @@ func extra4() {
 		mentions(u, t, p.ID)
 		save()
 		js(w, ok)
+	})
+
+	// Detect outbound social-platform links in captions. Such posts remain on the
+	// creator profile and Following feed, but are excluded from For You discovery.
+	// This is a distribution rule, not deletion or account punishment.
+	// (The matcher intentionally targets known external social/video destinations.)
+	//
+	// Viral ranking below emphasizes engagement rates and completion signals while
+	// retaining recency, creator affinity and exposure for newer creators.
+	//
+	// helper is local to this file to avoid changing the persisted post schema.
+
+	// Reels recommendation feed: ranks public video posts using recency, follows,
+	// creator affinity and aggregate engagement. No external tracking is used.
+	api("reelsfeed", func(u *User, w http.ResponseWriter, r *http.Request) {
+		limit, _ := strconv.Atoi(r.URL.Query().Get("n"))
+		if limit < 1 || limit > 100 {
+			limit = 60
+		}
+		e := x10()
+		followingOnly := r.URL.Query().Get("mode") == "following"
+		type scored struct {
+			p     *Post
+			score float64
+		}
+		ranked := []scored{}
+		nowTS := now()
+		for _, p := range S.Posts {
+			if p.Kind != "video" || p.Media == "" || p.Comm != "" || x7().Flag[p.ID] || p.User == "" {
+				continue
+			}
+			// Keep external-platform promotion links out of For You recommendations.
+			// They remain visible on the creator's profile and to followers.
+			if !followingOnly && hasExternalSocialLink(p.Text) {
+				continue
+			}
+			if followingOnly && p.User != u.ID && !has(u.Following, p.User) {
+				continue
+			}
+			owner := S.Users[p.User]
+			if owner == nil || owner.Banned || blk(u, owner) || priv(u, owner) {
+				continue
+			}
+			if p.User != u.ID && has(u.Blocked, p.User) {
+				continue
+			}
+			age := float64(nowTS - p.TS)
+			if age < 0 {
+				age = 0
+			}
+			views := e.Views[p.ID]
+			if views < 1 {
+				views = 1
+			}
+			likes, comments, shares := len(p.Likes), len(p.Comments), e.Shares[p.ID]
+			// Rate-based engagement lets a new creator's well-performing reel compete
+			// with established accounts instead of ranking only by raw totals.
+			engagementRate := float64(likes*3+comments*5+shares*4) / float64(views)
+			if engagementRate > 2.5 {
+				engagementRate = 2.5
+			}
+			score := 28.0/(1.0+age/43200.0) + engagementRate*34
+			score += float64(e.CreatorAffinity[u.ID][p.User]) * 2.2
+			score += float64(likes)*0.08 + float64(comments)*0.18 + float64(shares)*0.22
+			if has(u.Following, p.User) {
+				score += 12
+			}
+			if p.User == u.ID {
+				score -= 1000
+			}
+			if signal := e.Signals[u.ID][p.ID]; signal < 0 {
+				score += float64(signal) * 7
+			} else if signal > 0 {
+				score += float64(signal) * 1.2
+			}
+			// Small discovery boost prevents new accounts from being buried.
+			if views < 100 {
+				score += 8
+			}
+			ranked = append(ranked, scored{p, score})
+		}
+		sort.SliceStable(ranked, func(i, j int) bool { return ranked[i].score > ranked[j].score })
+		if len(ranked) > limit {
+			ranked = ranked[:limit]
+		}
+		out := []map[string]any{}
+		for _, v := range ranked {
+			out = append(out, pv(v.p))
+		}
+		js(w, out)
+	})
+
+	// Count a reel view once per viewer per 24 hours to limit refresh inflation.
+	api("reelview", func(u *User, w http.ResponseWriter, r *http.Request) {
+		id := in(r)["id"]
+		p := fp(id)
+		if p == nil || p.Kind != "video" || hid(u, p.User) {
+			fail(w, 404, "Reel not found")
+			return
+		}
+		e := x10()
+		key := u.ID + "|" + id
+		if now()-e.Seen[key] >= 86400 {
+			e.Seen[key] = now()
+			e.Views[id]++
+			if u.ID != p.User {
+				if e.CreatorAffinity[u.ID] == nil {
+					e.CreatorAffinity[u.ID] = map[string]int{}
+				}
+				e.CreatorAffinity[u.ID][p.User]++
+			}
+			save()
+		}
+		js(w, map[string]int{"Views": e.Views[id]})
+	})
+
+	// Record explicit reel engagement for recommendation ranking and creator analytics.
+	api("reelsignal", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		p := fp(b["id"])
+		kind := b["kind"]
+		weights := map[string]int{"like": 3, "comment": 4, "save": 5, "share": 3, "skip": -1, "complete": 2}
+		wgt, ok := weights[kind]
+		if p == nil || p.Kind != "video" || !ok || hid(u, p.User) {
+			fail(w, 400, "Invalid reel engagement")
+			return
+		}
+		e := x10()
+		if e.Signals[u.ID] == nil {
+			e.Signals[u.ID] = map[string]int{}
+		}
+		v := e.Signals[u.ID][p.ID] + wgt
+		if v > 100 {
+			v = 100
+		}
+		if v < -20 {
+			v = -20
+		}
+		e.Signals[u.ID][p.ID] = v
+		if u.ID != p.User {
+			if e.CreatorAffinity[u.ID] == nil {
+				e.CreatorAffinity[u.ID] = map[string]int{}
+			}
+			e.CreatorAffinity[u.ID][p.User] += wgt
+			if e.CreatorAffinity[u.ID][p.User] > 100 {
+				e.CreatorAffinity[u.ID][p.User] = 100
+			}
+			if e.CreatorAffinity[u.ID][p.User] < -20 {
+				e.CreatorAffinity[u.ID][p.User] = -20
+			}
+		}
+		if kind == "share" {
+			e.Shares[p.ID]++
+		}
+		save()
+		js(w, map[string]bool{"ok": true})
 	})
 
 	// views (batched by the browser) shown to the post owner
@@ -3923,12 +4016,15 @@ type VRq struct {
 	TS                   int64
 }
 type Comm struct {
-	ID, Name, Desc, Rules, Owner string
-	TS                           int64
-	Mods, Members, Banned        []string
-	President, ElectionPeriod    string
-	Candidates                   []string
-	Votes                        map[string]string
+	ID, Name, Desc, Rules, Owner                             string
+	Category, Tags, Welcome, Announcement, Pinned, President string
+	TS                                                       int64
+	Mods, Members, Banned                                    []string
+}
+type CommElection struct {
+	Period     string
+	Candidates []string
+	Votes      map[string]string // voter ID -> candidate ID
 }
 
 func fcm(id string) *Comm {
@@ -3980,62 +4076,6 @@ func purgeComms(id string) {
 		keep = append(keep, c)
 	}
 	S.X2.Comms = keep
-}
-
-// rollCommunityElection finalizes the previous month's vote and opens a fresh election.
-func rollCommunityElection(c *Comm) {
-	period := time.Now().UTC().Format("2006-01")
-	if c.ElectionPeriod == "" {
-		c.ElectionPeriod = period
-		c.Candidates = []string{}
-		c.Votes = map[string]string{}
-		return
-	}
-	if c.ElectionPeriod == period {
-		if c.Votes == nil {
-			c.Votes = map[string]string{}
-		}
-		return
-	}
-	counts := map[string]int{}
-	for _, candidate := range c.Votes {
-		counts[candidate]++
-	}
-	winner, best := "", 0
-	for _, candidate := range c.Candidates {
-		if counts[candidate] > best {
-			winner, best = candidate, counts[candidate]
-		}
-	}
-	if winner != "" {
-		c.President = winner
-	}
-	c.ElectionPeriod = period
-	c.Candidates = []string{}
-	c.Votes = map[string]string{}
-}
-
-// communityPresidentEligibility uses account-wide activity over the last 30 days.
-// Likes on posts created in that window and comments written in that window count as engagement.
-func communityPresidentEligibility(id string) (followers, engagement int) {
-	cutoff := now() - 30*86400
-	for _, other := range S.Users {
-		if has(other.Following, id) {
-			followers++
-		}
-	}
-	for _, p := range S.Posts {
-		if p.User != id || p.TS < cutoff {
-			continue
-		}
-		engagement += len(p.Likes)
-		for _, c := range p.Comments {
-			if c.TS >= cutoff {
-				engagement++
-			}
-		}
-	}
-	return
 }
 
 func pairKey(a, b string) string {
@@ -4173,7 +4213,7 @@ func extra7() {
 	api("commcreate", func(u *User, w http.ResponseWriter, r *http.Request) {
 		b := in(r)
 		n, d, ru := strings.TrimSpace(b["name"]), strings.TrimSpace(b["desc"]), strings.TrimSpace(b["rules"])
-		if rn(n) < 3 || rn(n) > 40 || rn(d) > 200 || rn(ru) > 500 {
+		if rn(n) < 3 || rn(n) > 40 || rn(d) > 200 || rn(ru) > 500 || rn(b["welcome"]) > 300 {
 			fail(w, 400, "The name must be 3 to 40 characters")
 			return
 		}
@@ -4191,7 +4231,16 @@ func extra7() {
 			fail(w, 400, "You can own up to 5 communities")
 			return
 		}
-		c := &Comm{ID: uid(), Name: n, Desc: d, Rules: ru, Owner: u.ID, TS: now(), Members: []string{u.ID}}
+		cat := strings.TrimSpace(b["category"])
+		allowedCats := map[string]bool{"General": true, "Technology": true, "Gaming": true, "Education": true, "Business": true, "Entertainment": true, "Lifestyle": true, "Sports": true, "Creators": true, "Local": true}
+		if !allowedCats[cat] {
+			cat = "General"
+		}
+		tags := strings.TrimSpace(b["tags"])
+		if len(tags) > 240 {
+			tags = tags[:240]
+		}
+		c := &Comm{ID: uid(), Name: n, Desc: d, Rules: ru, Owner: u.ID, TS: now(), Members: []string{u.ID}, Category: cat, Tags: tags, Welcome: strings.TrimSpace(b["welcome"])}
 		S.X2.Comms = append(S.X2.Comms, c)
 		save()
 		js(w, map[string]string{"id": c.ID})
@@ -4200,18 +4249,16 @@ func extra7() {
 		q := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
 		list := []*Comm{}
 		for _, c := range S.X2.Comms {
-			rollCommunityElection(c)
-			if q == "" || strings.Contains(strings.ToLower(c.Name), q) || strings.Contains(strings.ToLower(c.Desc), q) {
+			if q == "" || strings.Contains(strings.ToLower(c.Name), q) || strings.Contains(strings.ToLower(c.Desc), q) || strings.Contains(strings.ToLower(c.Tags), q) || strings.Contains(strings.ToLower(c.Category), q) {
 				list = append(list, c)
 			}
 		}
 		sort.Slice(list, func(a, b int) bool { return len(list[a].Members) > len(list[b].Members) })
 		out := []map[string]any{}
-		for i := 0; i < len(list) && i < 60; i++ {
+		for i := 0; i < len(list); i++ {
 			c := list[i]
-			out = append(out, map[string]any{"ID": c.ID, "Name": c.Name, "Desc": c.Desc, "N": len(c.Members), "Joined": has(c.Members, u.ID)})
+			out = append(out, map[string]any{"ID": c.ID, "Name": c.Name, "Desc": c.Desc, "N": len(c.Members), "Joined": has(c.Members, u.ID), "Category": c.Category, "Tags": c.Tags, "Announcement": c.Announcement})
 		}
-		save()
 		js(w, out)
 	})
 	api("comm", func(u *User, w http.ResponseWriter, r *http.Request) {
@@ -4220,16 +4267,26 @@ func extra7() {
 			fail(w, 404, "Community not found")
 			return
 		}
-		rollCommunityElection(c)
 		ps := []map[string]any{}
+		pinnedIncluded := false
 		for i := len(S.Posts) - 1; i >= 0 && len(ps) < 60; i-- {
 			if p := S.Posts[i]; p.Comm == c.ID && !hid(u, p.User) {
 				ps = append(ps, pv(p))
+				if p.ID == c.Pinned {
+					pinnedIncluded = true
+				}
 			}
 		}
-		save()
+		if c.Pinned != "" && !pinnedIncluded {
+			for _, p := range S.Posts {
+				if p.ID == c.Pinned && p.Comm == c.ID && !hid(u, p.User) {
+					ps = append([]map[string]any{pv(p)}, ps...)
+					break
+				}
+			}
+		}
 		mod := c.Owner == u.ID || has(c.Mods, u.ID)
-		res := map[string]any{"Name": c.Name, "Desc": c.Desc, "Rules": c.Rules, "N": len(c.Members), "Joined": has(c.Members, u.ID), "Owner": c.Owner == u.ID, "Mod": mod, "President": c.President, "Posts": ps}
+		res := map[string]any{"Name": c.Name, "Desc": c.Desc, "Rules": c.Rules, "Welcome": c.Welcome, "Category": c.Category, "Tags": c.Tags, "Announcement": c.Announcement, "Pinned": c.Pinned, "N": len(c.Members), "Joined": has(c.Members, u.ID), "Owner": c.Owner == u.ID, "Mod": mod, "Posts": ps}
 		if mod {
 			m := []map[string]any{}
 			for _, id := range c.Members {
@@ -4306,73 +4363,6 @@ func extra7() {
 		save()
 		js(w, ok)
 	})
-	// Monthly community-president election. The president role is honorary and grants no moderation powers.
-	api("commelection", func(u *User, w http.ResponseWriter, r *http.Request) {
-		id := r.URL.Query().Get("id")
-		b := in(r)
-		if b["id"] != "" {
-			id = b["id"]
-		}
-		c := fcm(id)
-		if c == nil {
-			fail(w, 404, "Community not found")
-			return
-		}
-		rollCommunityElection(c)
-		if r.Method == http.MethodPost {
-			if !has(c.Members, u.ID) {
-				fail(w, 403, "Join this community first")
-				return
-			}
-			if c.Votes == nil {
-				c.Votes = map[string]string{}
-			}
-			if c.Candidates == nil {
-				c.Candidates = []string{}
-			}
-			switch b["op"] {
-			case "nominate":
-				followers, engagement := communityPresidentEligibility(u.ID)
-				if u.Banned || followers < 100 || engagement < 500 {
-					fail(w, 403, fmt.Sprintf("Eligibility requires 100 followers and 500 engagement points in the last 30 days. You have %d followers and %d engagement points.", followers, engagement))
-					return
-				}
-				if has(c.Candidates, u.ID) {
-					fail(w, 400, "You are already nominated")
-					return
-				}
-				if len(c.Candidates) >= 30 {
-					fail(w, 400, "This month's nominations are full")
-					return
-				}
-				c.Candidates = append(c.Candidates, u.ID)
-			case "vote":
-				candidate := b["candidate"]
-				if !has(c.Candidates, candidate) {
-					fail(w, 400, "That person is not a candidate")
-					return
-				}
-				c.Votes[u.ID] = candidate
-			default:
-				fail(w, 400, "Unknown election action")
-				return
-			}
-			save()
-		}
-		save()
-		counts := map[string]int{}
-		for _, candidate := range c.Votes {
-			counts[candidate]++
-		}
-		rows := []map[string]any{}
-		for _, candidate := range c.Candidates {
-			rows = append(rows, map[string]any{"U": uv(candidate), "Votes": counts[candidate]})
-		}
-		followers, engagement := communityPresidentEligibility(u.ID)
-		eligible := !u.Banned && followers >= 100 && engagement >= 500
-		js(w, map[string]any{"Period": c.ElectionPeriod, "President": uv(c.President), "Candidates": rows, "MyVote": c.Votes[u.ID], "CanNominate": has(c.Members, u.ID) && !has(c.Candidates, u.ID) && eligible, "Eligible": eligible, "Followers": followers, "Engagement": engagement, "Joined": has(c.Members, u.ID)})
-	})
-
 	api("commact", func(u *User, w http.ResponseWriter, r *http.Request) {
 		b := in(r)
 		c := fcm(b["id"])
@@ -4386,11 +4376,59 @@ func extra7() {
 		switch b["op"] {
 		case "edit":
 			d, ru := strings.TrimSpace(b["desc"]), strings.TrimSpace(b["rules"])
-			if !mod || rn(d) > 200 || rn(ru) > 500 {
-				fail(w, 403, "Not allowed")
+			name, welcome := strings.TrimSpace(b["name"]), strings.TrimSpace(b["welcome"])
+			cat := strings.TrimSpace(b["category"])
+			allowedCats := map[string]bool{"General": true, "Technology": true, "Gaming": true, "Education": true, "Business": true, "Entertainment": true, "Lifestyle": true, "Sports": true, "Creators": true, "Local": true}
+			tags := strings.TrimSpace(b["tags"])
+			if !mod || rn(d) > 200 || rn(ru) > 500 || rn(welcome) > 300 || len(tags) > 240 || (cat != "" && !allowedCats[cat]) || (name != "" && (rn(name) < 3 || rn(name) > 40)) {
+				fail(w, 400, "Check the community details and try again")
 				return
 			}
-			c.Desc, c.Rules = d, ru
+			if name != "" {
+				for _, other := range S.X2.Comms {
+					if other != c && strings.EqualFold(other.Name, name) {
+						fail(w, 400, "That name is taken")
+						return
+					}
+				}
+				c.Name = name
+			}
+			c.Desc, c.Rules, c.Welcome = d, ru, welcome
+			if cat != "" {
+				c.Category = cat
+			}
+			c.Tags = tags
+		case "announce":
+			msg := strings.TrimSpace(b["text"])
+			if !mod || rn(msg) > 500 {
+				fail(w, 403, "Only moderators can publish an announcement (max 500 characters)")
+				return
+			}
+			c.Announcement = msg
+		case "pin":
+			pid := strings.TrimSpace(b["post"])
+			found := false
+			if !mod {
+				fail(w, 403, "Only moderators can pin posts")
+				return
+			}
+			for _, p := range S.Posts {
+				if p.ID == pid && p.Comm == c.ID {
+					found = true
+					break
+				}
+			}
+			if !found {
+				fail(w, 404, "Community post not found")
+				return
+			}
+			c.Pinned = pid
+		case "unpin":
+			if !mod {
+				fail(w, 403, "Only moderators can unpin posts")
+				return
+			}
+			c.Pinned = ""
 		case "mod":
 			if !owner || id == c.Owner || !has(c.Members, id) {
 				fail(w, 403, "Not allowed")
@@ -4407,7 +4445,7 @@ func extra7() {
 				return
 			}
 			c.Members, c.Mods = del(c.Members, id), del(c.Mods, id)
-			if len(c.Banned) < 200 {
+			if !has(c.Banned, id) {
 				c.Banned = append(c.Banned, id)
 			}
 		case "del":
@@ -4429,6 +4467,106 @@ func extra7() {
 		}
 		save()
 		js(w, ok)
+	})
+
+	// ---------- monthly community elections ----------
+	api("commelection", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		c := fcm(r.URL.Query().Get("id"))
+		if c == nil {
+			c = fcm(b["id"])
+		}
+		if c == nil {
+			fail(w, 404, "Community not found")
+			return
+		}
+		period := time.Now().UTC().Format("2006-01")
+		e := x2()
+		election := e.CommElections[c.ID]
+		if election == nil || election.Period != period {
+			election = &CommElection{Period: period, Candidates: []string{}, Votes: map[string]string{}}
+			e.CommElections[c.ID] = election
+		}
+		followers, engagement := 0, 0
+		for _, other := range S.Users {
+			if has(other.Following, u.ID) {
+				followers++
+			}
+		}
+		for _, p := range S.Posts {
+			if p.Comm == c.ID && p.TS >= now()-30*86400 {
+				if p.User == u.ID {
+					engagement += 1 + len(p.Likes) + len(p.Comments)
+				} else {
+					for _, cm := range p.Comments {
+						if cm.User == u.ID {
+							engagement++
+						}
+					}
+				}
+			}
+		}
+		joined := has(c.Members, u.ID)
+		canNominate := joined && followers >= 100 && engagement >= 500 && !has(election.Candidates, u.ID)
+		switch b["op"] {
+		case "nominate":
+			if !joined {
+				fail(w, 403, "Join this community first")
+				return
+			}
+			if followers < 100 || engagement < 500 {
+				fail(w, 403, "You need 100 followers and 500 community engagement points to nominate")
+				return
+			}
+			if !has(election.Candidates, u.ID) {
+				election.Candidates = append(election.Candidates, u.ID)
+			}
+			save()
+			js(w, map[string]bool{"ok": true})
+			return
+		case "vote":
+			candidate := b["candidate"]
+			if !joined || !has(election.Candidates, candidate) || candidate == u.ID {
+				fail(w, 400, "Join the community and choose a valid candidate")
+				return
+			}
+			election.Votes[u.ID] = candidate
+			save()
+			js(w, map[string]bool{"ok": true})
+			return
+		}
+		type candidateView struct {
+			U     map[string]any
+			Votes int
+		}
+		counts := map[string]int{}
+		for _, candidate := range election.Votes {
+			counts[candidate]++
+		}
+		candidates := []candidateView{}
+		for _, id := range election.Candidates {
+			if S.Users[id] != nil {
+				candidates = append(candidates, candidateView{uv(id), counts[id]})
+			}
+		}
+		if c.President == "" {
+			best := ""
+			max := 0
+			for id, n := range counts {
+				if n > max {
+					best, max = id, n
+				}
+			}
+			if best != "" {
+				c.President = best
+				save()
+			}
+		}
+		var president any
+		if c.President != "" && S.Users[c.President] != nil {
+			president = uv(c.President)
+		}
+		js(w, map[string]any{"Period": period, "President": president, "Candidates": candidates, "Joined": joined, "CanNominate": canNominate, "Eligible": joined && followers >= 100 && engagement >= 500, "Followers": followers, "Engagement": engagement, "MyVote": election.Votes[u.ID]})
 	})
 
 	// ---------- disappearing messages ----------
@@ -4942,7 +5080,7 @@ func touch(id string) {
 func init() { extra9() }
 
 func extra9() {
-	caps := map[string]int{"snake": 2000, "memory": 1000, "taprush": 5000, "tilemerge": 50000}
+	caps := map[string]int{"snake": 2000, "memory": 1000, "streetracer": 100000, "skyparkour": 100000, "lostisland": 100000, "neonrunner": 100000}
 
 	api("gme", func(u *User, w http.ResponseWriter, r *http.Request) {
 		touch(u.ID)
@@ -5002,6 +5140,12 @@ func extra9() {
 			fail(w, 400, "Score rejected")
 			return
 		}
+		if strings.HasPrefix(game, "streetracer") || game == "streetracer" || game == "skyparkour" || game == "lostisland" || game == "neonrunner" {
+			if el < 8 || sc > el*450 {
+				fail(w, 400, "Score rejected. Play a full round and submit again")
+				return
+			}
+		}
 		if game == "memory" {
 			lim := 820 - 5*(el-2)
 			if lim < 50 {
@@ -5050,6 +5194,25 @@ func extra9() {
 			}
 		}
 		sort.Slice(l, func(a, c int) bool { return l[a].v > l[c].v })
+		// The Top 1 badge is a live title: it follows the current global leader per 3D game.
+		if game == "streetracer" || game == "skyparkour" || game == "lostisland" || game == "neonrunner" {
+			badgeID := "top1_" + game
+			for _, gp := range x4().G {
+				filtered := gp.Badges[:0]
+				for _, b := range gp.Badges {
+					if b != badgeID {
+						filtered = append(filtered, b)
+					}
+				}
+				gp.Badges = filtered
+			}
+			if len(l) > 0 {
+				if leader := x4().G[l[0].id]; leader != nil && !has(leader.Badges, badgeID) {
+					leader.Badges = append(leader.Badges, badgeID)
+				}
+			}
+			save()
+		}
 		out := []map[string]any{}
 		for _, it := range l {
 			if o := S.Users[it.id]; o == nil || o.Banned || o.Username == "" || (r.URL.Query().Get("f") == "1" && it.id != u.ID && !has(u.Following, it.id)) {
@@ -5879,6 +6042,7 @@ type Cos struct {
 	Own              []string
 	Frame, Name, Bub string
 	Badge            string
+	GameSkin         string
 }
 type Game struct {
 	Tour                              string // set when the game belongs to a cup
@@ -6198,6 +6362,11 @@ var shopItems = []ShopItem{
 	{"bd_royal", "badge", "Royal badge", 2000, 6},
 	{"bd_legend", "badge", "Legend badge", 3500, 8},
 	{"bd_elite", "badge", "Elite badge", 5000, 10},
+	{"car_silver", "game", "Street Racer · Silver paint", 180, 2},
+	{"car_neon", "game", "Street Racer · Neon paint", 320, 4},
+	{"parkour_trail", "game", "Sky Parkour · Light trail", 220, 3},
+	{"island_explorer", "game", "Lost Island · Explorer outfit", 260, 3},
+	{"runner_pulse", "game", "Neon Runner · Pulse trail", 240, 3},
 }
 
 func shopItem(id string) *ShopItem {
@@ -6218,6 +6387,8 @@ func setEq(c *Cos, it *ShopItem) {
 		c.Bub = it.ID
 	case "badge":
 		c.Badge = it.ID
+	case "game":
+		c.GameSkin = it.ID
 	}
 }
 
@@ -6649,7 +6820,7 @@ func extra10() {
 			for _, id := range c.Own {
 				own[id] = true
 			}
-			eq[c.Frame], eq[c.Name], eq[c.Bub], eq[c.Badge] = true, true, true, true
+			eq[c.Frame], eq[c.Name], eq[c.Bub], eq[c.Badge], eq[c.GameSkin] = true, true, true, true, true
 		}
 		items := []map[string]any{}
 		for _, it := range shopItems {
@@ -6706,6 +6877,8 @@ func extra10() {
 				c.Bub = ""
 			case "badge":
 				c.Badge = ""
+			case "game":
+				c.GameSkin = ""
 			default:
 				fail(w, 400, "Unknown type")
 				return
@@ -6726,7 +6899,7 @@ func extra10() {
 		if c == nil {
 			c = &Cos{}
 		}
-		js(w, map[string]string{"Frame": c.Frame, "Name": c.Name, "Bub": c.Bub, "Badge": c.Badge})
+		js(w, map[string]string{"Frame": c.Frame, "Name": c.Name, "Bub": c.Bub, "Badge": c.Badge, "GameSkin": c.GameSkin})
 	})
 
 	// ----- invites -----
@@ -8044,7 +8217,7 @@ func init() { extra13() }
 func extra13() {
 	api("gstart", func(u *User, w http.ResponseWriter, r *http.Request) {
 		game := in(r)["game"]
-		if game != "snake" && game != "memory" && game != "taprush" && game != "tilemerge" {
+		if game != "snake" && game != "memory" && game != "streetracer" && game != "skyparkour" && game != "lostisland" && game != "neonrunner" {
 			fail(w, 400, "Unknown game")
 			return
 		}
@@ -8061,343 +8234,253 @@ func extra13() {
 	})
 }
 
-// ---------- Amlink self-hosted livestream control plane ----------
-// The media plane is a self-hosted LiveKit server. Render only runs this API;
-// the LiveKit SFU itself must run on a VPS with the required UDP ports open.
-type amLiveRoom struct {
-	Room, Owner, Username, Title string
-	Created                      int64
+// =====================================================================
+// Amlink live 3D race rooms (HTTP state sync; no external websocket service)
+// =====================================================================
+type GRoomPlayer struct {
+	User     string
+	Ready    bool
+	Score    int
+	Progress int
+	Lane     int
+	Finished bool
+	Updated  int64
 }
-
-var amLiveRooms = map[string]amLiveRoom{}
-
-func amLiveJWT(apiKey, secret, userID, username, room string, host bool) (string, error) {
-	header, _ := json.Marshal(map[string]string{"alg": "HS256", "typ": "JWT"})
-	grant := map[string]any{"roomJoin": true, "room": room, "canSubscribe": true, "canPublish": host, "canPublishData": true}
-	claims := map[string]any{"iss": apiKey, "sub": userID, "name": username, "nbf": time.Now().Unix() - 5, "exp": time.Now().Unix() + 1800, "video": grant}
-	payload, err := json.Marshal(claims)
-	if err != nil {
-		return "", err
-	}
-	enc := base64.RawURLEncoding
-	unsigned := enc.EncodeToString(header) + "." + enc.EncodeToString(payload)
-	mac := hmac.New(sha256.New, []byte(secret))
-	_, _ = mac.Write([]byte(unsigned))
-	return unsigned + "." + enc.EncodeToString(mac.Sum(nil)), nil
+type GRoom struct {
+	ID, Code, Game, Host, Status string
+	Created, StartAt, Updated    int64
+	Players                      map[string]*GRoomPlayer
 }
-
-func init() { extraLiveAmlink() }
-func extraLiveAmlink() {
-	api("livestreams", func(u *User, w http.ResponseWriter, r *http.Request) {
-		if !u.Admin {
-			fail(w, 403, "Amlink Live is coming soon. It is currently available to admins only.")
-			return
-		}
-		out := make([]map[string]any, 0, len(amLiveRooms))
-		for _, v := range amLiveRooms {
-			if owner := S.Users[v.Owner]; owner != nil && !owner.Banned {
-				out = append(out, map[string]any{"Room": v.Room, "Owner": v.Owner, "Username": v.Username, "Title": v.Title, "Created": v.Created})
-			}
-		}
-		js(w, out)
-	})
-	api("livestart", func(u *User, w http.ResponseWriter, r *http.Request) {
-		if !u.Admin {
-			fail(w, 403, "Amlink Live is coming soon. It is currently available to admins only.")
-			return
-		}
-		if strings.TrimSpace(os.Getenv("LIVEKIT_URL")) == "" || os.Getenv("LIVEKIT_API_KEY") == "" || os.Getenv("LIVEKIT_API_SECRET") == "" {
-			fail(w, 503, "Livestream server is not configured yet")
-			return
-		}
-		for _, v := range amLiveRooms {
-			if v.Owner == u.ID {
-				fail(w, 409, "You already have an active livestream")
-				return
-			}
-		}
-		b := in(r)
-		title := strings.TrimSpace(b["title"])
-		if title == "" {
-			title = "Live on Amlink"
-		}
-		title = cut(title)
-		room := "amlink-" + uid()
-		amLiveRooms[room] = amLiveRoom{Room: room, Owner: u.ID, Username: u.Username, Title: title, Created: now()}
-		js(w, map[string]any{"Room": room, "Title": title})
-	})
-	api("liveend", func(u *User, w http.ResponseWriter, r *http.Request) {
-		if !u.Admin {
-			fail(w, 403, "Amlink Live is coming soon. It is currently available to admins only.")
-			return
-		}
-		room := in(r)["room"]
-		v, ok := amLiveRooms[room]
-		if !ok {
-			fail(w, 404, "Livestream not found")
-			return
-		}
-		if v.Owner != u.ID && !u.Admin {
-			fail(w, 403, "Only the host can end this livestream")
-			return
-		}
-		delete(amLiveRooms, room)
-		js(w, map[string]bool{"ok": true})
-	})
-	api("livetoken", func(u *User, w http.ResponseWriter, r *http.Request) {
-		if !u.Admin {
-			fail(w, 403, "Amlink Live is coming soon. It is currently available to admins only.")
-			return
-		}
-		b := in(r)
-		room := b["room"]
-		v, ok := amLiveRooms[room]
-		if !ok {
-			fail(w, 404, "This livestream has ended or does not exist")
-			return
-		}
-		if owner := S.Users[v.Owner]; owner == nil || owner.Banned || blk(u, owner) {
-			fail(w, 403, "You cannot join this livestream")
-			return
-		}
-		key, secret, url := os.Getenv("LIVEKIT_API_KEY"), os.Getenv("LIVEKIT_API_SECRET"), strings.TrimSpace(os.Getenv("LIVEKIT_URL"))
-		if key == "" || secret == "" || url == "" {
-			fail(w, 503, "Livestream server is not configured yet")
-			return
-		}
-		host := u.ID == v.Owner
-		tok, err := amLiveJWT(key, secret, u.ID, u.Username, room, host)
-		if err != nil {
-			fail(w, 500, "Could not create livestream access token")
-			return
-		}
-		js(w, map[string]any{"url": url, "token": tok, "host": host, "owner": v.Owner, "username": v.Username, "title": v.Title})
-	})
-}
-
-// ---------- Amlink Connect: server-side preferences, collaborations, memories and marketplace ----------
-type FeedPreference struct {
-	Mode          string   `json:"mode"`
-	Topics        []string `json:"topics"`
-	HideSponsored bool     `json:"hideSponsored"`
-	Updated       int64    `json:"updated"`
-}
-type ConnectItem struct {
-	ID    string `json:"id"`
-	Owner string `json:"owner"`
-	Title string `json:"title"`
-	Kind  string `json:"kind"`
-	Note  string `json:"note"`
-	TS    int64  `json:"ts"`
-}
-type MarketListing struct {
-	ID          string `json:"id"`
-	Owner       string `json:"owner"`
-	Username    string `json:"username"`
-	Name        string `json:"name"`
-	Price       string `json:"price"`
-	Category    string `json:"category"`
-	Description string `json:"description"`
-	Image       string `json:"image"`
-	TS          int64  `json:"ts"`
-}
-type Ext9 struct {
-	Feed     map[string]FeedPreference    `json:"feed"`
-	Collabs  map[string][]ConnectItem     `json:"collabs"`
-	Memories map[string][]string          `json:"memories"`
-	Market   []MarketListing              `json:"market"`
-	Sounds   map[string]map[string]string `json:"sounds"`
-}
+type Ext9 struct{ Rooms map[string]*GRoom }
 
 func x9() *Ext9 {
 	e := &S.X9
-	if e.Feed == nil {
-		e.Feed = map[string]FeedPreference{}
-	}
-	if e.Collabs == nil {
-		e.Collabs = map[string][]ConnectItem{}
-	}
-	if e.Memories == nil {
-		e.Memories = map[string][]string{}
-	}
-	if e.Sounds == nil {
-		e.Sounds = map[string]map[string]string{}
+	if e.Rooms == nil {
+		e.Rooms = map[string]*GRoom{}
 	}
 	return e
 }
-func init() { extraAmlinkConnect() }
-func extraAmlinkConnect() {
-	api("feedprefs", func(u *User, w http.ResponseWriter, r *http.Request) {
-		e := x9()
-		if r.Method == http.MethodGet {
-			v, ok := e.Feed[u.ID]
-			if !ok {
-				v = FeedPreference{Mode: "For you", Topics: []string{"Friends", "Comedy", "Technology"}}
-			}
-			js(w, v)
-			return
+
+// Reels engagement and recommendation signals. Persisted with the main state.
+type Ext10 struct {
+	Views           map[string]int            `json:"views"`
+	Seen            map[string]int64          `json:"seen"`            // user|post -> last counted view timestamp
+	Signals         map[string]map[string]int `json:"signals"`         // user -> post -> weighted engagement
+	CreatorAffinity map[string]map[string]int `json:"creatorAffinity"` // viewer -> creator -> score
+	Shares          map[string]int            `json:"shares"`
+}
+
+func x10() *Ext10 {
+	e := &S.X10
+	if e.Views == nil {
+		e.Views = map[string]int{}
+	}
+	if e.Seen == nil {
+		e.Seen = map[string]int64{}
+	}
+	if e.Signals == nil {
+		e.Signals = map[string]map[string]int{}
+	}
+	if e.CreatorAffinity == nil {
+		e.CreatorAffinity = map[string]map[string]int{}
+	}
+	if e.Shares == nil {
+		e.Shares = map[string]int{}
+	}
+	return e
+}
+
+func liveGameOK(g string) bool {
+	return g == "streetracer" || g == "skyparkour" || g == "lostisland" || g == "neonrunner"
+}
+func roomPlayerView(p *GRoomPlayer) map[string]any {
+	return map[string]any{"U": uv(p.User), "Ready": p.Ready, "Score": p.Score, "Progress": p.Progress, "Lane": p.Lane, "Finished": p.Finished}
+}
+func roomView(g *GRoom) map[string]any {
+	ps := []map[string]any{}
+	for _, p := range g.Players {
+		if S.Users[p.User] != nil {
+			ps = append(ps, roomPlayerView(p))
 		}
-		if r.Method != http.MethodPost {
-			fail(w, 405, "Use GET or POST")
-			return
-		}
+	}
+	sort.Slice(ps, func(i, j int) bool { return ps[i]["Score"].(int) > ps[j]["Score"].(int) })
+	return map[string]any{"ID": g.ID, "Code": g.Code, "Game": g.Game, "Host": g.Host, "Status": g.Status, "StartAt": g.StartAt, "Players": ps, "MaxPlayers": 4}
+}
+func roomMember(g *GRoom, uid string) bool { return g != nil && g.Players[uid] != nil }
+func init()                                { extra14() }
+func extra14() {
+	api("roomcreate", func(u *User, w http.ResponseWriter, r *http.Request) {
 		b := in(r)
-		mode := strings.TrimSpace(b["mode"])
-		if mode != "For you" && mode != "Following" && mode != "Friends" && mode != "Local" {
-			fail(w, 400, "Invalid feed mode")
+		game := b["game"]
+		if !liveGameOK(game) {
+			fail(w, 400, "Unknown 3D game")
 			return
 		}
-		topics := []string{}
-		allowed := map[string]bool{"Friends": true, "Comedy": true, "Technology": true, "Sports": true, "Education": true, "Music": true, "Business": true, "Gaming": true}
-		for _, t := range strings.Split(b["topics"], ",") {
-			t = strings.TrimSpace(t)
-			if allowed[t] && !has(topics, t) {
-				topics = append(topics, t)
+		for _, old := range x9().Rooms {
+			if old.Status != "finished" && roomMember(old, u.ID) && now()-old.Updated < 3600 {
+				fail(w, 409, "Leave your current race room first")
+				return
 			}
 		}
-		v := FeedPreference{Mode: mode, Topics: topics, HideSponsored: b["hideSponsored"] == "true", Updated: now()}
-		e.Feed[u.ID] = v
+		code := ""
+		for i := 0; i < 6; i++ {
+			code += strings.ToUpper(uid()[:1])
+		}
+		id := uid()
+		g := &GRoom{ID: id, Code: code, Game: game, Host: u.ID, Status: "waiting", Created: now(), Updated: now(), Players: map[string]*GRoomPlayer{u.ID: {User: u.ID, Updated: now()}}}
+		x9().Rooms[id] = g
 		save()
-		js(w, v)
+		js(w, roomView(g))
 	})
-	api("collabs", func(u *User, w http.ResponseWriter, r *http.Request) {
-		e := x9()
-		if r.Method == http.MethodGet {
-			js(w, e.Collabs[u.ID])
+	api("roomlist", func(u *User, w http.ResponseWriter, r *http.Request) {
+		game := r.URL.Query().Get("g")
+		out := []map[string]any{}
+		for _, g := range x9().Rooms {
+			if g.Status == "waiting" && (game == "" || g.Game == game) && len(g.Players) < 4 && now()-g.Updated < 1800 {
+				out = append(out, roomView(g))
+			}
+		}
+		sort.Slice(out, func(i, j int) bool { return out[i]["ID"].(string) > out[j]["ID"].(string) })
+		if len(out) > 20 {
+			out = out[:20]
+		}
+		js(w, out)
+	})
+	api("roomjoin", func(u *User, w http.ResponseWriter, r *http.Request) {
+		code := strings.ToUpper(strings.TrimSpace(in(r)["code"]))
+		var g *GRoom
+		for _, v := range x9().Rooms {
+			if v.Code == code {
+				g = v
+				break
+			}
+		}
+		if g == nil || g.Status != "waiting" || now()-g.Updated > 1800 {
+			fail(w, 404, "Room not found or already started")
 			return
 		}
-		if r.Method != http.MethodPost {
-			fail(w, 405, "Use GET or POST")
+		if !roomMember(g, u.ID) && len(g.Players) >= 4 {
+			fail(w, 409, "This room is full")
 			return
 		}
+		if !roomMember(g, u.ID) {
+			g.Players[u.ID] = &GRoomPlayer{User: u.ID, Updated: now()}
+		}
+		g.Updated = now()
+		save()
+		js(w, roomView(g))
+	})
+	api("roomready", func(u *User, w http.ResponseWriter, r *http.Request) {
+		id := in(r)["id"]
+		g := x9().Rooms[id]
+		if !roomMember(g, u.ID) || g.Status != "waiting" {
+			fail(w, 404, "Waiting room not found")
+			return
+		}
+		g.Players[u.ID].Ready = true
+		g.Players[u.ID].Updated = now()
+		g.Updated = now()
+		save()
+		js(w, roomView(g))
+	})
+	api("roomstart", func(u *User, w http.ResponseWriter, r *http.Request) {
+		id := in(r)["id"]
+		g := x9().Rooms[id]
+		if !roomMember(g, u.ID) || g.Host != u.ID {
+			fail(w, 403, "Only the room host can start the race")
+			return
+		}
+		if g.Status != "waiting" || len(g.Players) < 2 {
+			fail(w, 400, "At least two players are needed")
+			return
+		}
+		for _, p := range g.Players {
+			if !p.Ready {
+				fail(w, 400, "Everyone must be ready first")
+				return
+			}
+		}
+		g.Status = "countdown"
+		g.StartAt = now() + 5
+		g.Updated = now()
+		save()
+		js(w, roomView(g))
+	})
+	api("roomstate", func(u *User, w http.ResponseWriter, r *http.Request) {
+		id := r.URL.Query().Get("id")
+		g := x9().Rooms[id]
+		if !roomMember(g, u.ID) {
+			fail(w, 404, "You are not in this room")
+			return
+		}
+		if g.Status == "countdown" && now() >= g.StartAt {
+			g.Status = "racing"
+			g.Updated = now()
+			save()
+		}
+		js(w, roomView(g))
+	})
+	api("roomtick", func(u *User, w http.ResponseWriter, r *http.Request) {
 		b := in(r)
-		title := strings.TrimSpace(b["title"])
-		if title == "" || len(title) > 210 {
-			fail(w, 400, "Project title is required (max 70 characters)")
+		g := x9().Rooms[b["id"]]
+		if !roomMember(g, u.ID) || g.Status != "racing" {
+			fail(w, 409, "Race is not active")
 			return
 		}
-		kind := trunc(strings.TrimSpace(b["kind"]), 40)
-		note := trunc(strings.TrimSpace(b["note"]), 480)
-		item := ConnectItem{ID: uid(), Owner: u.ID, Title: trunc(title, 70), Kind: kind, Note: note, TS: now()}
-		e.Collabs[u.ID] = append([]ConnectItem{item}, e.Collabs[u.ID]...)
+		p := g.Players[u.ID]
+		score, _ := strconv.Atoi(b["score"])
+		progress, _ := strconv.Atoi(b["progress"])
+		lane, _ := strconv.Atoi(b["lane"])
+		if score < p.Score {
+			score = p.Score
+		}
+		if score > 100000 {
+			score = 100000
+		}
+		if progress < p.Progress {
+			progress = p.Progress
+		}
+		if progress > 100 {
+			progress = 100
+		}
+		if lane < -1 {
+			lane = -1
+		}
+		if lane > 1 {
+			lane = 1
+		}
+		p.Score, p.Progress, p.Lane, p.Updated = score, progress, lane, now()
+		if b["finished"] == "true" {
+			p.Finished = true
+			p.Progress = 100
+		}
+		all := true
+		for _, q := range g.Players {
+			if !q.Finished {
+				all = false
+				break
+			}
+		}
+		if all {
+			g.Status = "finished"
+		}
+		g.Updated = now()
 		save()
-		js(w, item)
+		js(w, roomView(g))
 	})
-	api("memories", func(u *User, w http.ResponseWriter, r *http.Request) {
-		e := x9()
-		if r.Method == http.MethodGet {
-			js(w, e.Memories[u.ID])
+	api("roomleave", func(u *User, w http.ResponseWriter, r *http.Request) {
+		id := in(r)["id"]
+		g := x9().Rooms[id]
+		if !roomMember(g, u.ID) {
+			js(w, map[string]bool{"ok": true})
 			return
 		}
-		if r.Method != http.MethodPost {
-			fail(w, 405, "Use GET or POST")
-			return
+		delete(g.Players, u.ID)
+		if len(g.Players) == 0 || g.Host == u.ID {
+			g.Status = "finished"
 		}
-		b := in(r)
-		id := strings.TrimSpace(b["id"])
-		if id == "" || len(id) > 120 {
-			fail(w, 400, "A valid item ID is required")
-			return
-		}
-		op := b["op"]
-		if op == "remove" {
-			e.Memories[u.ID] = del(e.Memories[u.ID], id)
-		} else {
-			if !has(e.Memories[u.ID], id) {
-				e.Memories[u.ID] = append(e.Memories[u.ID], id)
-			}
-		}
+		g.Updated = now()
 		save()
-		js(w, e.Memories[u.ID])
-	})
-	api("market", func(u *User, w http.ResponseWriter, r *http.Request) {
-		e := x9()
-		if r.Method == http.MethodGet {
-			out := make([]MarketListing, 0, len(e.Market))
-			for _, v := range e.Market {
-				if owner := S.Users[v.Owner]; owner != nil && !owner.Banned && !blk(u, owner) {
-					out = append(out, v)
-				}
-			}
-			js(w, out)
-			return
-		}
-		if r.Method != http.MethodPost {
-			fail(w, 405, "Use GET or POST")
-			return
-		}
-		b := in(r)
-		name := strings.TrimSpace(b["name"])
-		price := strings.TrimSpace(b["price"])
-		if name == "" || price == "" || len(name) > 210 || len(price) > 90 {
-			fail(w, 400, "Product name and price are required")
-			return
-		}
-		cat := strings.TrimSpace(b["category"])
-		switch cat {
-		case "Fashion", "Electronics", "Home", "Other":
-		default:
-			cat = "Other"
-		}
-		img := strings.TrimSpace(b["image"])
-		if img != "" && !okMedia(img) && !strings.HasPrefix(img, "https://") {
-			fail(w, 400, "Image must be an uploaded media URL")
-			return
-		}
-		v := MarketListing{ID: uid(), Owner: u.ID, Username: u.Username, Name: trunc(name, 70), Price: trunc(price, 30), Category: cat, Description: trunc(strings.TrimSpace(b["description"]), 180), Image: img, TS: now()}
-		e.Market = append([]MarketListing{v}, e.Market...)
-		if len(e.Market) > 5000 {
-			e.Market = e.Market[:5000]
-		}
-		save()
-		js(w, v)
-	})
-	api("notificationsounds", func(u *User, w http.ResponseWriter, r *http.Request) {
-		e := x9()
-		if r.Method == http.MethodGet {
-			v := e.Sounds[u.ID]
-			if v == nil {
-				v = map[string]string{}
-			}
-			js(w, v)
-			return
-		}
-		if r.Method != http.MethodPost {
-			fail(w, 405, "Use GET or POST")
-			return
-		}
-		b := in(r)
-		category, tone := strings.TrimSpace(b["category"]), strings.TrimSpace(b["tone"])
-		allowedCategories := map[string]bool{"default": true, "messages": true, "social": true, "followers": true, "live": true, "games": true, "communities": true}
-		allowedTones := map[string]bool{"default": true, "chime": true, "soft": true, "pulse": true, "bell": true, "off": true}
-		if !allowedCategories[category] || !allowedTones[tone] {
-			fail(w, 400, "Invalid notification sound")
-			return
-		}
-		if e.Sounds[u.ID] == nil {
-			e.Sounds[u.ID] = map[string]string{}
-		}
-		e.Sounds[u.ID][category] = tone
-		save()
-		js(w, e.Sounds[u.ID])
-	})
-	api("creatorstats", func(u *User, w http.ResponseWriter, r *http.Request) {
-		posts, reels, likes := 0, 0, 0
-		for _, p := range S.Posts {
-			if p.User == u.ID {
-				posts++
-				if p.Kind == "video" {
-					reels++
-				}
-				likes += len(p.Likes)
-			}
-		}
-		followers := 0
-		for _, other := range S.Users {
-			if has(other.Following, u.ID) {
-				followers++
-			}
-		}
-		js(w, map[string]int{"posts": posts, "reels": reels, "likes": likes, "followers": followers})
+		js(w, map[string]bool{"ok": true})
 	})
 }
