@@ -166,6 +166,49 @@ nav .pl2{color:#000;box-shadow:none}.m.me{background:var(--fg);color:var(--bg)}
 /* Amlink signature shine: consistent brand accent for live and primary actions. */
 .am-shine{background:linear-gradient(110deg,#7c5cff 0%,#ff4fb8 48%,#ff9b42 100%);color:#fff;border:0}
 #am-live-stage{border-radius:18px;overflow:hidden}
+
+/* Reels interaction completion */
+#app.reels-mode .reel .rmeta{display:flex;align-items:center;gap:8px}
+#app.reels-mode .reel .rmeta .av{width:34px;height:34px;border:1.5px solid #fff;cursor:pointer}
+#app.reels-mode .reel .rmeta .rfb{margin-left:2px}
+#app.reels-mode .reel .rmenu{position:absolute;z-index:8;right:12px;top:calc(env(safe-area-inset-top,0px) + 48px);border:1px solid #ffffff55;border-radius:12px;background:#171717ed;color:#fff;padding:7px;display:grid;min-width:150px;box-shadow:0 8px 24px #0008}
+#app.reels-mode .reel .rmenu button{border:0;background:none;color:#fff;text-align:left;padding:10px;border-radius:8px;font-size:13px}
+#app.reels-mode .reel .rmenu button:active{background:#ffffff22}
+#app.reels-mode .reel .rvm{display:grid;place-items:center}
+#app.reels-mode .reel .rplay{position:absolute;z-index:4;left:50%;top:50%;transform:translate(-50%,-50%);border:0;border-radius:50%;width:58px;height:58px;background:#0007;color:#fff;font-size:27px;display:none}
+#app.reels-mode .reel.paused .rplay{display:grid;place-items:center}
+#app.reels-mode .reel .rbar{pointer-events:none}
+#app.reels-mode .reel .rbar i{display:block;width:0;transition:width .15s linear}
+#app.reels-mode .reel .rstats{display:flex;gap:12px;font-size:11px;opacity:.95}
+@media(max-height:620px){#app.reels-mode .reel .rail{gap:8px}#app.reels-mode .reel .info{bottom:12px}}
+
+/* Amlink graphical brand intro + strict signed-out screen isolation */
+#am-intro{position:fixed;z-index:9999;inset:0;display:grid;place-content:center;justify-items:center;gap:10px;overflow:hidden;background:radial-gradient(ellipse at 18% 18%,#b8f4ff 0,transparent 38%),radial-gradient(ellipse at 85% 78%,#d9ccff 0,transparent 42%),linear-gradient(145deg,#f8fdff,#fff 52%,#f8f5ff);color:#10131b;animation:introFade .7s ease 2.25s forwards;pointer-events:none}
+#am-intro.done{display:none}
+.intro-mark{width:82px;height:82px;border-radius:26px;display:grid;place-items:center;position:relative;background:linear-gradient(135deg,#18c8df,#5d5af6);box-shadow:0 18px 48px #5555, inset 0 1px 0 #ffffffaa;transform:translateY(12px) scale(.86);opacity:0;animation:introPop .75s cubic-bezier(.2,.85,.2,1) .12s forwards}
+.intro-mark-a{font-size:58px;font-weight:900;letter-spacing:-7px;color:white;line-height:1;margin-left:-5px;text-shadow:0 3px 12px #102a4b55}
+.intro-mark i,.intro-mark b{position:absolute;width:10px;height:10px;border-radius:50%;background:#fff;right:12px;top:12px;box-shadow:0 0 15px #fff}
+.intro-mark b{width:6px;height:6px;right:23px;top:23px;opacity:.8}
+.intro-word{font-size:43px;line-height:1.05;font-weight:900;letter-spacing:-2.8px;background:linear-gradient(100deg,#111827,#656b7b 48%,#111827);-webkit-background-clip:text;background-clip:text;color:transparent;opacity:0;animation:introRise .65s ease .45s forwards}
+.intro-company{font-size:13px;letter-spacing:.28em;text-transform:uppercase;font-weight:800;color:#656b7b;opacity:0;animation:introRise .6s ease .68s forwards}
+.intro-tagline{margin-top:14px;font-size:13px;letter-spacing:.08em;color:#747b89;opacity:0;animation:introRise .6s ease .88s forwards}
+.intro-loader{width:112px;height:3px;margin-top:22px;border-radius:9px;background:#dfe5ee;overflow:hidden;opacity:0;animation:introRise .5s ease 1s forwards}
+.intro-loader i{display:block;width:42%;height:100%;border-radius:9px;background:linear-gradient(90deg,#20c7dc,#6657f5);animation:introLoad 1.25s ease-in-out infinite}
+.intro-orbit{position:absolute;width:270px;height:270px;border:1px solid #7b8eff2c;border-radius:50%;animation:orbitDrift 8s linear infinite}
+.orbit-one{top:-155px;right:-110px}.orbit-two{bottom:-185px;left:-125px;width:330px;height:330px;animation-direction:reverse}
+/* If the auth panel is visible, never show the signed-in navigation behind it. */
+#login:not([hidden])~#tb,#login:not([hidden])~#main,#login:not([hidden])~nav{display:none!important}
+#app.out #login{display:grid}
+@keyframes introPop{to{transform:translateY(0) scale(1);opacity:1}}
+@keyframes introRise{to{transform:translateY(0);opacity:1}}
+@keyframes introLoad{0%{transform:translateX(-120%)}100%{transform:translateX(270%)}}
+@keyframes orbitDrift{to{transform:rotate(360deg)}}
+@keyframes introFade{to{opacity:0;visibility:hidden}}
+@media(prefers-reduced-motion:reduce){#am-intro,.intro-mark,.intro-word,.intro-company,.intro-tagline,.intro-loader,.intro-orbit{animation:none!important}#am-intro{display:none!important}}
+
+/* Amlink creator watermark on every reel; visual overlay, original media remains unchanged. */
+#app.reels-mode .reel .am-watermark{position:absolute;z-index:3;right:12px;top:calc(env(safe-area-inset-top,0px) + 56px);display:flex;align-items:center;gap:5px;padding:5px 8px;border-radius:7px;background:rgba(0,0,0,.34);color:#fff;font-size:11px;font-weight:800;letter-spacing:.25px;text-shadow:0 1px 3px #000;pointer-events:none;opacity:.88}
+#app.reels-mode .reel .am-watermark b{display:grid;place-items:center;width:16px;height:16px;border:1px solid #fff;border-radius:5px;font-size:10px}
 </style>
 <link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#000000"><style>
 /* v4 */
@@ -309,24 +352,56 @@ nav button.on{color:var(--acc)}nav button.pl2{width:42px;height:42px;flex:0 0 42
 .am-feature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.am-feature-card{text-align:left;display:flex;flex-direction:column;gap:8px;min-height:110px;cursor:pointer}.am-feature-card small,.am-feature-card span{color:var(--mut)}.am-feature-list{display:grid;gap:10px;margin-top:14px}.am-stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.am-stat-grid .rpc{display:flex;flex-direction:column;gap:5px}.am-stat-grid b{font-size:24px}.am-setting{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.am-chiprow{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.am-reel-poll{padding:10px;border-top:1px solid var(--line);display:grid;gap:8px}.am-reel-poll .am-chiprow button{flex:1}@media(max-width:420px){.am-feature-grid{grid-template-columns:1fr}.am-stat-grid b{font-size:20px}}
 </style>
 
-<style id="amlink-native-dialog-replacement">
-#am-confirm{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;padding:20px;background:rgba(0,0,0,.62);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
-#am-confirm[hidden]{display:none!important}
-#am-confirm .am-confirm-card{width:min(100%,390px);padding:24px;border:1px solid rgba(255,255,255,.16);border-radius:28px;background:linear-gradient(145deg,rgba(35,37,44,.98),rgba(12,13,17,.98));color:#fff;box-shadow:0 24px 80px rgba(0,0,0,.45);animation:amDialogIn .18s ease-out}
-#am-confirm .am-confirm-icon{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:rgba(255,255,255,.1);font-size:23px;margin-bottom:15px}
-#am-confirm h3{font-size:20px;margin:0 0 8px;font-weight:750}
-#am-confirm p{font-size:14px;line-height:1.55;color:rgba(255,255,255,.72);margin:0 0 22px;white-space:pre-wrap}
-#am-confirm .am-confirm-actions{display:flex;justify-content:flex-end;gap:10px}
-#am-confirm button{border:0;border-radius:14px;padding:11px 18px;font-weight:700}
-#am-confirm .am-cancel{background:rgba(255,255,255,.1);color:#fff}
-#am-confirm .am-danger{background:#fff;color:#111}
-@keyframes amDialogIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
-@media(prefers-reduced-motion:reduce){#am-confirm .am-confirm-card{animation:none}}
+<style id="amlink-reels-refresh-2026">
+/* Reels refresh: edge-to-edge vertical video, TikTok-inspired controls. */
+#app.reels-mode{background:#000;color:#fff;border:0;max-width:none;width:100%;}
+#app.reels-mode #tb{display:none!important}
+#app.reels-mode #main{overflow:hidden;min-height:0;background:#000}
+#app.reels-mode nav{height:58px;min-height:58px;flex:none;background:rgba(8,8,8,.96);border-top:1px solid #303030;padding:4px 4px env(safe-area-inset-bottom,0px);color:#fff}
+#app.reels-mode nav button{display:none;color:#fff;padding:4px 0;font-size:11px}
+#app.reels-mode nav button[data-t="feed"],#app.reels-mode nav button[data-t="alerts"],#app.reels-mode nav button[data-t="me"]{display:grid;justify-items:center;align-content:center;gap:2px;flex:1}
+#app.reels-mode nav button[data-t="feed"] svg,#app.reels-mode nav button[data-t="alerts"] svg,#app.reels-mode nav button[data-t="me"] svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#app.reels-mode nav button.on{color:#fff}
+#app.reels-mode nav button.on::after{content:"";width:4px;height:4px;border-radius:50%;background:#fff;position:absolute;margin-top:46px}
+#app.reels-mode .rl{height:100%;width:100%;overflow-y:auto;overscroll-behavior-y:contain;scroll-snap-type:y mandatory;scrollbar-width:none;background:#000}
+#app.reels-mode .rl::-webkit-scrollbar{display:none}
+#app.reels-mode .reel{height:100%;min-height:100%;width:100%;position:relative;overflow:hidden;scroll-snap-align:start;scroll-snap-stop:always;background:#000;isolation:isolate}
+#app.reels-mode .reel video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000;border-radius:0;box-shadow:none;transform:none}
+#app.reels-mode .reel .shade{position:absolute;inset:0;width:auto;height:auto;transform:none;border-radius:0;background:linear-gradient(180deg,rgba(0,0,0,.30) 0%,transparent 18%,transparent 48%,rgba(0,0,0,.10) 62%,rgba(0,0,0,.78) 100%);z-index:1}
+#app.reels-mode .rt{position:absolute;z-index:5;top:calc(env(safe-area-inset-top,0px) + 5px);left:0;right:0;display:flex;justify-content:center;gap:20px;padding:8px 12px;pointer-events:none}
+#app.reels-mode .rt button{pointer-events:auto;color:rgba(255,255,255,.72);font-size:15px;font-weight:700;text-shadow:0 1px 5px #000;background:none;border:0;padding:5px 0}
+#app.reels-mode .rt button.on{color:#fff;border-bottom:2px solid #fff}
+#app.reels-mode .reel .info{position:absolute;z-index:3;left:14px;right:82px;bottom:calc(18px + env(safe-area-inset-bottom,0px));width:auto;display:grid;gap:7px;justify-items:start;color:#fff;text-shadow:0 1px 4px #000}
+#app.reels-mode .rnm{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+#app.reels-mode .rnm b{font-size:15px}
+#app.reels-mode .rfb{border:1px solid #fff;border-radius:5px;background:transparent;color:#fff;padding:3px 10px;font-weight:700;font-size:12px}
+#app.reels-mode .rcp{padding:0;max-width:100%;font-size:14px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap}
+#app.reels-mode .rmu{font-size:12px;color:#fff;opacity:.92}
+#app.reels-mode .reel .rail{position:absolute;z-index:4;left:auto;right:10px;bottom:calc(22px + env(safe-area-inset-bottom,0px));display:grid;gap:15px;justify-items:center}
+#app.reels-mode .reel .rail button{width:48px;min-height:45px;padding:2px 0;display:grid;justify-items:center;align-content:center;gap:2px;border:0;border-radius:0;background:transparent;color:#fff;text-shadow:0 1px 4px #000;font-size:27px;box-shadow:none}
+#app.reels-mode .reel .rail button span{font-size:11px;font-weight:700;color:#fff}
+#app.reels-mode .reel .rail button.lk.on{color:#ff315b}
+#app.reels-mode .reel .ra{margin-bottom:3px}
+#app.reels-mode .reel .ra .av{width:43px;height:43px;border:2px solid #fff}
+#app.reels-mode .reel .rail .pl{position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);width:19px;min-height:19px;height:19px;border-radius:50%;background:#fe2c55;color:#fff;font-size:14px;line-height:1;padding:0;text-shadow:none}
+#app.reels-mode .reel .rbar{position:absolute;z-index:6;left:0;right:0;bottom:0;top:auto;width:100%;height:2px;transform:none;border-radius:0;background:#ffffff55}
+#app.reels-mode .reel .rbar i{height:100%;background:#fff;border-radius:0}
+#app.reels-mode .rvm{position:absolute;z-index:5;top:calc(env(safe-area-inset-top,0px) + 52px);left:12px;width:36px;height:36px;border:0;border-radius:50%;background:#0007;color:#fff;font-size:17px}
+#app.reels-mode .hrt{z-index:5}
+@media(min-width:700px){#app.reels-mode .reel video{object-fit:contain;background:#050505}#app.reels-mode .reel .shade{background:linear-gradient(180deg,rgba(0,0,0,.3),transparent 22%,transparent 65%,rgba(0,0,0,.72))}}
 </style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute"><symbol id="vf" viewBox="0 0 24 24"><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5" fill="#1877f2"/><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5" fill="#1877f2" transform="rotate(45 12 12)"/><circle cx="12" cy="12" r="8.6" fill="#1877f2"/><path d="M7.4 12.4l3.1 3.1 6.2-6.6" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></symbol></svg>
 <div id="app" class="out">
+  <section id="am-intro" aria-label="Amlink introduction" role="status">
+    <div class="intro-orbit orbit-one"></div><div class="intro-orbit orbit-two"></div>
+    <div class="intro-mark" aria-hidden="true"><span class="intro-mark-a">A</span><i></i><b></b></div>
+    <div class="intro-word">Amlink</div>
+    <div class="intro-company">Ranen Limited</div>
+    <div class="intro-tagline">Share. Chat. Connect.</div>
+    <div class="intro-loader"><i></i></div>
+  </section>
   <div id="login"><h1 class="lg" aria-label="Amlink"><span style="--i:0">A</span><span style="--i:1">m</span><span style="--i:2">l</span><span style="--i:3">i</span><span style="--i:4">n</span><span style="--i:5">k</span></h1><p>Share, chat and connect.</p><div id="gbtn" style="justify-self:center"></div><button class="pri" data-a="su">Create account with email</button><button class="pri sec" data-a="li">Log in with email</button><p class="er" id="le"></p></div>
   <div id="tb"><b class="brandmark">Amlink<span class="branddot">✦</span></b><div class="seg primary-swipe-nav"><button data-a="nv" data-t="feed">Home</button><button data-a="nv" data-t="reels">Video</button><button data-a="nv" data-t="people">Friends</button></div><button class="top-notif" data-a="nv" data-t="alerts" aria-label="Notifications"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><b id="tnb" hidden></b></button><button class="menu-trigger" data-a="dr" aria-label="Settings and privacy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
   <div id="main"></div>
@@ -342,7 +417,6 @@ nav button.on{color:var(--acc)}nav button.pl2{width:42px;height:42px;flex:0 0 42
   <div id="au" hidden><div class="ah"><button data-a="ab2" aria-label="Back">‹</button><div class="dots" id="dots"></div></div><div id="st"></div></div>
   <div id="md" hidden></div>
   <div id="ts" hidden></div>
-  <div id="am-confirm" hidden role="presentation"></div>
 </div>
 <script>
 const $=s=>document.querySelector(s),E=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -356,13 +430,16 @@ const nm=u=>(u.Nc?'<span class="'+E(u.Nc)+'">'+E(u.Username||'user')+'</span>':E
 const ago=t=>{const m=(Date.now()/1000-t)/60|0;return m<1?'now':m<60?m+'m':m<1440?(m/60|0)+'h':(m/1440|0)+'d'};
 async function A(p,b){const r=await fetch('/api/'+p,{method:b?'POST':'GET',headers:{'X-Token':T||'','Content-Type':'application/json'},body:b?JSON.stringify(b):undefined});const j=await r.json();if(r.status==401&&T)out();if(j&&j.error)throw new Error(j.error);return j}
 function toast(m){const t=$('#ts');t.textContent=m;t.hidden=false;clearTimeout(t.x);t.x=setTimeout(()=>t.hidden=true,2200)}
-function amConfirm(message,opts={}){return new Promise(resolve=>{const root=$('#am-confirm');if(!root)return resolve(false);const title=opts.title||'Are you sure?';const icon=opts.icon||'✦';const yes=opts.confirmText||'Confirm';const no=opts.cancelText||'Cancel';root.innerHTML=`<div class="am-confirm-card" role="dialog" aria-modal="true" aria-labelledby="am-confirm-title"><div class="am-confirm-icon" aria-hidden="true">${E(icon)}</div><h3 id="am-confirm-title">${E(title)}</h3><p>${E(message)}</p><div class="am-confirm-actions"><button type="button" class="am-cancel" data-am-choice="no">${E(no)}</button><button type="button" class="am-danger" data-am-choice="yes">${E(yes)}</button></div></div>`;root.hidden=false;const finish=value=>{root.hidden=true;root.innerHTML='';document.removeEventListener('keydown',key);resolve(value)};const key=e=>{if(e.key==='Escape')finish(false);if(e.key==='Enter')finish(true)};root.onclick=e=>{const choice=e.target.closest('[data-am-choice]');if(choice)finish(choice.dataset.amChoice==='yes');else if(e.target===root)finish(false)};document.addEventListener('keydown',key);root.querySelector('[data-am-choice="no"]').focus()})}
 function out(){try{localStorage.removeItem('tk')}catch(e){}location.reload()}
 function modal(h,keep){const m=$('#md');m.innerHTML='<div class="box">'+h+'</div>';m.dataset.k=keep?1:'';m.hidden=false}
 const closeM=()=>$('#md').hidden=true;
 $('#md').onclick=e=>{if(e.target.id=='md'&&!e.target.dataset.k)closeM()};
 
 async function boot(){
+  // Start in a clean signed-out state; only app() may reveal the app shell.
+  const root=$('#app'),login=$('#login');
+  if(root)root.classList.add('out');
+  if(login)login.hidden=false;
   let c={};for(let n=0;n<3&&!c.Fb;n++){try{c=await A('config')}catch(e){await new Promise(r=>setTimeout(r,1200))}}
   try{if(window.firebase&&c.Fb&&c.Fb.apiKey){firebase.initializeApp(c.Fb);FB=firebase.auth()}}catch(e){}
   if(T){try{ME=await A('me');return app()}catch(e){}}
@@ -371,13 +448,13 @@ async function boot(){
   google.accounts.id.initialize({client_id:c.Client,callback:async r=>{try{const j=await A('login',{credential:r.credential});T=j.token;try{localStorage.setItem('tk',T)}catch(e){}ME=j.me;app()}catch(e){$('#le').textContent=e.message}}});
   google.accounts.id.renderButton($('#gbtn'),{theme:'outline',size:'large',shape:'pill'});
 }
-function app(){$('#login').hidden=true;$('#app').classList.remove('out');ME.Username?go('feed'):askName(1);bell()}
+function app(){$('#login').hidden=true;$('#app').classList.remove('out');const intro=$('#am-intro');if(intro){intro.classList.add('done');intro.remove()}ME.Username?go('feed'):askName(1);bell()}
 function askName(first){
   modal(`<h3>${first?'Choose a username':'Change username'}</h3><input id="un" placeholder="letters, numbers and _" maxlength="20" autocomplete="off"><p class="er" id="er"></p><button class="pri" id="sv">Save</button>`,first);
   $('#sv').onclick=async()=>{try{ME=await A('username',{u:$('#un').value});closeM();go(first?'feed':tab)}catch(e){$('#er').textContent=e.message}};
 }
 async function go(t){
-  tab=t;clearInterval(poll);$('#app').classList.remove('cs','dro');
+  tab=t;clearInterval(poll);if(t!=='reels'){if(reelObserver){reelObserver.disconnect();reelObserver=null}clearInterval(reelProgressTimer)}$('#app').classList.remove('cs','dro');$('#app').classList.toggle('reels-mode',t==='reels');
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==(t=='reels'?'feed':t)));
   document.querySelectorAll('.seg button').forEach(b=>b.classList.toggle('on',b.dataset.t==t));
   $('#main').innerHTML='';
@@ -421,14 +498,54 @@ function sadd(){
     catch(e){$('#er').textContent=e.message;b.disabled=false}};
 }
 
-/* Reels */
-function reels(){
-  let v=posts.filter(p=>p.Kind=='video');
-  if(rf=='f')v=v.filter(p=>(ME.Following||[]).includes(p.U.ID)||p.U.ID==ME.ID);
-  $('#main').innerHTML=`<div class="rt"><button data-a="rf" data-v="f" class="${rf=='f'?'on':''}">Following</button><button data-a="rf" data-v="y" class="${rf=='y'?'on':''}">For You</button></div><div class="rl">`+(v.length?v.map(p=>`<section class="reel"><video data-a="pp" src="${E(p.Media)}" loop ${mut?'muted ':''}playsinline preload="metadata"></video><div class="shade"></div><div class="info"><b>@${E(p.U.Username)}${p.U.Verified?VB:''}${p.U.President?PB:''}</b><span>${E(p.Text)}</span></div><div class="rail"><div class="ra">${AV(p.U)}${p.U.ID==ME.ID||(ME.Following||[]).includes(p.U.ID)?'':`<button class="pl" data-a="rfol" data-i="${p.U.ID}" aria-label="Follow">＋</button>`}</div><button class="lk" data-a="like" data-i="${p.ID}">✦<span>Spark</span></button><button class="cm" data-a="cm" data-i="${p.ID}">▤<span>Thread</span></button><button data-a="sh" data-i="${p.ID}">⤴<span>Echo</span></button><button data-a="mu">${mut?'🔇':'🔊'}</button></div></section>`).join(''):'<p class="empty" style="color:#fff;padding-top:30vh">No reels here yet. Post a video from Home.</p>')+'</div>';
-  paint();
-  const io=new IntersectionObserver(es=>es.forEach(e=>{const vd=e.target.querySelector('video');e.isIntersecting?vd.play().catch(()=>{}):vd.pause()}),{threshold:.7});
-  document.querySelectorAll('.reel').forEach(r=>io.observe(r));
+/* Reels: full-screen feed with real account-backed interactions */
+let reelObserver=null,reelProgressTimer=null,reelActiveId='';
+function reelCount(n){return n>=1000000?(n/1000000).toFixed(1)+'M':n>=1000?(n/1000).toFixed(1)+'K':String(n||0)}
+function reelLiked(p){return (p.Likes||[]).includes(ME.ID)}
+function reelSaved(id){return SV().includes(id)}
+async function reels(){
+  if(reelObserver){reelObserver.disconnect();reelObserver=null}clearInterval(reelProgressTimer);
+  try { const ranked=await A('reelsfeed?n=80'+(rf==='f'?'&mode=following':'')); if(Array.isArray(ranked)) posts=ranked; } catch(e) { /* keep already-loaded feed as offline fallback */ }
+  let v=posts.filter(p=>p.Kind==='video'&&p.Media);
+  if(rf==='f')v=v.filter(p=>(ME.Following||[]).includes(p.U.ID)||p.U.ID===ME.ID);
+  if(rf==='y')v=[...v].sort((a,b)=>(b.TS||0)-(a.TS||0));
+  const card=p=>`<section class="reel" data-reel="${E(p.ID)}">
+    <video data-a="pp" data-i="${E(p.ID)}" src="${E(p.Media)}" loop ${mut?'muted ':''}playsinline webkit-playsinline preload="metadata" aria-label="Video by ${E(p.U.Username)}"></video>
+    <div class="shade"></div><div class="am-watermark" aria-label="Amlink watermark"><b>A</b> Amlink</div><button class="rplay" data-a="pp" data-i="${E(p.ID)}" aria-label="Play or pause">▶</button>
+    <div class="rt"><button data-a="rf" data-v="f" class="${rf==='f'?'on':''}">Following</button><button data-a="rf" data-v="y" class="${rf==='y'?'on':''}">For You</button></div>
+    <div class="info"><div class="rmeta"><span data-a="pf" data-i="${E(p.U.ID)}">${AV(p.U)}</span><b>@${E(p.U.Username)}${p.U.Verified?VB:''}${p.U.President?PB:''}</b>${p.U.ID===ME.ID?'':`<button class="rfb" data-a="rfol" data-i="${E(p.U.ID)}">${(ME.Following||[]).includes(p.U.ID)?'Following':'Follow'}</button>`}</div>
+    <span class="rcp">${E(p.Text||'')}</span><span class="rmu">♫ Original audio · @${E(p.U.Username)}</span></div>
+    <div class="rail"><div class="ra" data-a="pf" data-i="${E(p.U.ID)}">${AV(p.U)}</div>
+    <button class="lk ${reelLiked(p)?'on':''}" data-a="like" data-i="${E(p.ID)}" aria-label="Like reel">${reelLiked(p)?'♥':'♡'}<span>${reelCount((p.Likes||[]).length)}</span></button>
+    <button class="cm" data-a="cm" data-i="${E(p.ID)}" aria-label="Comments">▤<span>${reelCount((p.C||[]).length)}</span></button>
+    <button data-a="sh" data-i="${E(p.ID)}" aria-label="Share reel">➤<span>Share</span></button>
+    <button class="${reelSaved(p.ID)?'on':''}" data-a="rbm" data-i="${E(p.ID)}" aria-label="Save reel">${reelSaved(p.ID)?'🔖':'♧'}<span>Save</span></button>
+    <button data-a="rmore" data-i="${E(p.ID)}" aria-label="More options">⋯<span>More</span></button>
+    </div><div class="rbar"><i></i></div></section>`;
+  $('#main').innerHTML='<div class="rl" id="reel-feed">'+(v.length?v.map(card).join(''):'<p class="empty" style="color:#fff;padding:30vh 24px">No videos in this feed yet. Share a video using ＋ to start your Reels feed.</p>')+'</div>';
+  const feed=$('#reel-feed');if(!feed)return;
+  reelObserver=new IntersectionObserver(entries=>entries.forEach(entry=>{
+    const section=entry.target,video=section.querySelector('video');
+    if(entry.isIntersecting){reelActiveId=section.dataset.reel;if(!section.dataset.viewSent){section.dataset.viewSent='1';A('reelview',{id:reelActiveId}).catch(()=>{})}if(!section.dataset.eventsBound){section.dataset.eventsBound='1';const vv=section.querySelector('video');vv.addEventListener('ended',()=>A('reelsignal',{id:section.dataset.reel,kind:'complete'}).catch(()=>{}));vv.addEventListener('pause',()=>{if(vv.currentTime>2&&vv.duration&&vv.currentTime/vv.duration<.25)A('reelsignal',{id:section.dataset.reel,kind:'skip'}).catch(()=>{})})}document.querySelectorAll('.reel video').forEach(other=>{if(other!==video)other.pause()});video.play().then(()=>section.classList.remove('paused')).catch(()=>section.classList.add('paused'))}
+    else {video.pause();section.classList.remove('paused')}
+  }),{root:feed,threshold:.72});
+  document.querySelectorAll('.reel').forEach(section=>reelObserver.observe(section));
+  // Update the thin progress line without forcing a React-style full rerender.
+  reelProgressTimer=setInterval(()=>{const sec=document.querySelector(`.reel[data-reel="${CSS.escape(reelActiveId)}"]`),video=sec&&sec.querySelector('video'),bar=sec&&sec.querySelector('.rbar i');if(video&&bar&&video.duration)bar.style.width=(video.currentTime/video.duration*100)+'%'},150);
+  // Support shared reel links opened on another device.
+  const match=location.hash.match(/^#reel=([^&]+)/);if(match){const target=document.querySelector(`.reel[data-reel="${CSS.escape(decodeURIComponent(match[1]))}"]`);if(target)setTimeout(()=>target.scrollIntoView({behavior:'instant',block:'start'}),100)}
+}
+function reelMore(id){
+  const p=posts.find(x=>x.ID===id);if(!p)return;
+  const old=document.querySelector('.reel .rmenu');if(old)old.remove();
+  const sec=document.querySelector(`.reel[data-reel="${CSS.escape(id)}"]`);if(!sec)return;
+  sec.insertAdjacentHTML('beforeend',`<div class="rmenu"><button data-a="rbm" data-i="${E(id)}">${reelSaved(id)?'Remove saved reel':'Save reel'}</button><button data-a="rreport" data-i="${E(id)}">Report reel</button>${p.U.ID===ME.ID||ME.Admin?`<button data-a="delp" data-i="${E(id)}">Delete reel</button>`:''}<button data-a="rclose">Cancel</button></div>`);
+}
+async function reelShare(id){
+  const url=location.origin+location.pathname+'#reel='+encodeURIComponent(id),p=posts.find(x=>x.ID===id);A('reelsignal',{id,kind:'share'}).catch(()=>{});
+  const data={title:'Amlink Reel',text:(p&&p.Text)||'Watch this reel on Amlink',url};
+  if(navigator.share){try{await navigator.share(data);return}catch(e){if(e.name==='AbortError')return}}
+  try{await navigator.clipboard.writeText(url);toast('Reel link copied')}catch(e){prompt('Copy this reel link',url)}
 }
 
 /* Comments */
@@ -590,12 +707,12 @@ $('#app').onclick=async e=>{
   const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,i=b.dataset.i;
   if(a!='dc'&&b.closest('#dr'))$('#app').classList.remove('dro');
   try{
-    if(a=='like')upd(await A('like',{id:i}));
+    if(a=='like'){upd(await A('like',{id:i}));if(tab==='reels')A('reelsignal',{id:i,kind:'like'}).catch(()=>{})}
     else if(a=='cm')sheet(i);
     else if(a=='cs')$('#app').classList.remove('cs');
-    else if(a=='fol'){ME=await A('follow',{id:i});paint()}
+    else if(a=='fol'){ME=await A('follow2',{id:i});paint()}
     else if(a=='rp'){$('#ci').value='@'+b.dataset.n+' ';$('#ci').focus()}
-    else if(a=='pc'){const t=$('#ci').value.trim();if(t){upd(await A('comment',{id:cur.ID,text:t}));$('#ci').value='';sl();$('#sl').scrollTop=1e6}}
+    else if(a=='pc'){const t=$('#ci').value.trim();if(t){upd(await A('comment3',{id:cur.ID,text:t}));if(tab==='reels')A('reelsignal',{id:cur.ID,kind:'comment'}).catch(()=>{});$('#ci').value='';sl();$('#sl').scrollTop=1e6}}
     else if(a=='cl'){upd(await A('clike',{id:cur.ID,i:+i}));sl()}
     else if(a=='new')newPost();
     else if(a=='dm')chat(ppl.find(u=>u.ID==i));
@@ -604,15 +721,20 @@ $('#app').onclick=async e=>{
     else if(a=='send')send();
     else if(a=='un')askName(0);
     else if(a=='th'){th=th=='dark'?'light':'dark';document.documentElement.dataset.t=th;try{localStorage.setItem('th',th)}catch(x){}}
-    else if(a=='out')out();else if(a=='cset')cset();else if(a=='tg'){const k=b.dataset.k;if(k=='act')ME=await A('active',{});else{CS[k]=b.checked;try{localStorage.setItem('cs',JSON.stringify(CS))}catch(x){}if(k=='con')pl()}}else if(a=='mic')mic();else if(a=='adm')admin();else if(a=='ban'){const x=await A('ban',{id:i});b.textContent=x.Banned?'Unban':'Ban'}else if(a=='delp'){if(await amConfirm('Delete this post?')){await A('delpost',{id:i});go(tab)}}
+    else if(a=='out')out();else if(a=='cset')cset();else if(a=='tg'){const k=b.dataset.k;if(k=='act')ME=await A('active',{});else{CS[k]=b.checked;try{localStorage.setItem('cs',JSON.stringify(CS))}catch(x){}if(k=='con')pl()}}else if(a=='mic')mic();else if(a=='adm')admin();else if(a=='ban'){const x=await A('ban',{id:i});b.textContent=x.Banned?'Unban':'Ban'}else if(a=='delp'){if(confirm('Delete this post?')){await A('delpost',{id:i});go(tab)}}
     else if(a=='dr')openDr();
     else if(a=='dc')$('#app').classList.remove('dro');
     else if(a=='nv')go(b.dataset.t);
     else if(a=='rf'){rf=b.dataset.v;reels()}
-    else if(a=='pp')b.paused?b.play():b.pause();
+    else if(a=='pp'){const v=b.matches('video')?b:b.closest('.reel')?.querySelector('video');if(v){if(v.paused){await v.play();v.closest('.reel')?.classList.remove('paused')}else{v.pause();v.closest('.reel')?.classList.add('paused')}}}
     else if(a=='mu'){mut=!mut;document.querySelectorAll('.reel video').forEach(v=>v.muted=mut);document.querySelectorAll('[data-a=mu]').forEach(m=>m.textContent=mut?'🔇':'🔊')}
-    else if(a=='rfol'){ME=await A('follow',{id:i});b.remove();paint()}
-    else if(a=='sh'){const d={title:'Amlink',text:'Watch this on Amlink',url:location.origin};navigator.share?navigator.share(d).catch(()=>{}):(navigator.clipboard&&navigator.clipboard.writeText(d.url),toast('Link copied'))}
+    else if(a=='rfol'){ME=await A('follow2',{id:i});b.textContent=(ME.Following||[]).includes(i)?'Following':'Follow';paint()}
+    else if(a=='sh'){await reelShare(i)}
+    else if(a=='rbm'){await A('save',{id:i});A('reelsignal',{id:i,kind:'save'}).catch(()=>{});ME=await A('me');const saved=reelSaved(i);b.classList.toggle('on',saved);b.innerHTML=(saved?'🔖':'♧')+'<span>Save</span>';toast(saved?'Reel saved':'Removed from saved')}
+    else if(a=='rmore'){reelMore(i)}
+    else if(a=='rclose'){b.closest('.rmenu')?.remove()}
+    else if(a=='rreport'){const reason=prompt('Why are you reporting this reel?');if(reason&&reason.trim()){await A('report',{id:i,reason:reason.trim()});toast('Report submitted for review')}b.closest('.rmenu')?.remove()}
+    else if(a=='rpt'){const reason=prompt('Why are you reporting this post?');if(reason&&reason.trim()){await A('report',{id:i,reason:reason.trim()});toast('Report submitted for review')}}
     else if(a=='sa')sadd();
     else if(a=='cfm')cfmanage();
     else if(a=='cft'){await A('closefriends',{id:i});cfmanage()}
@@ -638,6 +760,7 @@ $('#app').onclick=async e=>{
   }catch(x){toast(x.message)}
 };
 $('#ci').onkeydown=e=>{if(e.key=='Enter')document.querySelector('[data-a=pc]').click()};
+document.addEventListener('dblclick',async e=>{const v=e.target.closest('.reel video');if(!v)return;const sec=v.closest('.reel'),id=sec?.dataset.reel;if(!id)return;try{const p=await A('like',{id});upd(p);toast('Liked')}catch(x){toast(x.message)}});
 window.addEventListener('load',boot);
 </script>
 <script>
@@ -694,11 +817,11 @@ $('#app').addEventListener('click',async e=>{
   else if(a=='spost')shr('Check this out on Amlink','/?p='+i);
   else if(a=='psh')shr('@'+PF.U.Username+' on Amlink');
   else if(a=='svd'){await go('me');ptab='s';pfDraw()}
-  else if(a=='dme'){if(await amConfirm('Delete your account and all your data? This cannot be undone.')){await A('delme',{});out()}}
+  else if(a=='dme'){if(confirm('Delete your account and all your data? This cannot be undone.')){await A('delme',{});out()}}
   else if(a=='adt'){adt=b.dataset.v;admin()}
   else if(a=='arole'){await A('adminrole',{id:i});admin()}
-  else if(a=='udel'){if(await amConfirm('Delete this user and all their posts?')){await A('deluser',{id:i});admin()}}
-  else if(a=='pdel'){if(await amConfirm('Delete this post?')){await A('delpost',{id:i});admin()}}
+  else if(a=='udel'){if(confirm('Delete this user and all their posts?')){await A('deluser',{id:i});admin()}}
+  else if(a=='pdel'){if(confirm('Delete this post?')){await A('delpost',{id:i});admin()}}
   else if(a=='rdis'){await A('repclr',{id:i});admin()}
   else if(a=='ann'){await A('notice',{text:$('#an').value});toast('Notice updated');nt()}
  }catch(x){toast(x.message)}});
@@ -844,7 +967,7 @@ $('#app').addEventListener('click',async e=>{
     else if(a=='nrow'){const x=NL[+d.n];if(x.Type=='freq')reqs();else if(x.Type=='msg')chat(x.U);else if(x.Post){const p=await A('onep?id='+x.Post);posts=[p];modal(postH(p)+'<button class="pri" data-a="mc">Close</button>');paint()}else opf(x.U.ID)}
     else if(a=='ncl'){await A('nclear',{});alerts()}
     else if(a=='atp'){const j=await A('byname',{u:d.u});closeM();opf(j.id)}
-    else if(a=='uns'){if(await amConfirm('Unsend this message?')){await A('unsend',{to:peer.ID,ts:d.ts});L()}}
+    else if(a=='uns'){if(confirm('Unsend this message?')){await A('unsend',{to:peer.ID,ts:d.ts});L()}}
     else if(a=='mrx'){await A('mreact',{id:i,e:d.e});toast('Reaction sent '+d.e)}
     else if(a=='mrp'){const t=$('#mrp').value.trim();if(t){await A('mreply',{id:i,text:t});$('#mrp').value='';toast('Reply sent')}}
     else if(a=='mst')xms(i);
@@ -1059,7 +1182,7 @@ $('#app').addEventListener('click',async e=>{const b=e.target.closest('[data-a]'
     else if(a=='sess')xsess();
     else if(a=='srv'){await A('revoke',{id:i});xsess()}
     else if(a=='sra'){await A('revoke',{all:'1'});xsess()}
-    else if(a=='srm'){if(await amConfirm('Log out of every device, including this one?')){await A('revoke',{all:'1',me:'1'});out()}}
+    else if(a=='srm'){if(confirm('Log out of every device, including this one?')){await A('revoke',{all:'1',me:'1'});out()}}
     else if(a=='xmq')xmq();
     else if(a=='mq'){await A('modact',{id:i,op:d.o});xmq()}
     else if(a=='mws'){await A('modwords',{w:$('#mw').value});toast('Blocked words saved')}
@@ -1181,7 +1304,7 @@ $('#app').addEventListener('click',async e=>{
     else if(a=='mrep'){RP9=LM.find(x=>x.ID==d.id)||null;cl();rpbar();$('#mi')&&$('#mi').focus()}
     else if(a=='rpx'){RP9=null;rpbar()}
     else if(a=='med'){cl();const x=LM.find(y=>y.ID==d.id),t=prompt('Edit message',x?x.Text:'');if(t&&t.trim()){await A('mact',{id:d.id,op:'edit',text:t});L()}}
-    else if(a=='mun'){cl();if(await amConfirm('Unsend this message?')){await A('mact',{id:d.id,op:'unsend'});L()}}
+    else if(a=='mun'){cl();if(confirm('Unsend this message?')){await A('mact',{id:d.id,op:'unsend'});L()}}
     else if(a=='mw9')modal(`<h3>Muted words</h3><small>Posts with these words are hidden from your feeds. Separate with commas.</small><textarea id="mwt" maxlength="500">${E(V9.W.join(', '))}</textarea><button class="pri" data-a="mws9">Save</button>`);
     else if(a=='mws9'){const j=await A('mw',{w:$('#mwt').value});V9.W=j.W||[];closeM();toast('Muted words saved')}
     else if(a=='tgf'){const j=await A('tagfol',{t:d.t});V9.Tags=j.Tags||[];explore(d.t)}
@@ -1816,9 +1939,9 @@ $('#app').addEventListener('click',async e=>{
     else if(a=='cmnom'){await A('commelection',{id:i,op:'nominate'});await cmelection(i);toast('You are nominated for this month’s election')}
     else if(a=='cmvote'){await A('commelection',{id:i,op:'vote',candidate:d.u});await cmelection(i);toast('Your vote has been counted')}
     else if(a=='cse'){await A('commact',{id:CM.id,op:'edit',desc:$('#cde').value,rules:$('#cru').value});closeM();toast('Saved');cmo(CM.id)}
-    else if(a=='cka'){if(d.o=='del'){if(!await amConfirm('Delete this community and all its posts?'))return;await A('commact',{id:CM.id,op:'del'});closeM();cms('')}
+    else if(a=='cka'){if(d.o=='del'){if(!confirm('Delete this community and all its posts?'))return;await A('commact',{id:CM.id,op:'del'});closeM();cms('')}
       else{await A('commact',{id:CM.id,op:d.o,uid:i});await cmo(CM.id);cmg()}}
-    else if(a=='cdp'){if(await amConfirm('Remove this post from the community?')){await A('delpost',{id:i});cmo(CM.id)}}
+    else if(a=='cdp'){if(confirm('Remove this post from the community?')){await A('delpost',{id:i});cmo(CM.id)}}
     else if(a=='dsp')dsp();
     else if(a=='dss'){await A('disapset',{to:peer.ID,secs:d.s});closeM();toast(d.s=='0'?'Disappearing messages are off':'Disappearing messages are on');L()}
     else if(a=='cvo')startCall(peer,false);
@@ -2074,8 +2197,8 @@ function showCv(){const z=$('#stpv'),v=z&&z.querySelector('video');if(!z||!v)ret
   if(!u){if(i)i.remove();return}
   if(!i){i=document.createElement('img');i.className='cvov';i.alt='';i.dataset.a='stpp';z.insertBefore(i,z.querySelector('.ov')||z.querySelector('.chg'))}
   i.src=u;v.pause()}
-async function stuClose(ask){
-  const c=$('#stc');if(ask&&(ST.f||XF.length||(c&&c.value.trim()))&&!await amConfirm('Discard this post?'))return;
+function stuClose(ask){
+  const c=$('#stc');if(ask&&(ST.f||XF.length||(c&&c.value.trim()))&&!confirm('Discard this post?'))return;
   const o=$('#stu');if(o)o.remove();ST={};XF=[];window.XDUET=''}
 function drafts(tgl){const b=$('#stdls');if(!b)return;if(tgl&&b.dataset.o){b.innerHTML='';b.dataset.o='';return}b.dataset.o='1';
   const l=LS('dr9','[]');b.innerHTML=l.map((d,k)=>`<div class="pr"><div class="nm"><small>${E(d.t.slice(0,80))}</small></div><button class="ed" data-a="stdu" data-k="${k}">Use</button><button class="ed" data-a="stdd" data-k="${k}" aria-label="Delete draft">✕</button></div>`).join('')||'<small class="sub">No drafts yet.</small>'}
@@ -2165,7 +2288,7 @@ $('#app').addEventListener('click',async e=>{
   const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,d=b.dataset;
   try{
     if(a=='fwg'){xfeed='fwg';try{localStorage.setItem('xf',xfeed)}catch(x){}go('feed')}
-    else if(a=='stux')await stuClose(true);
+    else if(a=='stux')stuClose(true);
     else if(a=='stup')stuPost();
     else if(a=='stuch'){if(ST.k=='reel'){ST.f=null;ST.cvs=[];ST.cuu=[];ST.dur=0}else{XF.splice(ST.i,1);ST.i=0}stuPv()}
     else if(a=='stsel'){ST.i=+d.i;stuPv()}
@@ -2180,7 +2303,7 @@ $('#app').addEventListener('click',async e=>{
     else if(a=='scdl'){await A('schedel',{id:d.i});schl()}
     else if(a=='cols'){cols()}
     else if(a=='cget')cget(d.n);
-    else if(a=='cdel'){if(await amConfirm('Delete this collection? The posts stay.')){await A('colldel',{name:d.n});cols()}}
+    else if(a=='cdel'){if(confirm('Delete this collection? The posts stay.')){await A('colldel',{name:d.n});cols()}}
     else if(a=='shx')shut();
     else if(a=='shf'){shut();friendPick(d.i)}
     else if(a=='shc'){shut();try{await navigator.clipboard.writeText(plink(d.i));toast('Link copied')}catch(x){prompt('Copy this link',plink(d.i))}}
@@ -2198,7 +2321,7 @@ $('#app').addEventListener('click',async e=>{
 <!-- ===== Amlink Batch 1: rewards hub, daily spin, challenges, leaderboards, arcade ===== -->
 <script>
 (()=>{
-const BD={first_post:'✍️ First post',first_reel:'🎬 First reel',chatty:'💬 Chatty',streak7:'🔥 7-day streak',level5:'⭐ Level 5',recruiter:'💌 Recruiter',gamer:'🎮 Gamer',wordsmith:'🔤 Wordsmith'};
+const BD={first_post:'✍️ First post',first_reel:'🎬 First reel',chatty:'💬 Chatty',streak7:'🔥 7-day streak',level5:'⭐ Level 5',recruiter:'💌 Recruiter',gamer:'🎮 Gamer',wordsmith:'🔤 Wordsmith',top1_streetracer:'🥇 Street Racer Top 1',top1_skyparkour:'🥇 Sky Parkour Top 1',top1_lostisland:'🥇 Lost Island Top 1',top1_neonrunner:'🥇 Neon Runner Top 1'};
 const od=openDr;
 openDr=function(){od();$('#dr').insertAdjacentHTML('beforeend','<p class="sg">Rewards and games</p><div class="cd"><button class="sr" data-a="gh"><i>🏆</i>Rewards hub<em>›</em></button><button class="sr" data-a="gar"><i>🎮</i>Arcade<em>›</em></button><button class="sr" data-a="glb"><i>📊</i>Leaderboards<em>›</em></button></div>')};
 
@@ -2387,11 +2510,11 @@ $('#app').addEventListener('click',async e=>{
     else if(a=='nst'){try{await A('nsset',{k:d.k,on:b.checked?'1':'0'});toast('Saved')}catch(x){b.checked=!b.checked;throw x}}
     else if(a=='hln')hln();
     else if(a=='hlo')hview(PF.U.ID,i);
-    else if(a=='hld'){if(await amConfirm('Delete this highlight?')){await A('hldel',{id:i});closeM();opf(ME.ID)}}
+    else if(a=='hld'){if(confirm('Delete this highlight?')){await A('hldel',{id:i});closeM();opf(ME.ID)}}
     else if(a=='tgl')cp(location.origin+'/tag/'+d.t);
     else if(a=='cmn')cmenu();
     else if(a=='cmu'){const j=await A('mute',{id:i});toast(j.Muted?'Muted':'Unmuted');closeM()}
-    else if(a=='cbk'){if(await amConfirm('Block this person? You will not see each other.')){ME=await A('block',{id:i});closeM();toast('Blocked');go('people')}}
+    else if(a=='cbk'){if(confirm('Block this person? You will not see each other.')){ME=await A('block',{id:i});closeM();toast('Blocked');go('people')}}
     else if(a=='mrpt'){const s=$('#msh');if(s)s.hidden=true;const r=prompt('Why are you reporting this message?');if(r!==null){await A('mreport',{id:d.id,reason:r});toast('Thanks, we will review it')}}
     else if(a=='bkp'){await dlf('backup','amlink-backup.json');toast('Backup downloaded')}
     else if(a=='alg'){await dlf('auditlog','amlink-audit-log.json')}
@@ -2465,7 +2588,7 @@ go=async function(t){
   await hub()};
 async function hub(){
   let me={Coins:0,Level:1,Streak:0};try{me=await A('gme')}catch(e){}
-  const tabs=[['play','🎮 Play'],['mine','⚔️ My games'],['cup','🏅 Cups'],['solo','🕹 Solo'],['rank','🏆 Rankings']];
+  const tabs=[['play','🎮 Play'],['mine','⚔️ My games'],['cup','🏅 Cups'],['solo','🕹 Solo'],['3d','🌐 3D Worlds'],['rank','🏆 Rankings']];
   $('#main').innerHTML=`<div class="ch2"><b>Games</b><span class="gpill">🪙 ${me.Inf?'∞':me.Coins} · Lv ${me.Level} · 🔥 ${me.Streak}</span></div><div class="atb">${tabs.map(([k,l])=>`<button data-a="gtab" data-k="${k}" class="${GT==k?'on':''}">${l}</button>`).join('')}</div><div id="gbody"></div>`;
   await gbody()}
 const stt=g=>g.Status=='active'?(g.Mine?'your move':'their move'):g.Status=='draw'?'draw':g.Status=='won'?(g.Win==ME.ID?'you won':'they won'):(g.Win==ME.ID?'they resigned':'you resigned');
@@ -2480,6 +2603,8 @@ async function gbody(){
     else if(GT=='mine'){
       const mine=await A('gmine');
       h=mine.map(g=>`<div class="pr" data-a="gopen" data-i="${g.ID}" style="cursor:pointer">${AV(g.Opp)}<div class="nm">${nm(g.Opp)}<br><small>${E(GN[g.Kind]?GN[g.Kind][1]:g.Kind)} · ${stt(g)}</small></div>${g.Mine?'<b class="bd">Your move</b>':''}</div>`).join('')||'<p class="empty">No games yet. Start one from the Play tab.</p>'}
+    else if(GT=='3d'){
+      h=window.X3D_HOME?window.X3D_HOME():`<div class="gc"><i>🏎️</i><div><b>Amlink Street Racer</b><small>Solo time trials and global/friends rankings.</small><button class="pri" data-a="am3d" data-g="streetracer">Play 3D racer</button></div></div>`}
     else if(GT=='solo'){
       h=`<div class="gc"><i>🐍</i><div><b>Snake</b><small>Eat, grow, do not crash. Top the leaderboard.</small><div class="gcb"><button class="ed" data-a="gplay" data-g="snake">▶ Play</button></div></div></div>
       <div class="gc"><i>🧠</i><div><b>Memory Match</b><small>Find all the pairs in the fewest moves.</small><div class="gcb"><button class="ed" data-a="gplay" data-g="memory">▶ Play</button></div></div></div>
@@ -2565,8 +2690,8 @@ function wtext(){const em=WJ.G.map(g=>[...g.F].map(c=>c=='2'?'🟩':c=='1'?'🟨
 
 /* ================= SHOP, INVITES, INTERESTS ================= */
 async function shop(){
-  const j=await A('shop'),T={badge:'Profile badges',frame:'Avatar frames',name:'Name styles',bubble:'Chat bubbles'};
-  const prev=it=>it.Type=='badge'?(window.bdg?bdg(it.ID):''):it.Type=='frame'?`<b class="av ${it.ID}">${E((ME.Username||'A')[0])}</b>`:it.Type=='name'?`<b class="${it.ID}">${E(ME.Username||'you')}</b>`:`<div class="m me ${it.ID}" style="max-width:none">Hello 👋</div>`;
+  const j=await A('shop'),T={badge:'Profile badges',frame:'Avatar frames',name:'Name styles',bubble:'Chat bubbles',game:'3D game cosmetics'};
+  const prev=it=>it.Type=='badge'?(window.bdg?bdg(it.ID):''):it.Type=='frame'?`<b class="av ${it.ID}">${E((ME.Username||'A')[0])}</b>`:it.Type=='name'?`<b class="${it.ID}">${E(ME.Username||'you')}</b>`:it.Type=='game'?`<div style="font-size:28px">${it.ID.startsWith('car')?'🏎️':it.ID.startsWith('parkour')?'✨':it.ID.startsWith('island')?'🏝️':'🌌'}</div>`:`<div class="m me ${it.ID}" style="max-width:none">Hello 👋</div>`;
   modal(`<h3>Shop</h3><div class="stg" style="padding:0"><div class="stc"><b>🪙 ${j.Inf?'∞':j.Coins}</b><small>Your Ran Coin</small></div><div class="stc"><b>Lv ${j.Level}</b><small>Your level</small></div></div><small class="sub">Earn Ran Coin from the daily reward, challenges, games and invites.</small>`+
     Object.keys(T).map(t=>`<p class="sg" style="padding:0">${T[t]}</p><div class="shg">`+j.Items.filter(i=>i.Type==t).map(it=>`<div class="shi">${prev(it)}<small>${E(it.Name)}</small>`+(it.Own?`<button class="ed" data-a="seq" data-i="${it.ID}" data-t="${it.Type}" data-e="${it.Eq?1:0}">${it.Eq?'Unequip':'Equip'}</button>`:`<button class="ed" data-a="sby" data-i="${it.ID}" ${j.Level<it.Lvl&&!j.Inf?'disabled':''}>${j.Level<it.Lvl&&!j.Inf?'Level '+it.Lvl:(j.Inf?'Free':'🪙 '+it.Price)}</button>`)+'</div>').join('')+'</div>').join(''))}
 async function invite(){
@@ -2602,7 +2727,7 @@ $('#app').addEventListener('click',async e=>{
     else if(a=='gnw2'){b.disabled=true;const j=await A('gnew',{to:d.u,kind:d.k});toast('Challenge sent 🎮');gview(j.id)}
     else if(a=='gopen')gview(i);
     else if(a=='gmv')drawGame(await A('gmove',{id:GID,m:d.m}));
-    else if(a=='grs'){if(await amConfirm('Resign this game?'))drawGame(await A('gresign',{id:GID}))}
+    else if(a=='grs'){if(confirm('Resign this game?'))drawGame(await A('gresign',{id:GID}))}
     else if(a=='grm'){const j=await A('gnew',{to:d.u,kind:d.k});gview(j.id)}
     else if(a=='gch'&&typeof peer!='undefined'&&peer)modal(`<h3>Challenge ${E(peer.Username)}</h3><div class="ctl">${Object.entries(GN).map(([k,v])=>`<button data-a="gnw" data-k="${k}"><i>${v[0].slice(0,2)}</i>${E(v[1])}<small>${E(v[2])}</small></button>`).join('')}</div>`);
     else if(a=='gnw'){const j=await A('gnew',{to:peer.ID,kind:d.k});closeM();L().catch(()=>{});gview(j.id)}
@@ -3539,7 +3664,7 @@ nav button.pl2{background:linear-gradient(145deg,#080808,#555)!important;color:w
 .am-longpress{outline:2px solid #777!important;outline-offset:2px!important}
 .am-page{height:100%;overflow:auto;padding:16px 14px 28px}.am-page h2{font-size:25px;margin:4px 0 8px}.am-page .am-sub{color:var(--mut);font-size:13px;margin-bottom:15px}
 .am-market-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.am-product{border:1px solid var(--line);border-radius:17px;overflow:hidden;background:var(--card)}.am-product img{width:100%;aspect-ratio:1/1;object-fit:cover;background:#ddd}.am-product .am-pbody{padding:10px}.am-product b{display:block}.am-product small{display:block;margin:3px 0 8px}.am-product button{border:1px solid var(--line);border-radius:10px;padding:7px 10px;background:var(--bg);font-weight:700}
-.am-game-wrap{height:100%;min-height:450px;display:flex;flex-direction:column;gap:10px;padding:12px}.am-game-head{display:flex;justify-content:space-between;align-items:center}.am-game-canvas{width:100%;flex:1;min-height:350px;max-height:65vh;background:radial-gradient(ellipse at center,#202020,#030303 72%);border:1px solid #666;border-radius:18px;touch-action:none}.am-game-controls{display:flex;justify-content:center;gap:12px}.am-game-controls button{min-width:100px;padding:12px;border:1px solid #888;border-radius:13px;background:#111;color:#fff;font-weight:800}
+.am-game-wrap{height:100%;min-height:450px;display:flex;flex-direction:column;gap:10px;padding:12px}.am-game-head{display:flex;justify-content:space-between;align-items:center}.am-game-canvas{width:100%;flex:1;min-height:350px;max-height:65vh;background:radial-gradient(ellipse at center,#202020,#030303 72%);border:1px solid #666;border-radius:18px;touch-action:none}.am-game-controls{display:flex;justify-content:center;gap:12px}.am-game-controls button{min-width:100px;min-height:54px;padding:12px;border:1px solid #888;border-radius:13px;background:#111;color:#fff;font-weight:800;touch-action:none}.am-game-controls button:active{background:#263d58;border-color:#68dfff;transform:scale(.98)}#am-over{padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--fg);display:flex;justify-content:space-between;align-items:center;gap:12px}#am-over[hidden]{display:none}#am-over button{padding:10px 16px;border:0;border-radius:10px;background:#111;color:#fff;font-weight:800}
 @media(min-width:900px){#app.reels-mode #main{grid-column:2}#tb>.primary-swipe-nav{max-width:none}}
 </style>
 <script id="amlink-upgrade-v1">
@@ -3594,7 +3719,55 @@ main.addEventListener('pointerdown',e=>{const el=e.target.closest('.post,.reel,.
 ['pointerup','pointercancel','pointerleave'].forEach(ev=>main.addEventListener(ev,()=>{clearTimeout(pressTimer);pressTimer=null},{passive:true}));
 
 // 2D arcade shooter: single-player, touch and keyboard controls, no weapons or real-world content.
-function shooter(){main.innerHTML=`<div class="am-game-wrap"><div class="am-game-head"><button data-am="games-back">‹ Games</button><b>Star Defender · 2D</b><b id="am-score">0</b></div><p class="am-sub">Move your ship and tap FIRE to clear incoming targets. Use ◀ ▶ or drag on the playfield.</p><canvas id="am-shoot" class="am-game-canvas" aria-label="2D arcade shooting game"></canvas><div class="am-game-controls"><button id="am-left">◀ LEFT</button><button id="am-fire">FIRE ●</button><button id="am-right">RIGHT ▶</button></div><div id="am-over" hidden></div></div>`;const c=$('#am-shoot'),ctx=c.getContext('2d'),scoreEl=$('#am-score');let W=0,H=0,score=0,lives=3,ship=0,shots=[],targets=[],keys={},running=true,last=0,spawn=0;function size(){const r=c.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);W=r.width;H=r.height;c.width=W*d;c.height=H*d;ctx.setTransform(d,0,0,d,0,0);ship=W/2}size();new ResizeObserver(size).observe(c);function reset(){score=0;lives=3;shots=[];targets=[];running=true;scoreEl.textContent='0';$('#am-over').hidden=true;last=performance.now();requestAnimationFrame(loop)}function loop(t){if(!running)return;const dt=Math.min((t-last)/16,2);last=t;ctx.clearRect(0,0,W,H);ctx.fillStyle='#fff';for(let i=0;i<45;i++){const x=(i*83)%W,y=(i*137+t*.025)%H;ctx.fillRect(x,y,1.3,1.3)}if(keys.left)ship-=5*dt;if(keys.right)ship+=5*dt;ship=Math.max(18,Math.min(W-18,ship));ctx.fillStyle='#fff';ctx.beginPath();ctx.moveTo(ship,H-35);ctx.lineTo(ship-15,H-10);ctx.lineTo(ship+15,H-10);ctx.fill();spawn+=dt;if(spawn>34){spawn=0;targets.push({x:18+Math.random()*(W-36),y:-15,r:10+Math.random()*7,s:1+Math.random()*1.7})}shots.forEach(s=>s.y-=8*dt);targets.forEach(a=>a.y+=a.s*dt);shots=shots.filter(s=>s.y>-10);for(let i=targets.length-1;i>=0;i--){const a=targets[i];ctx.fillStyle='#aaa';ctx.beginPath();ctx.arc(a.x,a.y,a.r,0,Math.PI*2);ctx.fill();for(let j=shots.length-1;j>=0;j--){if(Math.hypot(a.x-shots[j].x,a.y-shots[j].y)<a.r+4){targets.splice(i,1);shots.splice(j,1);score+=10;scoreEl.textContent=score;break}}if(a.y>H-8){targets.splice(i,1);lives--;if(lives<=0){running=false;$('#am-over').hidden=false;$('#am-over').innerHTML=`<b>Game over · ${score} points</b><button id="am-restart">Play again</button>`;$('#am-restart').onclick=reset}}}ctx.fillStyle='#fff';ctx.font='13px system-ui';ctx.fillText('Lives: '+lives,12,20);requestAnimationFrame(loop)}function fire(){if(running)shots.push({x:ship,y:H-40})}function hold(id,k){const b=$(id);b.onpointerdown=e=>{e.preventDefault();keys[k]=true};['pointerup','pointerleave','pointercancel'].forEach(n=>b.addEventListener(n,()=>keys[k]=false))}hold('#am-left','left');hold('#am-right','right');$('#am-fire').onclick=fire;c.onpointermove=e=>{if(e.buttons){const r=c.getBoundingClientRect();ship=e.clientX-r.left}};c.onclick=fire;window.addEventListener('keydown',keyDown);function keyDown(e){if(e.key==='ArrowLeft')keys.left=true;if(e.key==='ArrowRight')keys.right=true;if(e.code==='Space'){e.preventDefault();fire()}}window.addEventListener('keyup',e=>{if(e.key==='ArrowLeft')keys.left=false;if(e.key==='ArrowRight')keys.right=false});reset();const oldBack=()=>{running=false;window.removeEventListener('keydown',keyDown);go('games')};document.querySelector('[data-am="games-back"]').onclick=oldBack}
+function shooter(){
+ main.innerHTML=`<div class="am-game-wrap"><div class="am-game-head"><button data-am="games-back">‹ Games</button><b>STAR DEFENDER · AIR COMBAT</b><b id="am-score">0</b></div><p class="am-sub">Pilot your jet. Blast incoming enemy aircraft. Hold FIRE for rapid shots, or move with the controls.</p><canvas id="am-shoot" class="am-game-canvas" aria-label="Jet aircraft arcade game"></canvas><div class="am-game-controls"><button id="am-left">◀ LEFT</button><button id="am-fire">FIRE ✦</button><button id="am-right">RIGHT ▶</button></div><div id="am-over" hidden></div></div>`;
+ const c=$('#am-shoot'),ctx=c.getContext('2d'),scoreEl=$('#am-score');
+ let W=0,H=0,score=0,lives=3,ship=0,shots=[],targets=[],keys={},running=false,last=0,spawn=0,fireClock=0,raf=0,dragging=false;
+ const dpr=()=>Math.min(window.devicePixelRatio||1,2);
+ function size(){const r=c.getBoundingClientRect(),d=dpr();W=r.width;H=r.height;c.width=Math.max(1,Math.round(W*d));c.height=Math.max(1,Math.round(H*d));ctx.setTransform(d,0,0,d,0,0);ship=Math.max(25,Math.min(W-25,ship||W/2));}
+ size();const ro=new ResizeObserver(size);ro.observe(c);
+ function jet(x,y,scale,enemy=false){ctx.save();ctx.translate(x,y);ctx.scale(scale*(enemy?-1:1),scale);ctx.lineJoin='round';
+  // wings and tail
+  ctx.fillStyle=enemy?'#ff6262':'#dcecff';ctx.strokeStyle=enemy?'#ffd0d0':'#ffffff';ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.moveTo(0,-23);ctx.lineTo(5,-5);ctx.lineTo(25,9);ctx.lineTo(23,15);ctx.lineTo(5,10);ctx.lineTo(4,22);ctx.lineTo(11,27);ctx.lineTo(10,31);ctx.lineTo(0,27);ctx.lineTo(-10,31);ctx.lineTo(-11,27);ctx.lineTo(-4,22);ctx.lineTo(-5,10);ctx.lineTo(-23,15);ctx.lineTo(-25,9);ctx.lineTo(-5,-5);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.fillStyle=enemy?'#5b1010':'#263d58';ctx.beginPath();ctx.ellipse(0,1,3.2,11,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=enemy?'#ffb1b1':'#68dfff';ctx.beginPath();ctx.ellipse(0,-8,2.4,5,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=enemy?'#ff9b35':'#55dfff';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=12;ctx.beginPath();ctx.moveTo(-4,24);ctx.lineTo(0,37+Math.random()*4);ctx.lineTo(4,24);ctx.closePath();ctx.fill();ctx.restore();
+ }
+ function bullet(b){ctx.save();ctx.shadowColor='#48eaff';ctx.shadowBlur=15;ctx.fillStyle='#eaffff';ctx.fillRect(b.x-2.2,b.y-12,4.4,19);ctx.fillStyle='#37cfff';ctx.fillRect(b.x-1,b.y-18,2,8);ctx.restore();}
+ function reset(){cancelAnimationFrame(raf);score=0;lives=3;shots=[];targets=[];spawn=0;fireClock=0;running=true;keys={};scoreEl.textContent='0';$('#am-over').hidden=true;last=performance.now();raf=requestAnimationFrame(loop)}
+ function fire(){if(running&&shots.length<32)shots.push({x:ship,y:H-62});}
+ function loop(t){if(!running)return;const dt=Math.min((t-last)/16.67,2.2);last=t;ctx.clearRect(0,0,W,H);
+  // Deep-space backdrop and moving starfield
+  const bg=ctx.createRadialGradient(W*.5,H*.55,5,W*.5,H*.55,Math.max(W,H)*.75);bg.addColorStop(0,'#182536');bg.addColorStop(1,'#02050b');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  for(let i=0;i<65;i++){const x=(i*97+Math.sin(i*8)*17)%W,y=(i*149+t*(.018+(i%4)*.008))%(H+4);ctx.fillStyle=i%7===0?'#9feaff':'#d8e8ff';ctx.globalAlpha=.35+(i%5)*.12;ctx.fillRect(x,y,i%7===0?2:1, i%7===0?3:1)}ctx.globalAlpha=1;
+  if(keys.left)ship-=6.2*dt;if(keys.right)ship+=6.2*dt;ship=Math.max(25,Math.min(W-25,ship));
+  if(keys.fire){fireClock+=dt;if(fireClock>7){fire();fireClock=0}}else fireClock=0;
+  spawn+=dt;if(spawn>43){spawn=0;const x=30+Math.random()*Math.max(1,W-60);targets.push({x,y:-36,hp:1,s:1.05+Math.random()*1.15,scale:.78+Math.random()*.22});if(score>100&&Math.random()>.68)targets.push({x:Math.max(25,Math.min(W-25,x+(Math.random()>.5?1:-1)*42)),y:-72,hp:1,s:1.25,scale:.7})}
+  shots.forEach(b=>b.y-=11*dt);shots=shots.filter(b=>b.y>-25);
+  targets.forEach(a=>a.y+=a.s*dt);
+  // Render clearly visible energy rounds over the background
+  shots.forEach(bullet);
+  for(let i=targets.length-1;i>=0;i--){const a=targets[i];jet(a.x,a.y,a.scale,true);
+   for(let j=shots.length-1;j>=0;j--){if(Math.hypot(a.x-shots[j].x,a.y-shots[j].y)<18*a.scale){targets.splice(i,1);shots.splice(j,1);score+=10;scoreEl.textContent=score;break}}
+   if(a.y>H-42){targets.splice(i,1);lives--;if(lives<=0){running=false;$('#am-over').hidden=false;$('#am-over').innerHTML=`<b>Mission ended · ${score} points</b><button id="am-restart">↻ Fly again</button>`;$('#am-restart').onclick=reset}}
+  }
+  // Player jet and cockpit highlights
+  jet(ship,H-48,1.08,false);
+  ctx.fillStyle='#fff';ctx.font='700 14px system-ui';ctx.fillText('HULL: '+lives,14,23);ctx.textAlign='right';ctx.fillText('SCORE '+score,W-14,23);ctx.textAlign='left';
+  if(running)raf=requestAnimationFrame(loop);
+ }
+ function hold(id,k){const b=$(id);const down=e=>{e.preventDefault();keys[k]=true;if(k==='fire')fire()};const up=e=>{if(e)e.preventDefault();keys[k]=false};b.addEventListener('pointerdown',down);['pointerup','pointerleave','pointercancel','lostpointercapture'].forEach(n=>b.addEventListener(n,up));}
+ hold('#am-left','left');hold('#am-right','right');hold('#am-fire','fire');
+ c.addEventListener('pointerdown',e=>{dragging=true;c.setPointerCapture?.(e.pointerId);const r=c.getBoundingClientRect();ship=e.clientX-r.left;fire()});
+ c.addEventListener('pointermove',e=>{if(dragging){const r=c.getBoundingClientRect();ship=e.clientX-r.left}});
+ ['pointerup','pointercancel','lostpointercapture'].forEach(n=>c.addEventListener(n,()=>dragging=false));
+ function keyDown(e){if(e.key==='ArrowLeft')keys.left=true;if(e.key==='ArrowRight')keys.right=true;if(e.code==='Space'){e.preventDefault();keys.fire=true;fire()}}
+ function keyUp(e){if(e.key==='ArrowLeft')keys.left=false;if(e.key==='ArrowRight')keys.right=false;if(e.code==='Space')keys.fire=false}
+ window.addEventListener('keydown',keyDown);window.addEventListener('keyup',keyUp);
+ const oldBack=()=>{running=false;cancelAnimationFrame(raf);ro.disconnect();window.removeEventListener('keydown',keyDown);window.removeEventListener('keyup',keyUp);go('games')};
+ document.querySelector('[data-am="games-back"]').onclick=oldBack;reset();
+}
 
 // Add the arcade game entry to the existing games hub without removing its existing games.
 const goBeforeShooter=go;go=async function(t){const result=await goBeforeShooter(t);if(t==='games'){const box=document.createElement('div');box.className='rpc';box.innerHTML='<b>🚀 Star Defender</b><p>New 2D arcade shooter · single player</p><button class="ed" id="am-play-shooter">Play now</button>';main.prepend(box);$('#am-play-shooter').onclick=shooter}return result};
@@ -3678,5 +3851,205 @@ const oldConnect=amConnect;amConnect=function(){oldConnect();const grid=$('#main
 })();
 </script>
 
+
+<style id="amlink-polish-v2">
+/* Consistent monochrome contrast */
+:root{--bg:#fff;--fg:#080808;--mut:#626262;--card:#f1f1f1;--line:#dedede;--acc:#111}
+[data-t="dark"]{--bg:#050505;--fg:#fafafa;--mut:#b7b7b7;--card:#171717;--line:#333;--acc:#fff}
+#main{color:var(--fg)} #main button,#main input,#main textarea,#main select{color:var(--fg)}
+#main input,#main textarea,#main select{background:var(--card);border-color:var(--line)}
+.rpc,.am-page .rpc,.am-community-card{background:var(--card)!important;color:var(--fg)!important;border:1px solid var(--line)!important}
+.rpc p,.rpc small,.am-page p,.am-page small{color:var(--mut)}
+/* Facebook-inspired profile header */
+.cov{height:auto!important;aspect-ratio:2.65/1;min-height:145px;max-height:245px;border-radius:0 0 18px 18px;background-color:#242424!important;background-image:linear-gradient(135deg,#111,#555)!important}
+.pfc{margin:-54px 14px 0!important;display:grid!important;grid-template-columns:96px minmax(0,1fr)!important;align-items:end!important;justify-items:stretch!important;text-align:left!important;gap:8px 14px!important}
+.pfc>.rng{grid-row:1;grid-column:1;width:96px;height:96px;z-index:2;background:var(--bg);border-radius:50%;padding:4px}
+.pfc>.rng .av{width:88px!important;height:88px!important;border:4px solid var(--bg)!important}
+.pfc .pfn{grid-row:1;grid-column:2;align-self:end;min-width:0;padding-bottom:5px}
+.pfc .pfn h2{justify-content:flex-start!important;flex-wrap:wrap;font-size:22px;line-height:1.15}
+.pfc .pfn small{color:var(--mut)}
+.pfc>.bio,.pfc>.lnk,.pfc>.act,.pfc>.pst{grid-column:1/-1}
+.pfc>.bio{margin-top:5px;color:var(--fg)}
+.pfc .act{display:flex;flex-wrap:wrap;gap:8px;margin-top:5px}
+.pfc .act button{flex:1;min-width:105px;min-height:42px;border-radius:11px;font-weight:750}
+.pfc .pst{margin-top:5px;background:var(--card);color:var(--fg)}
+.pt{background:var(--bg);position:sticky;top:0;z-index:3}
+/* Community directory and detail */
+.am-community-hero{padding:18px;border-radius:20px;background:linear-gradient(130deg,#111,#444);color:#fff;margin:12px 0}
+.am-community-hero h2{font-size:24px;color:#fff;margin:4px 0}.am-community-hero p{color:#e5e5e5!important}
+.am-community-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-top:14px}
+.am-community-card{border-radius:18px;padding:15px;display:grid;gap:9px}
+.am-community-card .am-comm-top{display:flex;align-items:center;gap:12px}
+.am-comm-icon{width:48px;height:48px;border-radius:15px;background:var(--fg);color:var(--bg);display:grid;place-items:center;font-size:22px;font-weight:900;flex:none}
+.am-comm-actions{display:flex;gap:8px;flex-wrap:wrap}.am-comm-actions button{flex:1;min-height:40px}
+.am-comm-detail-head{padding:18px;border-radius:18px;background:linear-gradient(130deg,#111,#3c3c3c);color:#fff;margin:10px 0 14px}
+.am-comm-detail-head h2,.am-comm-detail-head p,.am-comm-detail-head small{color:#fff!important}
+.am-comm-stat{display:flex;gap:18px;flex-wrap:wrap;color:#eee;font-size:13px;margin-top:9px}
+.am-comm-compose{padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--card);margin:12px 0}
+.am-comm-compose textarea{width:100%;min-height:88px;padding:12px;border:1px solid var(--line);border-radius:12px;resize:vertical}
+.am-election{padding:15px;border:1px solid var(--line);border-radius:17px;background:var(--card);margin:14px 0;color:var(--fg)}
+.am-election h3{margin-bottom:5px}.am-election-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.am-election-row .am-el-person{display:flex;align-items:center;gap:9px;min-width:0}.am-election-row .av{width:38px;height:38px;flex:none}
+.am-election-row button{border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:var(--bg);font-weight:750}
+.am-election-note{font-size:12px;color:var(--mut);line-height:1.5}
+#md .box{color:var(--fg)}#md .box input,#md .box textarea{background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:12px}
+@media(min-width:600px){.am-community-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Community centre polish */
+.am-comm-toolbar{display:grid;grid-template-columns:minmax(0,1fr) 145px;gap:9px;margin:12px 0}.am-comm-toolbar input,.am-comm-toolbar select{min-width:0;padding:13px;border:1px solid var(--line);border-radius:13px;background:var(--card);color:var(--fg)}
+.am-comm-tabs{display:flex;gap:8px;margin:10px 0 14px}.am-comm-tabs button{padding:9px 15px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--fg);font-weight:750}.am-comm-tabs button.on{background:var(--fg);color:var(--bg)}
+.am-comm-live{font-size:9px;font-weight:900;letter-spacing:.08em;border:1px solid var(--line);padding:5px 7px;border-radius:999px}.am-comm-tags{color:var(--mut);overflow-wrap:anywhere}.am-comm-announcement{border:1px solid var(--line);border-left:4px solid var(--fg);border-radius:13px;padding:11px;background:var(--card);margin:8px 0;font-size:13px}.am-comm-announcement-large p{margin:5px 0 0}.am-comm-welcome{padding:12px;border-radius:13px;background:var(--card);border:1px solid var(--line);margin:10px 0}.am-comm-welcome p{margin:5px 0 0;color:var(--mut)}
+.am-comm-join-note,.am-comm-empty{padding:20px;border:1px dashed var(--line);border-radius:16px;text-align:center;margin:14px 0}.am-comm-join-note p,.am-comm-empty p{color:var(--mut);margin:5px 0}.am-comm-compose-title{display:flex;justify-content:space-between;gap:8px;align-items:center}.am-comm-compose-title small,.am-comm-compose-foot small{color:var(--mut);font-size:11px}.am-comm-compose-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px}.am-comm-feed-head{display:flex;align-items:center;justify-content:space-between;margin:18px 0 10px}.am-comm-feed-head span{color:var(--mut);font-size:12px}.am-pinned-post{border:1px solid var(--line);border-radius:16px;padding:8px;margin:10px 0;background:var(--card)}.am-pinned-label{font-size:11px;font-weight:850;padding:5px 7px}.am-comm-post-tools{display:flex;gap:7px;flex-wrap:wrap;padding:4px 8px 8px}.am-comm-member-list{display:grid;gap:8px;max-height:55vh;overflow:auto}.am-comm-member{display:flex;align-items:center;gap:9px;padding:9px;border:1px solid var(--line);border-radius:12px}.am-comm-member>div{flex:1;min-width:0}.am-comm-member small{display:block;color:var(--mut)}.am-comm-member button{font-size:11px;padding:7px}.am-comm-cover-label{font-size:10px;letter-spacing:.14em;font-weight:900;opacity:.8}.am-election-head{display:flex;justify-content:space-between;gap:8px;align-items:center}.am-election-head small{font-size:9px;letter-spacing:.12em;font-weight:900;color:var(--mut)}.am-election-head span{font-size:11px;color:var(--mut)}.am-election-president{font-size:18px;font-weight:900;padding:10px 0}
+@media(max-width:420px){.am-comm-toolbar{grid-template-columns:1fr}.am-comm-compose-foot{align-items:flex-start;flex-direction:column}.am-comm-member{flex-wrap:wrap}}
+</style>
+<script>
+/* Amlink community centre: discovery, creation, moderation, announcements, roles and pinned discussions. */
+const AM_COMM_CATS=['All','General','Technology','Gaming','Education','Business','Entertainment','Lifestyle','Sports','Creators','Local'];
+async function communitiesPage(){
+ let groups=[];try{groups=await A('comms')}catch(e){toast(e.message)}
+ amPage('Communities','Discover your people, build a space, and keep the conversation moving.',
+ `<section class="am-community-hero"><small>AMLINK COMMUNITIES</small><h2>Find your people.</h2><p>Build groups around ideas, interests, learning, games and creativity.</p><button class="pri" id="am-new-group">＋ Create community</button></section>
+ <div class="am-comm-toolbar"><input id="am-community-search" placeholder="Search communities, topics or tags…"><select id="am-community-category" aria-label="Filter category">${AM_COMM_CATS.map(x=>`<option>${x}</option>`).join('')}</select></div>
+ <div class="am-comm-tabs"><button class="on" data-comm-scope="discover">Discover</button><button data-comm-scope="joined">My communities</button></div>
+ <div id="am-groups" class="am-community-grid"></div>`);
+ let scope='discover';
+ const draw=()=>{const q=($('#am-community-search')?.value||'').toLowerCase(),cat=$('#am-community-category')?.value||'All';let rows=groups.filter(g=>(scope!=='joined'||g.Joined)&&(cat==='All'||(g.Category||'General')===cat)&&(`${g.Name} ${g.Desc||''} ${g.Tags||''}`).toLowerCase().includes(q));
+ $('#am-groups').innerHTML=rows.map(g=>`<article class="am-community-card"><div class="am-comm-top"><span class="am-comm-icon">${amEsc((g.Name||'C').slice(0,1).toUpperCase())}</span><div style="min-width:0;flex:1"><b>${amEsc(g.Name)}</b><small style="display:block">${amEsc(g.Category||'General')} · ${g.N||0} members</small></div><span class="am-comm-live">${g.Joined?'MEMBER':'OPEN'}</span></div><p>${amEsc(g.Desc||'A place to connect and share.')}</p>${g.Tags?`<small class="am-comm-tags">${amEsc(g.Tags)}</small>`:''}${g.Announcement?`<div class="am-comm-announcement">📢 ${amEsc(g.Announcement)}</div>`:''}<div class="am-comm-actions"><button class="ed" data-open-community="${amEsc(g.ID)}">Explore</button><button class="${g.Joined?'ed':'pri'}" data-join-community="${amEsc(g.ID)}">${g.Joined?'Open community':'Join community'}</button></div></article>`).join('')||'<div class="am-comm-empty"><b>No communities found</b><p>Try another category or create the first community around this topic.</p></div>'};
+ $('#am-community-search').oninput=draw;$('#am-community-category').onchange=draw;
+ document.querySelectorAll('[data-comm-scope]').forEach(b=>b.onclick=()=>{scope=b.dataset.commScope;document.querySelectorAll('[data-comm-scope]').forEach(x=>x.classList.toggle('on',x===b));draw()});
+ $('#am-new-group').onclick=()=>{modal(`<h3>Create your community</h3><p class="sub">Give members a clear reason to join. You can update these details later.</p><label class="fl2">Community name<input id="am-c-name" maxlength="40" placeholder="e.g. Amlink Creators"></label><label class="fl2">Category<select id="am-c-category">${AM_COMM_CATS.slice(1).map(x=>`<option>${x}</option>`).join('')}</select></label><label class="fl2">Description<textarea id="am-c-desc" maxlength="200" placeholder="What will members share or discuss?"></textarea></label><label class="fl2">Topics / tags<input id="am-c-tags" maxlength="240" placeholder="design, coding, football"></label><label class="fl2">Welcome message<textarea id="am-c-welcome" maxlength="300" placeholder="Welcome new members…"></textarea></label><label class="fl2">Community rules<textarea id="am-c-rules" maxlength="500" placeholder="Be respectful. Keep discussions relevant…"></textarea></label><p class="er" id="am-c-error"></p><button class="pri" id="am-c-create">Create community</button><button class="ed" id="am-c-cancel">Cancel</button>`);$('#am-c-cancel').onclick=closeM;$('#am-c-create').onclick=async()=>{const b=$('#am-c-create');b.disabled=true;try{await A('commcreate',{name:$('#am-c-name').value.trim(),desc:$('#am-c-desc').value.trim(),rules:$('#am-c-rules').value.trim(),category:$('#am-c-category').value,tags:$('#am-c-tags').value.trim(),welcome:$('#am-c-welcome').value.trim()});closeM();groups=await A('comms');scope='joined';draw();toast('Community created — welcome aboard!')}catch(e){$('#am-c-error').textContent=e.message;b.disabled=false}}};
+ $('#am-groups').onclick=async e=>{const open=e.target.closest('[data-open-community]'),join=e.target.closest('[data-join-community]');if(open){await openCommunity(open.dataset.openCommunity);return}if(join){try{await A('commjoin',{id:join.dataset.joinCommunity});groups=await A('comms');draw()}catch(err){toast(err.message)}}};draw();
+}
+async function openCommunity(id){
+ let c;try{c=await A('comm?id='+encodeURIComponent(id))}catch(e){toast(e.message);return}
+ let election=null;try{election=await A('commelection?id='+encodeURIComponent(id))}catch(e){}
+ const member=!!c.Joined,mod=!!c.Mod;let feed=[...(c.Posts||[])];
+ const render=()=>{
+  const pinned=feed.find(p=>p.ID===c.Pinned),ordered=feed.filter(p=>p.ID!==c.Pinned);if(pinned)ordered.unshift(pinned);
+  amPage(c.Name,'Community space · share ideas, ask questions and build together.',
+  `<button class="ed" id="am-comm-back">‹ All communities</button><header class="am-comm-detail-head"><div class="am-comm-cover-label">AMLINK COMMUNITY · ${amEsc(c.Category||'GENERAL')}</div><h2>${amEsc(c.Name)}</h2><p>${amEsc(c.Desc||'A place to connect and share.')}</p><div class="am-comm-stat"><span>♧ ${c.N||0} members</span><span>${mod?(c.Owner?'Owner':'Moderator'):member?'Member':'Public community'}</span><span>${amEsc(c.Tags||'Community')}</span></div><div class="am-comm-actions" style="margin-top:13px">${member?'':`<button class="pri" id="am-comm-join">Join community</button>`}${member&&!c.Owner?'<button class="ed" id="am-comm-leave">Leave</button>':''}${mod?'<button class="ed" id="am-comm-manage">⚙ Manage</button><button class="ed" id="am-comm-members">♧ Members</button>':''}<button class="ed" id="am-comm-rules">Community rules</button></div></header>
+  ${c.Announcement?`<section class="am-comm-announcement am-comm-announcement-large"><b>📢 Community announcement</b><p>${amEsc(c.Announcement)}</p></section>`:''}
+  ${c.Welcome?`<section class="am-comm-welcome"><b>Welcome message</b><p>${amEsc(c.Welcome)}</p></section>`:''}
+  <section id="am-election-panel"></section>
+  ${member?`<section class="am-comm-compose"><div class="am-comm-compose-title"><b>Start a discussion</b><small>Share an update with ${amEsc(c.Name)}</small></div><textarea id="am-comm-text" maxlength="2000" placeholder="What would you like the community to know?"></textarea><label class="fb" style="display:inline-flex;margin-top:8px">📷 Add photos or a video<input id="am-comm-files" type="file" accept="image/*,video/*" multiple hidden></label><div class="pvg" id="am-comm-preview"></div><div class="am-comm-compose-foot"><small>Keep it useful and respectful · 2,000 characters max</small><button class="pri" id="am-comm-publish">Publish post</button></div></section>`:'<section class="am-comm-join-note"><b>Join the conversation</b><p>Become a member to publish posts, vote in community elections and connect with other members.</p></section>'}
+  <div class="am-comm-feed-head"><h3>Community discussions</h3><span>${feed.length} posts</span></div><div id="am-comm-feed">${ordered.map(p=>`<div class="${p.ID===c.Pinned?'am-pinned-post':''}">${p.ID===c.Pinned?'<div class="am-pinned-label">📌 Pinned by moderators</div>':''}${postH(p)}${mod?`<div class="am-comm-post-tools"><button class="ed" data-comm-pin="${amEsc(p.ID)}">${p.ID===c.Pinned?'Unpin post':'Pin post'}</button>${p.U?.ID!==ME.ID?`<button class="ed" data-comm-remove="${amEsc(p.ID)}">Remove post</button>`:''}</div>`:''}</div>`).join('')||'<div class="am-comm-empty"><b>It starts here.</b><p>No discussions yet. Be the first to share something useful.</p></div>'}</div>`);
+  $('#am-comm-back').onclick=communitiesPage;
+  $('#am-comm-join')?.addEventListener('click',async()=>{try{await A('commjoin',{id});await openCommunity(id)}catch(e){toast(e.message)}});
+  $('#am-comm-leave')?.addEventListener('click',async()=>{if(!confirm('Leave this community?'))return;try{await A('commjoin',{id});communitiesPage()}catch(e){toast(e.message)}});
+  $('#am-comm-rules').onclick=()=>modal(`<h3>Community rules</h3><p class="am-rule-copy">${amEsc(c.Rules||'The owner has not added community rules yet.')}</p><button class="pri" id="am-rule-close">Close</button>`),$('#am-rule-close').onclick=closeM;
+  XF=[];
+  $('#am-comm-files')?.addEventListener('change',e=>{XF=[...XF,...e.target.files].slice(0,10);e.target.value='';const box=$('#am-comm-preview');if(box)box.innerHTML=XF.map((f,i)=>`<div class="pvi">${f.type.startsWith('video')?`<video src="${URL.createObjectURL(f)}#t=0.1" muted playsinline></video>`:`<img src="${URL.createObjectURL(f)}" alt="">`}<button type="button" data-am-file-remove="${i}">✕</button></div>`).join('')});
+  $('#am-comm-preview')?.addEventListener('click',e=>{const b=e.target.closest('[data-am-file-remove]');if(!b)return;XF.splice(Number(b.dataset.amFileRemove),1);$('#am-comm-preview').innerHTML=XF.map((f,i)=>`<div class="pvi">${f.type.startsWith('video')?`<video src="${URL.createObjectURL(f)}#t=0.1" muted playsinline></video>`:`<img src="${URL.createObjectURL(f)}" alt="">`}<button type="button" data-am-file-remove="${i}">✕</button></div>`).join('')});
+  $('#am-comm-publish')?.addEventListener('click',async()=>{const text=$('#am-comm-text').value.trim(),b=$('#am-comm-publish');if(!text&&!XF.length)return toast('Write something or add media');if(XF.length>1&&XF.some(f=>!f.type.startsWith('image')))return toast('Several files must all be photos');b.disabled=true;try{const urls=[];for(let i=0;i<XF.length;i++){b.textContent=`Uploading ${i+1}/${XF.length}…`;urls.push(await up(XF[i]))}b.textContent='Publishing…';await A('commpost',{id,text,media:urls.join(','),kind:XF[0]?(XF[0].type.startsWith('video')?'video':'image'):''});toast('Posted to community');await openCommunity(id)}catch(e){toast(e.message);b.disabled=false;b.textContent='Publish post'}});
+  $('#am-comm-manage')?.addEventListener('click',()=>modal(`<h3>Community settings</h3><label class="fl2">Name<input id="am-edit-name" maxlength="40" value="${amEsc(c.Name)}"></label><label class="fl2">Category<select id="am-edit-category">${AM_COMM_CATS.slice(1).map(x=>`<option ${x===(c.Category||'General')?'selected':''}>${x}</option>`).join('')}</select></label><label class="fl2">Description<textarea id="am-edit-desc" maxlength="200">${amEsc(c.Desc||'')}</textarea></label><label class="fl2">Topics / tags<input id="am-edit-tags" maxlength="240" value="${amEsc(c.Tags||'')}"></label><label class="fl2">Welcome message<textarea id="am-edit-welcome" maxlength="300">${amEsc(c.Welcome||'')}</textarea></label><label class="fl2">Rules<textarea id="am-edit-rules" maxlength="500">${amEsc(c.Rules||'')}</textarea></label><button class="pri" id="am-edit-save">Save settings</button><hr><label class="fl2">Announcement<textarea id="am-edit-announcement" maxlength="500" placeholder="Share an important update…">${amEsc(c.Announcement||'')}</textarea></label><button class="ed" id="am-announcement-save">Publish announcement</button>${c.Owner?'<button class="dl" id="am-comm-delete">Delete community</button>':''}`));
+  $('#am-comm-members')?.addEventListener('click',()=>{const members=c.M||[];modal(`<h3>Community members · ${members.length}</h3><div class="am-comm-member-list">${members.map(m=>`<div class="am-comm-member">${AV(m.U)}<div><b>${nm(m.U)}</b><small>${amEsc(m.Role)}</small></div>${c.Owner&&m.Role!=='owner'?`<button class="ed" data-member-role="${amEsc(m.U.ID)}">${m.Role==='mod'?'Remove mod':'Make mod'}</button>`:''}${mod&&m.Role!=='owner'&&m.U.ID!==ME.ID?`<button class="dl" data-member-kick="${amEsc(m.U.ID)}">Remove</button>`:''}</div>`).join('')||'<p>No members found.</p>'}</div>`)});
+  $('#am-comm-feed')?.addEventListener('click',async e=>{const pin=e.target.closest('[data-comm-pin]'),remove=e.target.closest('[data-comm-remove]');try{if(pin){await A('commact',{id,op:pin.dataset.commPin===c.Pinned?'unpin':'pin',post:pin.dataset.commPin});await openCommunity(id)}if(remove&&confirm('Remove this post from the community?')){await A('delpost',{id:remove.dataset.commRemove});await openCommunity(id)}}catch(err){toast(err.message)}});
+  const ep=$('#am-election-panel');if(election&&ep){const president=election.President;ep.innerHTML=`<section class="am-election"><div class="am-election-head"><div><small>COMMUNITY GOVERNANCE</small><h3>♛ Member election</h3></div><span>${amEsc(election.Period||'This month')}</span></div><p class="am-election-note">Members can nominate eligible candidates and vote for a representative.</p><div class="am-election-president">${president?.Username?'@'+amEsc(president.Username):'No president elected yet'}</div>${member?`<p class="am-election-note">Your eligibility: ${election.Followers||0}/100 followers · ${election.Engagement||0}/500 engagement points.</p>${election.CanNominate?'<button class="pri" id="am-comm-nominate">Nominate myself</button>':!election.Eligible?'<p class="am-election-note">Meet the eligibility requirements to nominate.</p>':election.Candidates?.some(x=>x.U?.ID===ME.ID)?'<p class="am-election-note">You are already nominated this month.</p>':''}`:'<p class="am-election-note">Join to participate in elections.</p>'}<div id="am-election-candidates">${(election.Candidates||[]).map(x=>`<div class="am-election-row"><div class="am-el-person">${AV(x.U)}<span><b>${amEsc(x.U?.Username||'Member')}</b><small style="display:block;color:var(--mut)">${x.Votes||0} votes</small></span></div>${member&&x.U?.ID!==ME.ID?`<button data-election-vote="${amEsc(x.U?.ID||'')}" ${election.MyVote===x.U?.ID?'disabled':''}>${election.MyVote===x.U?.ID?'Your vote':'Vote'}</button>`:''}</div>`).join('')||'<p class="am-election-note">No candidates yet.</p>'}</div></section>`;
+   $('#am-comm-nominate')?.addEventListener('click',async()=>{try{await A('commelection',{id,op:'nominate'});toast('You are nominated');await openCommunity(id)}catch(e){toast(e.message)}});
+   ep.querySelectorAll('[data-election-vote]').forEach(b=>b.onclick=async()=>{try{await A('commelection',{id,op:'vote',candidate:b.dataset.electionVote});toast('Vote recorded');await openCommunity(id)}catch(e){toast(e.message)}});
+  }
+ };
+ render();
+ // Settings and member actions are delegated because their dialogs are created dynamically.
+ if(window.AM_COMM_DIALOG_HANDLER)document.removeEventListener('click',window.AM_COMM_DIALOG_HANDLER);
+ window.AM_COMM_DIALOG_HANDLER=async function communityDialogActions(e){const b=e.target.closest('#am-edit-save,#am-announcement-save,#am-comm-delete,[data-member-role],[data-member-kick]');if(!b)return;try{
+  if(b.id==='am-edit-save'){await A('commact',{id,op:'edit',name:$('#am-edit-name').value.trim(),category:$('#am-edit-category').value,desc:$('#am-edit-desc').value.trim(),tags:$('#am-edit-tags').value.trim(),welcome:$('#am-edit-welcome').value.trim(),rules:$('#am-edit-rules').value.trim()});closeM();toast('Community settings saved');await openCommunity(id)}
+  else if(b.id==='am-announcement-save'){await A('commact',{id,op:'announce',text:$('#am-edit-announcement').value.trim()});closeM();toast('Announcement updated');await openCommunity(id)}
+  else if(b.id==='am-comm-delete'){if(confirm('Delete this community and its community posts?')){await A('commact',{id,op:'del'});closeM();communitiesPage()}}
+  else if(b.dataset.memberRole){await A('commact',{id,op:'mod',uid:b.dataset.memberRole});await openCommunity(id)}
+  else if(b.dataset.memberKick){if(confirm('Remove this member from the community?')){await A('commact',{id,op:'kick',uid:b.dataset.memberKick});await openCommunity(id)}}
+ }catch(err){toast(err.message)}
+ };document.addEventListener('click',window.AM_COMM_DIALOG_HANDLER);
+}
+</script>
+
+<script>
+/* Amlink 3D arcade: lightweight solo runs + asynchronous multiplayer score competition. */
+(()=>{
+ const games=[
+  {id:'streetracer',name:'Amlink Street Racer',icon:'🏎️',desc:'Drive a supercar through a 3D city, dodge traffic and set a record.',mode:'Avoid traffic and build distance.'},
+  {id:'skyparkour',name:'Sky Parkour',icon:'🏃',desc:'Jump across floating platforms above the clouds.',mode:'Time your jumps and reach as many platforms as possible.'},
+  {id:'lostisland',name:'Lost Island',icon:'🏝️',desc:'Explore a 3D island, collect crystals and discover hidden places.',mode:'Explore and collect as many crystals as you can.'},
+  {id:'neonrunner',name:'Neon Runner',icon:'🌌',desc:'Sprint through a futuristic neon track and avoid barriers.',mode:'Switch lanes, dodge barriers and beat your distance record.'}
+ ];
+ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ window.X3D_HOME=()=>`<section style="padding:12px"><div class="rpc" style="margin-bottom:12px"><b>🌐 Amlink 3D Worlds</b><p class="am-sub">Play solo, race live with up to three other players, or compete for global records.</p><small>Top player in each game receives the live 🥇 Top 1 badge.</small><div class="gcb" style="margin-top:10px"><button class="pri" data-a="am3d-roomlist">🌐 Find live rooms</button><button class="ed" data-a="am3d-roomjoin">🔑 Join with code</button></div></div><div class="am-feature-grid">${games.map(g=>`<article class="rpc am-feature-card"><div style="font-size:30px">${g.icon}</div><b>${g.name}</b><small>${g.desc}</small><button class="pri" data-a="am3d" data-g="${g.id}">▶ Solo play</button><button class="ed" data-a="am3d-roomcreate" data-g="${g.id}">👥 Create live room</button><button class="ed" data-a="am3drank" data-g="${g.id}">🏆 Leaderboard</button></article>`).join('')}</div><div class="rpc" style="margin-top:12px"><b>🛍 3D Garage & cosmetics</b><p class="am-sub">Unlock visual game skins with Ran Coins. Prices are shown before purchase; no random loot boxes.</p><button class="ed" data-a="shop">Open Shop</button></div></section>`;
+ const origGbody=window.gbody;
+ if(typeof origGbody==='function')window.gbody=async function(){await origGbody();if(window.GT==='3d'||typeof GT!=='undefined'&&GT==='3d'){const box=document.querySelector('#gbody');if(box)box.innerHTML=window.X3D_HOME()}};
+ document.addEventListener('click',e=>{
+  const play=e.target.closest('[data-a="am3d"]'),rank=e.target.closest('[data-a="am3drank"]'),create=e.target.closest('[data-a="am3d-roomcreate"]'),browse=e.target.closest('[data-a="am3d-roomlist"]'),join=e.target.closest('[data-a="am3d-roomjoin"]');
+  if(play){e.preventDefault();launch(play.dataset.g)}
+  if(rank){e.preventDefault();leaderboard(rank.dataset.g)}
+  if(create){e.preventDefault();createRoom(create.dataset.g)}
+  if(browse){e.preventDefault();browseRooms()}
+  if(join){e.preventDefault();const code=prompt('Enter the 6-character room code');if(code)joinRoom(code.trim().toUpperCase())}
+ });
+ async function leaderboard(id){
+  try{let scope='all';const title=games.find(x=>x.id===id)?.name||id;let rows=await A('gboard?g='+encodeURIComponent(id));const htmlHead=`<h3>🏆 ${esc(title)} leaderboard</h3><p class="sub">Top 1 earns the current 🥇 badge. Players compete asynchronously using shared rankings.</p><div class="atb"><button id="am3d-all" class="on">🌍 Everyone</button><button id="am3d-friends">👥 Following</button></div>`;const draw=rows=>{const box=document.querySelector('#md .box');if(!box)return;let list=box.querySelector('#am3d-ranks');if(!list){box.insertAdjacentHTML('beforeend','<div id="am3d-ranks"></div>');list=box.querySelector('#am3d-ranks')}list.innerHTML=(rows.map((r,i)=>`<div class="pr"><b>${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</b>${AV(r.U)}<div class="nm">${esc(r.U.Username||'Player')}</div><b>${Number(r.V).toLocaleString()}</b></div>`).join('')||'<p class="empty">No scores yet. Be the first to set a record.</p>')};modal(htmlHead);draw(rows);document.getElementById('am3d-all').onclick=async()=>{scope='all';document.getElementById('am3d-all').classList.add('on');document.getElementById('am3d-friends').classList.remove('on');draw(await A('gboard?g='+encodeURIComponent(id)))};document.getElementById('am3d-friends').onclick=async()=>{scope='friends';document.getElementById('am3d-friends').classList.add('on');document.getElementById('am3d-all').classList.remove('on');draw(await A('gboard?g='+encodeURIComponent(id)+'&f=1'))}}catch(err){toast(err.message)}
+ }
+ async function createRoom(game){try{const room=await A('roomcreate',{game});roomLobby(room)}catch(e){toast(e.message)}}
+ async function joinRoom(code){try{const room=await A('roomjoin',{code});roomLobby(room)}catch(e){toast(e.message)}}
+ async function browseRooms(){
+  try{const rows=await A('roomlist');const html=`<h3>🌐 Live multiplayer rooms</h3><p class="sub">Join a waiting room. Each room supports up to four players.</p><div id="am3d-room-list"></div>`;modal(html);const box=document.getElementById('am3d-room-list');box.innerHTML=rows.map(r=>`<div class="pr"><div class="nm"><b>${esc(games.find(g=>g.id===r.Game)?.name||r.Game)}</b><br><small>${r.Players.length}/4 players · Room ${esc(r.Code)}</small></div><button class="ed" data-roomjoin="${esc(r.Code)}">Join</button></div>`).join('')||'<p class="empty">No open rooms right now. Create one and invite friends.</p>';box.onclick=e=>{const b=e.target.closest('[data-roomjoin]');if(b)joinRoom(b.dataset.roomjoin)}}catch(e){toast(e.message)}
+ }
+ function roomLobby(initial){
+  let room=initial,poll=null,closed=false;
+  const render=()=>{const g=games.find(x=>x.id===room.Game);const box=document.querySelector('#md .box');if(!box)return;box.innerHTML=`<div class="am3d-head"><div><small>AMLINK LIVE MULTIPLAYER</small><h3>${g?.icon||'🎮'} ${esc(g?.name||room.Game)}</h3></div><button class="ed" id="am3d-room-close">Leave</button></div><div class="rpc"><small>ROOM CODE</small><h2 style="letter-spacing:5px">${esc(room.Code)}</h2><p class="sub">Share this code with friends. Up to four players can join.</p></div><p class="sub">Status: <b>${esc(room.Status)}</b> ${room.Status==='countdown'?'· Race starting…':''}</p><div id="am3d-room-players">${room.Players.map(p=>`<div class="pr">${AV(p.U)}<div class="nm">${nm(p.U)}<br><small>${p.U.ID===room.Host?'Host · ':''}${p.Ready?'Ready':'Not ready'}</small></div>${p.Ready?'✅':'⌛'}</div>`).join('')}</div><div class="gcb"><button class="pri" id="am3d-room-ready">I'm ready</button>${room.Host===ME.ID?'<button class="ed" id="am3d-room-start">Start race</button>':''}</div><small class="sub">The host can start when at least two players have joined and everyone is ready.</small>`;
+   document.getElementById('am3d-room-close').onclick=async()=>{closed=true;clearInterval(poll);try{await A('roomleave',{id:room.ID})}catch(e){}closeM()};
+   document.getElementById('am3d-room-ready').onclick=async()=>{try{room=await A('roomready',{id:room.ID});render()}catch(e){toast(e.message)}};
+   document.getElementById('am3d-room-start')?.addEventListener('click',async()=>{try{room=await A('roomstart',{id:room.ID});render()}catch(e){toast(e.message)}});
+  };
+  render();poll=setInterval(async()=>{if(closed)return;try{room=await A('roomstate?id='+encodeURIComponent(room.ID));if(room.Status==='racing'){closed=true;clearInterval(poll);launch(room.Game,room.ID,true);return}if(room.Status==='finished'){closed=true;clearInterval(poll);const box=document.querySelector('#md .box');if(box)box.innerHTML='<h3>Room ended</h3><p class="sub">This room is no longer active.</p><button class="pri" onclick="closeM()">Close</button>';return}render()}catch(e){closed=true;clearInterval(poll);toast(e.message)}},1000);
+ }
+ async function launch(id,roomID='',autoStart=false){
+  const game=games.find(x=>x.id===id);if(!game)return;
+  let token='',skin='';try{const r=await A('gstart',{game:id});token=r.tok;skin=(await A('cosme')).GameSkin||''}catch(e){toast(e.message);return}
+  modal(`<div class="am3d-head"><div><small>AMLINK 3D ARCADE</small><h3>${game.icon} ${game.name}</h3></div><button class="ed" id="am3d-close">Close</button></div><p class="sub">${esc(game.mode)} ${roomID?'· LIVE MULTIPLAYER ROOM':''}</p><div id="am3d-stage" style="width:100%;height:340px;min-height:280px;background:#080a0d;border-radius:16px;overflow:hidden;position:relative"><div id="am3d-loading" style="padding:35px;text-align:center;color:white">Loading 3D world…</div></div><div class="am3d-controls" id="am3d-controls" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:10px 0"><button data-move="left" type="button" style="min-width:76px;min-height:44px">◀ Left</button><button data-move="jump" type="button" style="min-width:92px;min-height:44px">⬆ Jump</button><button data-move="right" type="button" style="min-width:76px;min-height:44px">Right ▶</button></div><p id="am3d-status" class="sub" style="text-align:center">Tap Start when the world loads.</p><div class="act" style="justify-content:center"><button class="pri" id="am3d-start">Start run</button><button class="ed" id="am3d-rank">🏆 Rankings</button></div><small class="sub">Controls: arrow keys or on-screen buttons. A run lasts up to 45 seconds. ${roomID?'Live opponents are synchronized in this room.':'Create or join a room for live multiplayer.'} Scores are checked by the server.</small>`);
+  const stage=document.getElementById('am3d-stage'),status=document.getElementById('am3d-status'),start=document.getElementById('am3d-start');
+  document.getElementById('am3d-close').onclick=()=>{if(window.AM3D_STOP)window.AM3D_STOP();closeM()};
+  document.getElementById('am3d-rank').onclick=()=>leaderboard(id);
+  try{
+   const THREE=await import('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js');
+   if(!document.getElementById('am3d-stage'))return;
+   const scene=new THREE.Scene();scene.background=new THREE.Color(id==='lostisland'?0x83c9e9:id==='skyparkour'?0x9bd8ff:0x070b18);scene.fog=new THREE.Fog(scene.background,18,90);
+   const camera=new THREE.PerspectiveCamera(65,stage.clientWidth/340,.1,150);camera.position.set(0,5,10);
+   const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.setSize(stage.clientWidth,340);renderer.shadowMap.enabled=false;stage.innerHTML='';stage.appendChild(renderer.domElement);
+   scene.add(new THREE.HemisphereLight(0xffffff,0x344055,2));const sun=new THREE.DirectionalLight(0xffffff,2);sun.position.set(5,10,7);scene.add(sun);
+   const mat=(color,roughness=.75)=>new THREE.MeshStandardMaterial({color,roughness});
+   const floor= new THREE.Mesh(new THREE.PlaneGeometry(120,120),mat(id==='lostisland'?0x2d8053:id==='skyparkour'?0xc9d7e8:id==='neonrunner'?0x11152d:0x333943));floor.rotation.x=-Math.PI/2;floor.position.y=-.6;scene.add(floor);
+   const player=new THREE.Group();const skinColor=skin==='car_silver'?0xbfc7d5:skin==='car_neon'?0x32f5ff:skin==='island_explorer'?0x2d9b68:skin==='runner_pulse'?0xe100ff:skin==='parkour_trail'?0x9b7cff:(id==='neonrunner'?0x00eaff:id==='lostisland'?0x27a96b:0xf4f4f4);const body=new THREE.Mesh(new THREE.BoxGeometry(id==='streetracer'?.9:.65,id==='streetracer'?.45:1,.95),mat(skinColor));body.position.y=.2;player.add(body);
+   if(id==='streetracer'){const roof=new THREE.Mesh(new THREE.BoxGeometry(.55,.25,.45),mat(0x151a22));roof.position.y=.5;player.add(roof);for(const x of [-.48,.48])for(const z of [-.3,.3]){const w=new THREE.Mesh(new THREE.CylinderGeometry(.13,.13,.1,12),mat(0x111111));w.rotation.z=Math.PI/2;w.position.set(x,-.08,z);player.add(w)}}
+   scene.add(player);player.position.z=3;
+   const remoteMeshes=new Map();let roomPoll=null,roomTick=null,roomFinished=false;
+   const obstacles=[],decor=[];const addBlock=(x,z,color=0xe84c4c)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(.9,1,1),mat(color));o.position.set(x,.1,z);scene.add(o);obstacles.push(o);return o};
+   if(id==='lostisland'){
+    for(let i=0;i<26;i++){const x=(Math.random()-.5)*32,z=-Math.random()*55;const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.12,.18,1.4,6),mat(0x76502e));trunk.position.set(x,.1,z);scene.add(trunk);const top=new THREE.Mesh(new THREE.ConeGeometry(.8,2,7),mat(0x176b43));top.position.set(x,1.5,z);scene.add(top);decor.push(trunk,top)}
+   }else{
+    for(let i=0;i<12;i++){const z=-i*7;const line=new THREE.Mesh(new THREE.BoxGeometry(.08,.02,4),mat(id==='neonrunner'?0x00d9ff:0xffffff));line.position.set(0,-.57,z);scene.add(line);decor.push(line)}
+   }
+   const crystals=[];for(let i=0;i<10;i++){const c=new THREE.Mesh(new THREE.OctahedronGeometry(.35),mat(0x55f0ff));c.position.set((Math.random()-.5)*7,.3,-8-i*5);scene.add(c);crystals.push(c)}
+   let lane=0,jump=0,vy=0,score=0,started=false,ended=false,frame=0,raf=0,timer=null,t0=0;
+   if(id==='streetracer'||id==='neonrunner'){for(let i=0;i<15;i++)addBlock((Math.floor(Math.random()*3)-1)*2.2,-12-i*6,id==='neonrunner'?0xe100ff:0xe84c4c)}
+   if(id==='skyparkour'){for(let i=0;i<18;i++){const p=new THREE.Mesh(new THREE.BoxGeometry(2.2,.4,2),mat(i%2?0x6c8cff:0xffffff));p.position.set((Math.floor(Math.random()*3)-1)*2.4,-.5,-6-i*4);scene.add(p);obstacles.push(p)}}
+   const resize=()=>{if(!document.getElementById('am3d-stage'))return;camera.aspect=stage.clientWidth/340;camera.updateProjectionMatrix();renderer.setSize(stage.clientWidth,340)};window.addEventListener('resize',resize);
+   const move=d=>{if(!started||ended)return;if(d==='left')lane=Math.max(-1,lane-1);if(d==='right')lane=Math.min(1,lane+1);if(d==='jump'&&jump<=0){vy=.19}};
+   const key=e=>{if(['ArrowLeft','ArrowRight','ArrowUp',' '].includes(e.key)){e.preventDefault();move(e.key==='ArrowLeft'?'left':e.key==='ArrowRight'?'right':'jump')}};document.addEventListener('keydown',key);
+   document.getElementById('am3d-controls').onclick=e=>{const b=e.target.closest('[data-move]');if(b)move(b.dataset.move)};
+   const finish=async()=>{if(ended)return;ended=true;started=false;clearInterval(timer);status.textContent=`Run complete · score ${Math.floor(score).toLocaleString()}`;start.textContent='Run again';start.disabled=false;try{const result=await A('gscore',{game:id,score:Math.max(1,Math.floor(score)),tok:token});status.textContent+=result.New?' · New personal best! 🎉':` · Best ${result.Best}`;await A('gboard?g='+id);toast('Score saved to leaderboard')}catch(err){status.textContent+=' · Score not saved: '+err.message}if(roomID&&!roomFinished){roomFinished=true;try{await A('roomtick',{id:roomID,score:String(Math.floor(score)),progress:String(Math.min(99,Math.floor((Date.now()-t0)/45000*100))),lane:String(lane),finished:'true'})}catch(e){status.textContent+=' · Room update failed'}}};
+   const animate=()=>{raf=requestAnimationFrame(animate);if(started&&!ended){frame++;score+=id==='lostisland'?0.25:1.4;player.position.x+=(lane*2.2-player.position.x)*.16;if(id==='skyparkour'){player.position.y+=vy;vy-=.012;if(player.position.y<0){player.position.y=0;vy=0}obstacles.forEach(o=>{o.position.z+=.14;if(o.position.z>7){o.position.z=-70-Math.random()*18;o.position.x=(Math.floor(Math.random()*3)-1)*2.4;score+=100}})}else if(id==='lostisland'){player.position.z-=.04;crystals.forEach(c=>{if(c.visible&&player.position.distanceTo(c.position)<1.2){c.visible=false;score+=250}})}else{obstacles.forEach(o=>{o.position.z+=.16;if(o.position.z>7){o.position.z=-85-Math.random()*25;o.position.x=(Math.floor(Math.random()*3)-1)*2.2}if(Math.abs(o.position.x-player.position.x)<.85&&Math.abs(o.position.z-player.position.z)<.85){finish()}});decor.forEach(o=>{if(o.position.z!==undefined){o.position.z+=.16;if(o.position.z>7)o.position.z=-80}})}crystals.forEach(c=>{c.rotation.y+=.04});if(frame%60===0)status.textContent=`Score ${Math.floor(score).toLocaleString()} · ${Math.max(0,45-Math.floor((Date.now()-t0)/1000))}s left`;if(Date.now()-t0>45000)finish()}
+    camera.position.x+=(player.position.x*.35-camera.position.x)*.04;camera.lookAt(player.position.x*.25,0,-4);renderer.render(scene,camera)};
+   if(roomID){
+    roomPoll=setInterval(async()=>{try{const state=await A('roomstate?id='+encodeURIComponent(roomID));if(state.Status==='finished'&&!ended){status.textContent='Race finished · check the room standings';ended=true;started=false;clearInterval(roomTick);clearInterval(roomPoll)}for(const rp of state.Players||[]){const pid=rp.U?.ID;if(!pid||pid===ME.ID)continue;let mesh=remoteMeshes.get(pid);if(!mesh){mesh=new THREE.Group();const color=new THREE.MeshStandardMaterial({color:0xffd166,roughness:.5});const body=new THREE.Mesh(new THREE.BoxGeometry(.8,.45,.9),color);body.position.y=.2;mesh.add(body);scene.add(mesh);remoteMeshes.set(pid,mesh)}mesh.visible=true;mesh.position.x=Number(rp.Lane||0)*2.2;mesh.position.z=2-Math.min(1,Number(rp.Progress||0)/100)*24;}for(const [pid,mesh] of remoteMeshes){if(!(state.Players||[]).some(rp=>rp.U?.ID===pid))mesh.visible=false}status.textContent=`LIVE ROOM · ${(state.Players||[]).length} players · Your score ${Math.floor(score)}`}catch(e){status.textContent='Live room connection interrupted · reconnecting…'}},700);
+    roomTick=setInterval(async()=>{if(!started||ended||roomFinished)return;try{await A('roomtick',{id:roomID,score:String(Math.floor(score)),progress:String(Math.min(99,Math.floor((Date.now()-t0)/45000*100))),lane:String(lane),finished:'false'})}catch(e){status.textContent='Could not sync race state: '+e.message}},900);
+   }
+   window.AM3D_STOP=()=>{ended=true;cancelAnimationFrame(raf);clearInterval(timer);clearInterval(roomPoll);clearInterval(roomTick);if(roomID)A('roomleave',{id:roomID}).catch(()=>{});document.removeEventListener('keydown',key);window.removeEventListener('resize',resize);renderer.dispose();scene.clear()};const modalWatch=new MutationObserver(()=>{if(document.getElementById('md')?.hidden){window.AM3D_STOP();modalWatch.disconnect()}});modalWatch.observe(document.getElementById('md'),{attributes:true,attributeFilter:['hidden']});animate();
+   const beginRun=()=>{if(started||ended)return;started=true;score=0;frame=0;t0=Date.now();start.disabled=true;status.textContent=roomID?'Live race started!':'Go!';};
+   start.onclick=()=>{if(ended){toast('Close and reopen the game for a fresh verified run.');return}beginRun()};
+   status.textContent=roomID?'Connecting to live room…':'World ready. Start your run.';
+   if(autoStart){beginRun()}
+  }catch(err){stage.innerHTML='<div style="padding:25px;color:white;text-align:center"><b>3D graphics could not load.</b><p>Check your internet connection or try a browser with WebGL support.</p></div>';status.textContent='3D engine unavailable';start.disabled=true;}
+ }
+})();
+</script>
 </body>
 </html>
