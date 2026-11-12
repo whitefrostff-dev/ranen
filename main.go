@@ -33,6 +33,7 @@ import (
 
 type User struct {
 	ID, Email, Name, Username     string
+	Country                       string
 	Verified, Admin, Banned, Hide bool
 	Seen                          int64
 	Following                     []string
@@ -106,6 +107,8 @@ type State struct {
 	X8       Ext8
 	X9       Ext9
 	X10      Ext10
+	X11      Ext11
+	X12      Ext12
 	Users    map[string]*User
 	Posts    []*Post
 	Msgs     []Msg
@@ -408,6 +411,11 @@ func api(path string, f func(u *User, w http.ResponseWriter, r *http.Request)) {
 			return
 		}
 		u.Seen = now()
+		// Cloudflare's country header is a country-level signal (not GPS).
+		// Only trust it when the app is behind Cloudflare; unknown is shown otherwise.
+		if cc := strings.ToUpper(strings.TrimSpace(r.Header.Get("CF-IPCountry"))); len(cc) == 2 && cc != "XX" && cc != "T1" {
+			u.Country = cc
+		}
 		f(u, w, r)
 	})
 }
@@ -818,7 +826,7 @@ func main() {
 		on, bn, vr, rv := 0, 0, 0, 0
 		for _, o := range S.Users {
 			m := uv(o.ID)
-			m["Banned"], m["Email"], m["Admin"] = o.Banned, o.Email, o.Admin
+			m["Banned"], m["Email"], m["Admin"], m["Country"] = o.Banned, o.Email, o.Admin, o.Country
 			m["Mod"] = S.X7.Mods[o.ID]
 			us = append(us, m)
 			if now()-o.Seen < 120 && !o.Hide {
@@ -848,7 +856,13 @@ func main() {
 			}
 			rp = append(rp, m)
 		}
-		js(w, map[string]any{"Users": len(S.Users), "Posts": len(S.Posts), "Msgs": len(S.Msgs), "L": us, "Online": on, "Banned": bn, "Verified": vr, "Reels": rv, "Groups": len(S.Groups), "Channels": len(S.Channels), "Moments": len(S.Statuses), "PL": pl, "R": rp, "Notice": S.Notice, "Log": S.Log})
+		countries := map[string]int{}
+		for _, o := range S.Users {
+			if o.Country != "" {
+				countries[o.Country]++
+			}
+		}
+		js(w, map[string]any{"Countries": countries, "Users": len(S.Users), "Posts": len(S.Posts), "Msgs": len(S.Msgs), "L": us, "Online": on, "Banned": bn, "Verified": vr, "Reels": rv, "Groups": len(S.Groups), "Channels": len(S.Channels), "Moments": len(S.Statuses), "PL": pl, "R": rp, "Notice": S.Notice, "Log": S.Log})
 	})
 
 	api("ban", func(u *User, w http.ResponseWriter, r *http.Request) {
@@ -6367,6 +6381,8 @@ var shopItems = []ShopItem{
 	{"parkour_trail", "game", "Sky Parkour · Light trail", 220, 3},
 	{"island_explorer", "game", "Lost Island · Explorer outfit", 260, 3},
 	{"runner_pulse", "game", "Neon Runner · Pulse trail", 240, 3},
+	{"car_gold", "game", "Street Racer · Gold paint", 420, 5},
+	{"car_crimson", "game", "Street Racer · Crimson paint", 360, 4},
 }
 
 func shopItem(id string) *ShopItem {
@@ -8481,6 +8497,552 @@ func extra14() {
 		}
 		g.Updated = now()
 		save()
+		js(w, map[string]bool{"ok": true})
+	})
+}
+
+// ---------- Amlink Empire: server-authoritative two-player kingdom tactics ----------
+type EmpireBattle struct {
+	ID, Code, Host, Opponent, Status string
+	Players                          []string
+	Turn                             int
+	HP                               map[string]int
+	Gold                             map[string]int
+	Army                             map[string]map[string]int
+	Pending                          map[string]string
+	Log                              []string
+	Created, Updated                 int64
+}
+type Ext11 struct {
+	Battles   map[string]*EmpireBattle  `json:"empireBattles"`
+	Inventory map[string]map[string]int `json:"raceInventory"`
+	Cars      map[string][]string       `json:"raceCars"`
+}
+
+func x11() *Ext11 {
+	if S.X11.Battles == nil {
+		S.X11.Battles = map[string]*EmpireBattle{}
+	}
+	if S.X11.Inventory == nil {
+		S.X11.Inventory = map[string]map[string]int{}
+	}
+	if S.X11.Cars == nil {
+		S.X11.Cars = map[string][]string{}
+	}
+	return &S.X11
+}
+func empireView(g *EmpireBattle, uid string) map[string]any {
+	return map[string]any{"ID": g.ID, "Code": g.Code, "Host": g.Host, "Opponent": g.Opponent, "Status": g.Status, "Players": len(g.Players), "Turn": g.Turn, "HP": g.HP, "Gold": g.Gold, "Army": g.Army, "Log": g.Log, "Me": uid, "Updated": g.Updated}
+}
+func empireMember(g *EmpireBattle, uid string) bool {
+	return g != nil && (g.Host == uid || g.Opponent == uid)
+}
+func empireResolve(g *EmpireBattle) {
+	a, b := g.Host, g.Opponent
+	if g.Pending[a] == "" || g.Pending[b] == "" {
+		return
+	}
+	power := func(uid string, tactic string) int {
+		ar := g.Army[uid]
+		p := ar["spearmen"]*2 + ar["swordsmen"]*3 + ar["archers"]*2 + ar["knights"]*5 + ar["guards"]*3
+		switch tactic {
+		case "defend":
+			p = p*3/4 + ar["guards"]*2
+		case "flank":
+			p = p + ar["knights"]*2 - ar["guards"]
+		default:
+			p = p + ar["swordsmen"]
+		}
+		if p < 1 {
+			p = 1
+		}
+		return p
+	}
+	pa, pb := power(a, g.Pending[a]), power(b, g.Pending[b])
+	damage := func(att, def int) int {
+		d := att/4 + 1
+		if d > 22 {
+			d = 22
+		}
+		if def > att {
+			d = 1
+		}
+		return d
+	}
+	da, db := damage(pb, pa), damage(pa, pb)
+	if g.Pending[a] == "defend" {
+		da = (da + 1) / 2
+	}
+	if g.Pending[b] == "defend" {
+		db = (db + 1) / 2
+	}
+	g.HP[a] -= da
+	g.HP[b] -= db
+	g.Gold[a] += 5
+	g.Gold[b] += 5
+	g.Log = append(g.Log, fmt.Sprintf("Turn %d: both kingdoms clashed. %s lost %d health; %s lost %d health.", g.Turn, a, da, b, db))
+	g.Pending[a], g.Pending[b] = "", ""
+	g.Turn++
+	if g.HP[a] <= 0 || g.HP[b] <= 0 {
+		g.Status = "finished"
+		if g.HP[a] > g.HP[b] {
+			g.Log = append(g.Log, "The host kingdom wins the battle.")
+		} else if g.HP[b] > g.HP[a] {
+			g.Log = append(g.Log, "The challenger kingdom wins the battle.")
+		} else {
+			g.Log = append(g.Log, "The battle ends in a draw.")
+		}
+	}
+	if len(g.Log) > 40 {
+		g.Log = g.Log[len(g.Log)-40:]
+	}
+}
+func extraEmpire() {
+	api("empirecreate", func(u *User, w http.ResponseWriter, r *http.Request) {
+		id := uid()
+		code := ""
+		for i := 0; i < 6; i++ {
+			code += strings.ToUpper(uid()[:1])
+		}
+		g := &EmpireBattle{ID: id, Code: code, Host: u.ID, Status: "waiting", Players: []string{u.ID}, Turn: 1, HP: map[string]int{u.ID: 100}, Gold: map[string]int{u.ID: 25}, Army: map[string]map[string]int{u.ID: {"spearmen": 3, "swordsmen": 2, "archers": 2, "knights": 0, "guards": 1}}, Pending: map[string]string{}, Created: now(), Updated: now()}
+		x11().Battles[id] = g
+		save()
+		js(w, empireView(g, u.ID))
+	})
+	api("empirelist", func(u *User, w http.ResponseWriter, r *http.Request) {
+		out := []map[string]any{}
+		for _, g := range x11().Battles {
+			if g.Status == "waiting" && g.Host != u.ID && now()-g.Updated < 3600 {
+				out = append(out, map[string]any{"ID": g.ID, "Code": g.Code, "Players": len(g.Players), "Status": g.Status})
+			}
+		}
+		js(w, out)
+	})
+	api("empirejoin", func(u *User, w http.ResponseWriter, r *http.Request) {
+		code := strings.ToUpper(strings.TrimSpace(in(r)["code"]))
+		var g *EmpireBattle
+		for _, v := range x11().Battles {
+			if v.Code == code {
+				g = v
+				break
+			}
+		}
+		if g == nil || g.Status != "waiting" || g.Host == u.ID {
+			fail(w, 404, "Open Empire battle not found")
+			return
+		}
+		g.Opponent = u.ID
+		g.Players = append(g.Players, u.ID)
+		g.HP[u.ID] = 100
+		g.Gold[u.ID] = 25
+		g.Army[u.ID] = map[string]int{"spearmen": 3, "swordsmen": 2, "archers": 2, "knights": 0, "guards": 1}
+		g.Status = "active"
+		g.Updated = now()
+		g.Log = append(g.Log, "A rival kingdom has joined. Prepare your armies!")
+		save()
+		js(w, empireView(g, u.ID))
+	})
+	api("empirestate", func(u *User, w http.ResponseWriter, r *http.Request) {
+		g := x11().Battles[r.URL.Query().Get("id")]
+		if !empireMember(g, u.ID) {
+			fail(w, 404, "Empire battle not found")
+			return
+		}
+		js(w, empireView(g, u.ID))
+	})
+	api("empireact", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		g := x11().Battles[b["id"]]
+		if !empireMember(g, u.ID) || g.Status != "active" {
+			fail(w, 409, "Empire battle is not active")
+			return
+		}
+		if g.Pending[u.ID] != "" {
+			fail(w, 409, "Your action is already submitted; waiting for your rival")
+			return
+		}
+		switch b["action"] {
+		case "recruit":
+			unit := b["unit"]
+			costs := map[string]int{"spearmen": 3, "swordsmen": 4, "archers": 3, "knights": 6, "guards": 5}
+			cost, ok := costs[unit]
+			if !ok {
+				fail(w, 400, "Unknown troop type")
+				return
+			}
+			if g.Gold[u.ID] < cost {
+				fail(w, 400, "Not enough kingdom gold")
+				return
+			}
+			g.Gold[u.ID] -= cost
+			g.Army[u.ID][unit]++
+			g.Log = append(g.Log, "A kingdom recruited "+unit+".")
+		case "attack":
+			t := b["tactic"]
+			if t != "balanced" && t != "defend" && t != "flank" {
+				fail(w, 400, "Choose a valid battle tactic")
+				return
+			}
+			g.Pending[u.ID] = t
+			g.Log = append(g.Log, "A kingdom submitted its battle tactic.")
+			empireResolve(g)
+		default:
+			fail(w, 400, "Unknown Empire action")
+			return
+		}
+		g.Updated = now()
+		save()
+		js(w, empireView(g, u.ID))
+	})
+	// Cars and boosters are bought with earned Ran Coins; no external payment is processed here.
+	api("raceuse", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		id := b["id"]
+		if id != "nitro_small" && id != "nitro_large" {
+			fail(w, 400, "Unknown booster")
+			return
+		}
+		inv := x11().Inventory[u.ID]
+		if inv[id] < 1 {
+			fail(w, 400, "You do not own this booster")
+			return
+		}
+		inv[id]--
+		save()
+		js(w, map[string]any{"Inventory": inv})
+	})
+	api("racegarage", func(u *User, w http.ResponseWriter, r *http.Request) {
+		owned := x11().Cars[u.ID]
+		if !has(owned, "starter_gt") {
+			owned = append(owned, "starter_gt")
+			x11().Cars[u.ID] = owned
+		}
+		js(w, map[string]any{"Cars": owned, "Inventory": x11().Inventory[u.ID], "Coins": gpf(u.ID).Coins})
+	})
+	api("racebuy", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		id := b["id"]
+		prices := map[string]int{"silver_gt": 180, "neon_hyper": 320, "crimson_v12": 520, "nitro_small": 45, "nitro_large": 110}
+		price, ok := prices[id]
+		if !ok {
+			fail(w, 400, "Unknown garage item")
+			return
+		}
+		if id == "nitro_small" || id == "nitro_large" {
+			inv := x11().Inventory[u.ID]
+			if inv == nil {
+				inv = map[string]int{}
+				x11().Inventory[u.ID] = inv
+			}
+			if !spendCoins(u, gpf(u.ID), price) {
+				fail(w, 400, "Not enough Ran Coin")
+				return
+			}
+			inv[id]++
+			ledger(u.ID, spentAmt(u, price), "race", "Bought race booster")
+			save()
+			js(w, map[string]any{"Inventory": inv, "Coins": gpf(u.ID).Coins})
+			return
+		}
+		cars := x11().Cars[u.ID]
+		if has(cars, id) {
+			fail(w, 400, "You already own this car")
+			return
+		}
+		if !spendCoins(u, gpf(u.ID), price) {
+			fail(w, 400, "Not enough Ran Coin")
+			return
+		}
+		x11().Cars[u.ID] = append(cars, id)
+		ledger(u.ID, spentAmt(u, price), "race", "Bought race car")
+		save()
+		js(w, map[string]any{"Cars": x11().Cars[u.ID], "Coins": gpf(u.ID).Coins})
+	})
+}
+func init() { extraEmpire() }
+
+// ---------- Lost Island shared persistent world (voice chat intentionally deferred) ----------
+type IslandPlayer struct {
+	User    string  `json:"user"`
+	X       float64 `json:"x"`
+	Z       float64 `json:"z"`
+	Updated int64   `json:"updated"`
+	Online  bool    `json:"online"`
+}
+type IslandBuild struct {
+	ID       string  `json:"id"`
+	Owner    string  `json:"owner"`
+	Kind     string  `json:"kind"`
+	X        float64 `json:"x"`
+	Z        float64 `json:"z"`
+	Rotation int     `json:"rotation"`
+	Name     string  `json:"name"`
+	Created  int64   `json:"created"`
+}
+type IslandWorld struct {
+	ID         string                    `json:"id"`
+	Code       string                    `json:"code"`
+	Name       string                    `json:"name"`
+	Owner      string                    `json:"owner"`
+	Private    bool                      `json:"private"`
+	Players    map[string]*IslandPlayer  `json:"players"`
+	Builds     []IslandBuild             `json:"builds"`
+	Resources  map[string]map[string]int `json:"resources"`
+	Reputation map[string]int            `json:"reputation"`
+	Created    int64                     `json:"created"`
+	Updated    int64                     `json:"updated"`
+}
+type Ext12 struct {
+	Worlds map[string]*IslandWorld `json:"islandWorlds"`
+}
+
+func x12() *Ext12 {
+	if S.X12.Worlds == nil {
+		S.X12.Worlds = map[string]*IslandWorld{}
+	}
+	return &S.X12
+}
+func islandWorldView(w *IslandWorld, me string) map[string]any {
+	ps := []map[string]any{}
+	for id, p := range w.Players {
+		if now()-p.Updated > 35 {
+			p.Online = false
+		}
+		if p.Online && S.Users[id] != nil {
+			ps = append(ps, map[string]any{"U": uv(id), "X": p.X, "Z": p.Z, "Owner": id == w.Owner})
+		}
+	}
+	sort.Slice(ps, func(i, j int) bool {
+		return ps[i]["U"].(map[string]any)["Username"].(string) < ps[j]["U"].(map[string]any)["Username"].(string)
+	})
+	res := w.Resources[me]
+	if res == nil {
+		res = map[string]int{"wood": 30, "stone": 20, "food": 15, "crystal": 0}
+		w.Resources[me] = res
+	}
+	return map[string]any{"ID": w.ID, "Code": w.Code, "Name": w.Name, "Owner": w.Owner, "Private": w.Private, "Players": ps, "Builds": w.Builds, "Resources": res, "Reputation": w.Reputation[me], "MaxPlayers": 30}
+}
+func islandOnlineCount(w *IslandWorld) int {
+	n := 0
+	for _, p := range w.Players {
+		if p.Online && now()-p.Updated < 35 {
+			n++
+		}
+	}
+	return n
+}
+func islandFind(code string) *IslandWorld {
+	for _, w := range x12().Worlds {
+		if strings.EqualFold(w.Code, code) || w.ID == code {
+			return w
+		}
+	}
+	return nil
+}
+func init() { extraLostIsland() }
+func extraLostIsland() {
+	api("islandlist", func(u *User, w http.ResponseWriter, r *http.Request) {
+		out := []map[string]any{}
+		for _, v := range x12().Worlds {
+			if !v.Private && now()-v.Updated < 86400 {
+				out = append(out, map[string]any{"ID": v.ID, "Code": v.Code, "Name": v.Name, "Players": islandOnlineCount(v), "Owner": uv(v.Owner)})
+			}
+		}
+		sort.Slice(out, func(i, j int) bool { return out[i]["Players"].(int) > out[j]["Players"].(int) })
+		if len(out) > 30 {
+			out = out[:30]
+		}
+		js(w, out)
+	})
+	api("islandcreate", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		name := strings.TrimSpace(b["name"])
+		if name == "" {
+			name = "" + u.Username + "'s Island"
+		}
+		if len([]rune(name)) > 32 {
+			name = string([]rune(name)[:32])
+		}
+		priv := b["private"] == "true"
+		code := strings.ToUpper(uid()[:6])
+		id := uid()
+		world := &IslandWorld{ID: id, Code: code, Name: name, Owner: u.ID, Private: priv, Players: map[string]*IslandPlayer{}, Resources: map[string]map[string]int{}, Reputation: map[string]int{}, Created: now(), Updated: now()}
+		world.Players[u.ID] = &IslandPlayer{User: u.ID, Updated: now(), Online: true}
+		world.Resources[u.ID] = map[string]int{"wood": 50, "stone": 35, "food": 25, "crystal": 0}
+		x12().Worlds[id] = world
+		save()
+		js(w, islandWorldView(world, u.ID))
+	})
+	api("islandjoin", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		world := islandFind(strings.TrimSpace(b["code"]))
+		if world == nil || (world.Private && world.Owner != u.ID && !strings.EqualFold(world.Code, b["code"])) {
+			fail(w, 404, "Island not found or private invite code is invalid")
+			return
+		}
+		online := 0
+		for _, p := range world.Players {
+			if p.Online && now()-p.Updated < 35 {
+				online++
+			}
+		}
+		if world.Players[u.ID] == nil && online >= 30 {
+			fail(w, 409, "This island is full. Try another island.")
+			return
+		}
+		if world.Players[u.ID] == nil {
+			world.Players[u.ID] = &IslandPlayer{User: u.ID, Updated: now(), Online: true}
+		}
+		if world.Resources[u.ID] == nil {
+			world.Resources[u.ID] = map[string]int{"wood": 30, "stone": 20, "food": 15, "crystal": 0}
+		}
+		world.Players[u.ID].Online = true
+		world.Players[u.ID].Updated = now()
+		world.Updated = now()
+		save()
+		js(w, islandWorldView(world, u.ID))
+	})
+	api("islandstate", func(u *User, w http.ResponseWriter, r *http.Request) {
+		world := islandFind(r.URL.Query().Get("id"))
+		if world == nil || world.Players[u.ID] == nil {
+			fail(w, 404, "Island session not found")
+			return
+		}
+		p := world.Players[u.ID]
+		p.Online = true
+		p.Updated = now()
+		world.Updated = now()
+		js(w, islandWorldView(world, u.ID))
+	})
+	api("islandmove", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		world := islandFind(b["id"])
+		if world == nil || world.Players[u.ID] == nil {
+			fail(w, 404, "Island session not found")
+			return
+		}
+		x, _ := strconv.ParseFloat(b["x"], 64)
+		z, _ := strconv.ParseFloat(b["z"], 64)
+		if math.IsNaN(x) || math.IsInf(x, 0) || math.IsNaN(z) || math.IsInf(z, 0) {
+			fail(w, 400, "Invalid position")
+			return
+		}
+		if x < -48 {
+			x = -48
+		}
+		if x > 48 {
+			x = 48
+		}
+		if z < -48 {
+			z = -48
+		}
+		if z > 48 {
+			z = 48
+		}
+		p := world.Players[u.ID]
+		p.X = x
+		p.Z = z
+		p.Updated = now()
+		p.Online = true
+		world.Updated = now()
+		js(w, map[string]bool{"ok": true})
+	})
+	api("islandgather", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		world := islandFind(b["id"])
+		if world == nil || world.Players[u.ID] == nil {
+			fail(w, 404, "Island session not found")
+			return
+		}
+		kind := b["kind"]
+		if kind != "wood" && kind != "stone" && kind != "food" && kind != "crystal" {
+			fail(w, 400, "Unknown resource")
+			return
+		}
+		res := world.Resources[u.ID]
+		if res == nil {
+			res = map[string]int{"wood": 30, "stone": 20, "food": 15, "crystal": 0}
+			world.Resources[u.ID] = res
+		}
+		gain := 5
+		if kind == "crystal" {
+			gain = 1
+		}
+		if res[kind] >= 9999 {
+			fail(w, 400, "Your storage is full")
+			return
+		}
+		res[kind] += gain
+		world.Reputation[u.ID]++
+		world.Updated = now()
+		save()
+		js(w, islandWorldView(world, u.ID))
+	})
+	api("islandbuild", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		world := islandFind(b["id"])
+		if world == nil || world.Players[u.ID] == nil {
+			fail(w, 404, "Island session not found")
+			return
+		}
+		kind := b["kind"]
+		costs := map[string]map[string]int{"cabin": {"wood": 20, "stone": 5}, "house": {"wood": 35, "stone": 20}, "farm": {"wood": 15, "stone": 5}, "bridge": {"wood": 25, "stone": 10}, "dock": {"wood": 30, "stone": 15}, "village": {"wood": 60, "stone": 45}, "decoration": {"wood": 5, "stone": 2}}
+		cost, ok := costs[kind]
+		if !ok {
+			fail(w, 400, "Unknown building")
+			return
+		}
+		if len(world.Builds) >= 500 {
+			fail(w, 409, "This island has reached its building limit")
+			return
+		}
+		res := world.Resources[u.ID]
+		for k, n := range cost {
+			if res[k] < n {
+				fail(w, 400, "Not enough resources: collect more "+k)
+				return
+			}
+		}
+		x, _ := strconv.ParseFloat(b["x"], 64)
+		z, _ := strconv.ParseFloat(b["z"], 64)
+		if x < -45 {
+			x = -45
+		}
+		if x > 45 {
+			x = 45
+		}
+		if z < -45 {
+			z = -45
+		}
+		if z > 45 {
+			z = 45
+		}
+		for _, v := range world.Builds {
+			if math.Hypot(v.X-x, v.Z-z) < 2.8 {
+				fail(w, 409, "That spot is too close to another building")
+				return
+			}
+		}
+		for k, n := range cost {
+			res[k] -= n
+		}
+		world.Builds = append(world.Builds, IslandBuild{ID: uid(), Owner: u.ID, Kind: kind, X: x, Z: z, Name: cut(kind), Created: now()})
+		world.Reputation[u.ID] += 5
+		world.Updated = now()
+		save()
+		js(w, islandWorldView(world, u.ID))
+	})
+	api("islandleave", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		world := islandFind(b["id"])
+		if world != nil {
+			if p := world.Players[u.ID]; p != nil {
+				p.Online = false
+				p.Updated = now()
+			}
+			world.Updated = now()
+			save()
+		}
 		js(w, map[string]bool{"ok": true})
 	})
 }
