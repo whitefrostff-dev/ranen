@@ -9013,7 +9013,7 @@ func extraEmpire() {
 	api("gamestore", func(u *User, w http.ResponseWriter, r *http.Request) {
 		game := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("game")))
 		prices := map[string]map[string]int{
-			"streetracer": {"starter_gt": 0, "silver_gt": 180, "neon_hyper": 320, "crimson_v12": 520, "phantom_xr": 680, "volt_apex": 760},
+			"streetracer": {"starter_gt": 0, "silver_gt": 180, "neon_hyper": 320, "crimson_v12": 520, "phantom_xr": 680, "volt_apex": 760, "aurora_gt": 820, "titan_rs": 880, "eclipse_s": 940, "inferno_x": 1020, "nebula_r": 1100, "monarch_gt": 1180, "raptor_9": 1260, "tempest_v": 1340, "onyx_black": 1420, "solar_flare": 1500, "arctic_wolf": 1580, "scarlet_gt": 1660, "blue_streak": 1740, "copperhead": 1820, "phantom_e": 1900, "zenith_r": 1980, "drift_king": 2060, "obsidian_x": 2140, "sapphire_v": 2220, "rose_gold": 2300, "venom_gt": 2380, "storm_chaser": 2460, "dragon_r": 2540, "apex_one": 2800},
 			"lostisland":  {"palm_camp": 120, "explorer_pack": 180, "azure_pickaxe": 220, "reef_boat": 300},
 			"neonrunner":  {"cyber_suit": 140, "plasma_trail": 180, "pulse_board": 240, "holo_runner": 320},
 			"skyparkour":  {"cloud_glider": 120, "sky_sneakers": 160, "aurora_trail": 200, "wing_cape": 280},
@@ -9050,7 +9050,7 @@ func extraEmpire() {
 		game := strings.ToLower(strings.TrimSpace(b["game"]))
 		id := strings.TrimSpace(b["id"])
 		prices := map[string]map[string]int{
-			"streetracer": {"starter_gt": 0, "silver_gt": 180, "neon_hyper": 320, "crimson_v12": 520, "phantom_xr": 680, "volt_apex": 760},
+			"streetracer": {"starter_gt": 0, "silver_gt": 180, "neon_hyper": 320, "crimson_v12": 520, "phantom_xr": 680, "volt_apex": 760, "aurora_gt": 820, "titan_rs": 880, "eclipse_s": 940, "inferno_x": 1020, "nebula_r": 1100, "monarch_gt": 1180, "raptor_9": 1260, "tempest_v": 1340, "onyx_black": 1420, "solar_flare": 1500, "arctic_wolf": 1580, "scarlet_gt": 1660, "blue_streak": 1740, "copperhead": 1820, "phantom_e": 1900, "zenith_r": 1980, "drift_king": 2060, "obsidian_x": 2140, "sapphire_v": 2220, "rose_gold": 2300, "venom_gt": 2380, "storm_chaser": 2460, "dragon_r": 2540, "apex_one": 2800},
 			"lostisland":  {"palm_camp": 120, "explorer_pack": 180, "azure_pickaxe": 220, "reef_boat": 300},
 			"neonrunner":  {"cyber_suit": 140, "plasma_trail": 180, "pulse_board": 240, "holo_runner": 320},
 			"skyparkour":  {"cloud_glider": 120, "sky_sneakers": 160, "aurora_trail": 200, "wing_cape": 280},
