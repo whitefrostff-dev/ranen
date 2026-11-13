@@ -8502,6 +8502,22 @@ func extra14() {
 }
 
 // ---------- Amlink Empire: server-authoritative two-player kingdom tactics ----------
+type EmpirePoint struct {
+	X float64 `json:"x"`
+	Z float64 `json:"z"`
+}
+type EmpireLiveUnit struct {
+	ID        string        `json:"id"`
+	Owner     string        `json:"owner"`
+	Team      int           `json:"team"`
+	Type      string        `json:"type"`
+	X         float64       `json:"x"`
+	Z         float64       `json:"z"`
+	HP        int           `json:"hp"`
+	Path      []EmpirePoint `json:"path"`
+	PathIndex int           `json:"pathIndex"`
+	AttackAt  int64         `json:"attackAt"`
+}
 type EmpireBattle struct {
 	ID, Code, Host, Opponent, Status string
 	Players                          []string
@@ -8509,14 +8525,18 @@ type EmpireBattle struct {
 	HP                               map[string]int
 	Gold                             map[string]int
 	Army                             map[string]map[string]int
+	Buildings                        map[string]map[string]int `json:"buildings,omitempty"`
+	LiveUnits                        []EmpireLiveUnit          `json:"liveUnits,omitempty"`
+	LastTick                         int64                     `json:"lastTick,omitempty"`
 	Pending                          map[string]string
 	Log                              []string
 	Created, Updated                 int64
 }
 type Ext11 struct {
-	Battles   map[string]*EmpireBattle  `json:"empireBattles"`
-	Inventory map[string]map[string]int `json:"raceInventory"`
-	Cars      map[string][]string       `json:"raceCars"`
+	Battles    map[string]*EmpireBattle   `json:"empireBattles"`
+	Inventory  map[string]map[string]int  `json:"raceInventory"`
+	Cars       map[string][]string        `json:"raceCars"`
+	StoreOwned map[string]map[string]bool `json:"gameStoreOwned"`
 }
 
 func x11() *Ext11 {
@@ -8529,10 +8549,13 @@ func x11() *Ext11 {
 	if S.X11.Cars == nil {
 		S.X11.Cars = map[string][]string{}
 	}
+	if S.X11.StoreOwned == nil {
+		S.X11.StoreOwned = map[string]map[string]bool{}
+	}
 	return &S.X11
 }
 func empireView(g *EmpireBattle, uid string) map[string]any {
-	return map[string]any{"ID": g.ID, "Code": g.Code, "Host": g.Host, "Opponent": g.Opponent, "Status": g.Status, "Players": len(g.Players), "Turn": g.Turn, "HP": g.HP, "Gold": g.Gold, "Army": g.Army, "Log": g.Log, "Me": uid, "Updated": g.Updated}
+	return map[string]any{"ID": g.ID, "Code": g.Code, "Host": g.Host, "Opponent": g.Opponent, "Status": g.Status, "Players": len(g.Players), "Turn": g.Turn, "HP": g.HP, "Gold": g.Gold, "Army": g.Army, "Buildings": g.Buildings, "LiveUnits": g.LiveUnits, "Pending": g.Pending, "Log": g.Log, "Me": uid, "Updated": g.Updated}
 }
 func empireMember(g *EmpireBattle, uid string) bool {
 	return g != nil && (g.Host == uid || g.Opponent == uid)
@@ -8576,10 +8599,19 @@ func empireResolve(g *EmpireBattle) {
 	if g.Pending[b] == "defend" {
 		db = (db + 1) / 2
 	}
+	// Defensive structures reduce incoming damage; gold mines increase round income.
+	if g.Buildings != nil {
+		defence := func(uid string) int { b := g.Buildings[uid]; return b["cannon"]*2 + b["archer_tower"]*2 + b["wall"] }
+		da = max(1, da-defence(a))
+		db = max(1, db-defence(b))
+		g.Gold[a] += 4 + g.Buildings[a]["gold_mine"]*2
+		g.Gold[b] += 4 + g.Buildings[b]["gold_mine"]*2
+	} else {
+		g.Gold[a] += 5
+		g.Gold[b] += 5
+	}
 	g.HP[a] -= da
 	g.HP[b] -= db
-	g.Gold[a] += 5
-	g.Gold[b] += 5
 	g.Log = append(g.Log, fmt.Sprintf("Turn %d: both kingdoms clashed. %s lost %d health; %s lost %d health.", g.Turn, a, da, b, db))
 	g.Pending[a], g.Pending[b] = "", ""
 	g.Turn++
@@ -8597,6 +8629,204 @@ func empireResolve(g *EmpireBattle) {
 		g.Log = g.Log[len(g.Log)-40:]
 	}
 }
+
+// Empire uses server-authoritative movement. A small grid A* routes troops around
+// the rival's perimeter wall and through its gate; clients only render server state.
+func empirePath(team int, lane int) []EmpirePoint {
+	const cell = 1.0
+	startX, goalX := -10, 14
+	if team == 1 {
+		startX, goalX = 10, -14
+	}
+	startZ := float64(lane) * 3
+	sx, sz := int(math.Round(float64(startX)/cell)), int(math.Round(startZ/cell))
+	gx, gz := int(math.Round(float64(goalX)/cell)), 0
+	key := func(x, z int) string { return fmt.Sprintf("%d,%d", x, z) }
+	blocked := func(x, z int) bool {
+		// Opponent's two side walls; the central gate remains open.
+		wallX := 12
+		if team == 1 {
+			wallX = -12
+		}
+		if x == wallX && z >= -7 && z <= 7 && (z < -1 || z > 1) {
+			return true
+		}
+		// Decorative building footprints around both keeps.
+		for _, cx := range []int{-17, 17} {
+			if x >= cx-2 && x <= cx+2 && z >= -2 && z <= 2 {
+				return true
+			}
+		}
+		return false
+	}
+	type node struct {
+		x, z int
+		f, g int
+	}
+	open := []node{{sx, sz, absInt(gx-sx) + absInt(gz-sz), 0}}
+	came := map[string]string{}
+	cost := map[string]int{key(sx, sz): 0}
+	closed := map[string]bool{}
+	dirs := [][2]int{{1, 0}, {-1, 0}, {0, 1}, {0, -1}}
+	for len(open) > 0 {
+		best := 0
+		for i := 1; i < len(open); i++ {
+			if open[i].f < open[best].f {
+				best = i
+			}
+		}
+		cur := open[best]
+		open = append(open[:best], open[best+1:]...)
+		ck := key(cur.x, cur.z)
+		if closed[ck] {
+			continue
+		}
+		closed[ck] = true
+		if cur.x == gx && cur.z == gz {
+			rev := []EmpirePoint{{X: float64(gx), Z: float64(gz)}}
+			k := ck
+			for k != key(sx, sz) {
+				prev, ok := came[k]
+				if !ok {
+					break
+				}
+				var x, z int
+				fmt.Sscanf(prev, "%d,%d", &x, &z)
+				rev = append(rev, EmpirePoint{X: float64(x), Z: float64(z)})
+				k = prev
+			}
+			for i, j := 0, len(rev)-1; i < j; i, j = i+1, j-1 {
+				rev[i], rev[j] = rev[j], rev[i]
+			}
+			return rev
+		}
+		for _, d := range dirs {
+			nx, nz := cur.x+d[0], cur.z+d[1]
+			if nx < -22 || nx > 22 || nz < -12 || nz > 12 || blocked(nx, nz) {
+				continue
+			}
+			nk := key(nx, nz)
+			ng := cur.g + 1
+			if old, ok := cost[nk]; ok && ng >= old {
+				continue
+			}
+			cost[nk] = ng
+			came[nk] = ck
+			h := absInt(gx-nx) + absInt(gz-nz)
+			open = append(open, node{nx, nz, ng + h, ng})
+		}
+	}
+	// Safe fallback through the gate if the grid is unexpectedly blocked.
+	return []EmpirePoint{{X: float64(startX), Z: startZ}, {X: float64(func() int {
+		if team == 0 {
+			return 12
+		}
+		return -12
+	}()), Z: 0}, {X: float64(goalX), Z: 0}}
+}
+func absInt(v int) int {
+	if v < 0 {
+		return -v
+	}
+	return v
+}
+func empireTick(g *EmpireBattle) bool {
+	nowMS := time.Now().UnixMilli()
+	if g.LastTick == 0 {
+		g.LastTick = nowMS
+		return false
+	}
+	dt := float64(nowMS-g.LastTick) / 1000
+	if dt < .25 {
+		return false
+	}
+	if dt > 1.5 {
+		dt = 1.5
+	}
+	g.LastTick = nowMS
+	changed := false
+	speed := 2.7 * dt
+	for i := range g.LiveUnits {
+		u := &g.LiveUnits[i]
+		if u.HP <= 0 {
+			continue
+		}
+		// Units engage nearby enemies before continuing toward the opposing keep.
+		enemyIdx := -1
+		best := 1.15
+		for j := range g.LiveUnits {
+			v := &g.LiveUnits[j]
+			if v.HP <= 0 || v.Team == u.Team {
+				continue
+			}
+			d := math.Hypot(v.X-u.X, v.Z-u.Z)
+			if d < best {
+				best = d
+				enemyIdx = j
+			}
+		}
+		if enemyIdx >= 0 {
+			v := &g.LiveUnits[enemyIdx]
+			if u.AttackAt <= nowMS {
+				v.HP -= 12
+				u.AttackAt = nowMS + 900
+				changed = true
+			}
+			continue
+		}
+		if u.PathIndex < len(u.Path) {
+			pt := u.Path[u.PathIndex]
+			dx, dz := pt.X-u.X, pt.Z-u.Z
+			dist := math.Hypot(dx, dz)
+			if dist <= speed || dist < .08 {
+				u.X, u.Z = pt.X, pt.Z
+				u.PathIndex++
+			} else {
+				u.X += dx / dist * speed
+				u.Z += dz / dist * speed
+			}
+			changed = true
+		} else {
+			def := g.Opponent
+			if u.Team == 1 {
+				def = g.Host
+			}
+			if g.HP[def] > 0 {
+				g.HP[def] -= 5
+				u.HP = 0
+				g.Log = append(g.Log, fmt.Sprintf("%s troop reached the keep and dealt 5 damage.", u.Type))
+				changed = true
+			}
+		}
+	}
+	kept := g.LiveUnits[:0]
+	for _, u := range g.LiveUnits {
+		if u.HP > 0 {
+			kept = append(kept, u)
+		}
+	}
+	if len(kept) != len(g.LiveUnits) {
+		changed = true
+	}
+	g.LiveUnits = kept
+	if g.HP[g.Host] <= 0 || g.HP[g.Opponent] <= 0 {
+		g.Status = "finished"
+		if g.HP[g.Host] > g.HP[g.Opponent] {
+			g.Log = append(g.Log, "The host kingdom wins the raid.")
+		} else if g.HP[g.Opponent] > g.HP[g.Host] {
+			g.Log = append(g.Log, "The challenger kingdom wins the raid.")
+		}
+		changed = true
+	}
+	if changed {
+		g.Updated = now()
+		if len(g.Log) > 40 {
+			g.Log = g.Log[len(g.Log)-40:]
+		}
+	}
+	return changed
+}
+
 func extraEmpire() {
 	api("empirecreate", func(u *User, w http.ResponseWriter, r *http.Request) {
 		id := uid()
@@ -8604,7 +8834,7 @@ func extraEmpire() {
 		for i := 0; i < 6; i++ {
 			code += strings.ToUpper(uid()[:1])
 		}
-		g := &EmpireBattle{ID: id, Code: code, Host: u.ID, Status: "waiting", Players: []string{u.ID}, Turn: 1, HP: map[string]int{u.ID: 100}, Gold: map[string]int{u.ID: 25}, Army: map[string]map[string]int{u.ID: {"spearmen": 3, "swordsmen": 2, "archers": 2, "knights": 0, "guards": 1}}, Pending: map[string]string{}, Created: now(), Updated: now()}
+		g := &EmpireBattle{ID: id, Code: code, Host: u.ID, Status: "waiting", Players: []string{u.ID}, Turn: 1, HP: map[string]int{u.ID: 100}, Gold: map[string]int{u.ID: 25}, Army: map[string]map[string]int{u.ID: {"spearmen": 3, "swordsmen": 2, "archers": 2, "knights": 0, "guards": 1}}, Buildings: map[string]map[string]int{u.ID: {"town_hall": 1, "barracks": 1, "gold_mine": 1, "cannon": 1, "archer_tower": 1, "wall": 1}}, Pending: map[string]string{}, Created: now(), Updated: now()}
 		x11().Battles[id] = g
 		save()
 		js(w, empireView(g, u.ID))
@@ -8636,6 +8866,10 @@ func extraEmpire() {
 		g.HP[u.ID] = 100
 		g.Gold[u.ID] = 25
 		g.Army[u.ID] = map[string]int{"spearmen": 3, "swordsmen": 2, "archers": 2, "knights": 0, "guards": 1}
+		if g.Buildings == nil {
+			g.Buildings = map[string]map[string]int{}
+		}
+		g.Buildings[u.ID] = map[string]int{"town_hall": 1, "barracks": 1, "gold_mine": 1, "cannon": 1, "archer_tower": 1, "wall": 1}
 		g.Status = "active"
 		g.Updated = now()
 		g.Log = append(g.Log, "A rival kingdom has joined. Prepare your armies!")
@@ -8648,6 +8882,56 @@ func extraEmpire() {
 			fail(w, 404, "Empire battle not found")
 			return
 		}
+		if empireTick(g) {
+			save()
+		}
+		js(w, empireView(g, u.ID))
+	})
+	api("empiredeploy", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		g := x11().Battles[b["id"]]
+		if !empireMember(g, u.ID) || g.Status != "active" {
+			fail(w, 409, "Empire raid is not active")
+			return
+		}
+		if len(g.LiveUnits) >= 60 {
+			fail(w, 400, "Battlefield troop limit reached")
+			return
+		}
+		unit := b["unit"]
+		costs := map[string]int{"spearmen": 3, "swordsmen": 4, "archers": 3, "knights": 6, "guards": 5}
+		if _, ok := costs[unit]; !ok {
+			fail(w, 400, "Unknown troop type")
+			return
+		}
+		if g.Army[u.ID][unit] < 1 {
+			fail(w, 400, "Recruit this troop before deploying it")
+			return
+		}
+		lane, _ := strconv.Atoi(b["lane"])
+		if lane < -1 || lane > 1 {
+			lane = 0
+		}
+		team := 0
+		if u.ID == g.Opponent {
+			team = 1
+		}
+		g.Army[u.ID][unit]--
+		startX := -10.0
+		if team == 1 {
+			startX = 10
+		}
+		hp := 30
+		if unit == "knights" || unit == "guards" {
+			hp = 48
+		}
+		if unit == "archers" {
+			hp = 22
+		}
+		g.LiveUnits = append(g.LiveUnits, EmpireLiveUnit{ID: uid(), Owner: u.ID, Team: team, Type: unit, X: startX, Z: float64(lane) * 3, HP: hp, Path: empirePath(team, lane), AttackAt: time.Now().UnixMilli()})
+		g.Log = append(g.Log, fmt.Sprintf("%s deployed a %s troop on lane %d.", map[bool]string{true: "Rival", false: "Your"}[team == 1], unit, lane+2))
+		g.Updated = now()
+		save()
 		js(w, empireView(g, u.ID))
 	})
 	api("empireact", func(u *User, w http.ResponseWriter, r *http.Request) {
@@ -8677,6 +8961,37 @@ func extraEmpire() {
 			g.Gold[u.ID] -= cost
 			g.Army[u.ID][unit]++
 			g.Log = append(g.Log, "A kingdom recruited "+unit+".")
+		case "build":
+			name := b["building"]
+			costs := map[string]int{"barracks": 12, "gold_mine": 10, "cannon": 14, "archer_tower": 14, "wall": 8, "town_hall": 30}
+			cost, ok := costs[name]
+			if !ok {
+				fail(w, 400, "Unknown building")
+				return
+			}
+			if g.Buildings == nil {
+				g.Buildings = map[string]map[string]int{}
+			}
+			if g.Buildings[u.ID] == nil {
+				g.Buildings[u.ID] = map[string]int{"town_hall": 1}
+			}
+			level := g.Buildings[u.ID][name]
+			if level >= 5 {
+				fail(w, 400, "This building is already at maximum level")
+				return
+			}
+			if name != "town_hall" && level >= g.Buildings[u.ID]["town_hall"]+1 {
+				fail(w, 400, "Upgrade your Town Hall first")
+				return
+			}
+			cost = cost * (level + 1)
+			if g.Gold[u.ID] < cost {
+				fail(w, 400, "Not enough kingdom gold")
+				return
+			}
+			g.Gold[u.ID] -= cost
+			g.Buildings[u.ID][name] = level + 1
+			g.Log = append(g.Log, fmt.Sprintf("A kingdom upgraded %s to level %d.", strings.ReplaceAll(name, "_", " "), level+1))
 		case "attack":
 			t := b["tactic"]
 			if t != "balanced" && t != "defend" && t != "flank" {
@@ -8694,6 +9009,80 @@ func extraEmpire() {
 		save()
 		js(w, empireView(g, u.ID))
 	})
+	// Game marketplace endpoints. The browser catalog is display-only; prices and ownership are enforced here.
+	api("gamestore", func(u *User, w http.ResponseWriter, r *http.Request) {
+		game := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("game")))
+		prices := map[string]map[string]int{
+			"streetracer": {"starter_gt": 0, "silver_gt": 180, "neon_hyper": 320, "crimson_v12": 520, "phantom_xr": 680, "volt_apex": 760},
+			"lostisland":  {"palm_camp": 120, "explorer_pack": 180, "azure_pickaxe": 220, "reef_boat": 300},
+			"neonrunner":  {"cyber_suit": 140, "plasma_trail": 180, "pulse_board": 240, "holo_runner": 320},
+			"skyparkour":  {"cloud_glider": 120, "sky_sneakers": 160, "aurora_trail": 200, "wing_cape": 280},
+			"empire":      {"royal_banner": 120, "stone_keep_skin": 240, "golden_armour": 300, "dragon_standard": 420},
+		}
+		list, ok := prices[game]
+		if !ok {
+			fail(w, 400, "Unknown game store")
+			return
+		}
+		owned := x11().StoreOwned[u.ID]
+		if owned == nil {
+			owned = map[string]bool{}
+			x11().StoreOwned[u.ID] = owned
+		}
+		if game == "streetracer" {
+			for _, id := range x11().Cars[u.ID] {
+				owned[id] = true
+			}
+			if !owned["starter_gt"] {
+				owned["starter_gt"] = true
+				x11().Cars[u.ID] = append(x11().Cars[u.ID], "starter_gt")
+			}
+		}
+		items := []map[string]any{}
+		for id, price := range list {
+			items = append(items, map[string]any{"id": id, "price": price})
+		}
+		sort.Slice(items, func(i, j int) bool { return items[i]["id"].(string) < items[j]["id"].(string) })
+		js(w, map[string]any{"Game": game, "Coins": gpf(u.ID).Coins, "Owned": owned, "Items": items})
+	})
+	api("gamebuy", func(u *User, w http.ResponseWriter, r *http.Request) {
+		b := in(r)
+		game := strings.ToLower(strings.TrimSpace(b["game"]))
+		id := strings.TrimSpace(b["id"])
+		prices := map[string]map[string]int{
+			"streetracer": {"starter_gt": 0, "silver_gt": 180, "neon_hyper": 320, "crimson_v12": 520, "phantom_xr": 680, "volt_apex": 760},
+			"lostisland":  {"palm_camp": 120, "explorer_pack": 180, "azure_pickaxe": 220, "reef_boat": 300},
+			"neonrunner":  {"cyber_suit": 140, "plasma_trail": 180, "pulse_board": 240, "holo_runner": 320},
+			"skyparkour":  {"cloud_glider": 120, "sky_sneakers": 160, "aurora_trail": 200, "wing_cape": 280},
+			"empire":      {"royal_banner": 120, "stone_keep_skin": 240, "golden_armour": 300, "dragon_standard": 420},
+		}
+		price, ok := prices[game][id]
+		if !ok {
+			fail(w, 400, "Unknown store item")
+			return
+		}
+		e := x11()
+		if e.StoreOwned[u.ID] == nil {
+			e.StoreOwned[u.ID] = map[string]bool{}
+		}
+		if e.StoreOwned[u.ID][id] {
+			fail(w, 409, "You already own this item")
+			return
+		}
+		if price > 0 && !spendCoins(u, gpf(u.ID), price) {
+			fail(w, 400, "Not enough Ran Coin")
+			return
+		}
+		e.StoreOwned[u.ID][id] = true
+		if game == "streetracer" {
+			e.Cars[u.ID] = append(e.Cars[u.ID], id)
+		}
+		if price > 0 {
+			ledger(u.ID, spentAmt(u, price), "game-store", "Unlocked "+id+" in "+game)
+		}
+		save()
+		js(w, map[string]any{"ok": true, "Owned": e.StoreOwned[u.ID], "Coins": gpf(u.ID).Coins})
+	})
 	// Cars and boosters are bought with earned Ran Coins; no external payment is processed here.
 	api("raceuse", func(u *User, w http.ResponseWriter, r *http.Request) {
 		b := in(r)
@@ -8703,7 +9092,7 @@ func extraEmpire() {
 			return
 		}
 		inv := x11().Inventory[u.ID]
-		if inv[id] < 1 {
+		if inv == nil || inv[id] < 1 {
 			fail(w, 400, "You do not own this booster")
 			return
 		}
