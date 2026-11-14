@@ -8731,6 +8731,11 @@ func absInt(v int) int {
 	return v
 }
 func empireTick(g *EmpireBattle) bool {
+	// Only simulate an active battle with two kingdoms. Without this guard a waiting
+	// room reads the missing opponent's HP as 0 and is instantly marked "finished".
+	if g.Status != "active" || g.Opponent == "" {
+		return false
+	}
 	nowMS := time.Now().UnixMilli()
 	if g.LastTick == 0 {
 		g.LastTick = nowMS
