@@ -242,6 +242,28 @@ nav .pl2{color:#000;box-shadow:none}.m.me{background:var(--fg);color:var(--bg)}
 #am3d-stage canvas{display:block;width:100%;height:100%;touch-action:none}
 @media(max-width:420px){.amx-game-grid{grid-template-columns:1fr}.post header .dl{font-size:12px;padding:6px 8px}.post header .fl{min-width:68px;padding:5px 8px}}
 
+
+/* Amlink compact icon navigation + animated create action */
+#tb .primary-swipe-nav{gap:8px;padding:5px 9px;align-items:center}
+#tb .primary-swipe-nav button{width:42px;height:38px;padding:7px;display:grid;place-items:center;border-radius:13px}
+#tb .primary-swipe-nav svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#tb .primary-swipe-nav button.on{background:var(--bg);color:var(--fg);box-shadow:0 2px 9px #0002}
+nav .pl2{width:48px!important;height:48px!important;border-radius:16px!important;margin:4px 9px!important;position:relative;overflow:visible;transition:transform .22s cubic-bezier(.2,.8,.2,1),box-shadow .22s}
+nav .pl2:hover{transform:translateY(-3px) rotate(5deg);box-shadow:0 8px 24px #7c5cff55,-4px 0 0 #7c5cff,4px 0 0 #ff7a1a}
+nav .pl2:active{transform:scale(.9) rotate(-8deg)}
+nav .pl2::before{content:"";position:absolute;inset:-5px;border-radius:19px;border:1px solid #8b7cff88;animation:amPlusPulse 2.4s ease-out infinite;pointer-events:none}
+@keyframes amPlusPulse{0%{transform:scale(.86);opacity:.8}100%{transform:scale(1.45);opacity:0}}
+@media(min-width:900px){nav .pl2{width:50px!important;height:50px!important;margin:10px auto!important}}
+
+/* Full-screen arcade controls stay above the canvas on touch devices. */
+#am3d-controls{position:fixed!important;z-index:40;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(94vw,520px);padding:10px!important;background:linear-gradient(180deg,transparent,#050811b8 28%);border-radius:18px;pointer-events:auto}
+#am3d-controls button{min-height:48px;min-width:58px;border:1px solid #ffffff44;border-radius:14px;background:#101827ed;color:#fff;font-weight:800;touch-action:none}
+#am3d-controls .race-pad{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+#am3d-status{position:fixed!important;z-index:39;left:50%;bottom:calc(82px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:max-content;max-width:90vw;color:#fff!important;text-shadow:0 1px 5px #000;background:#07101dbb;padding:5px 10px;border-radius:10px}
+#am3d-start{position:fixed!important;z-index:41;right:16px;bottom:calc(14px + env(safe-area-inset-bottom,0px));}
+#am3d-garage,#am3d-rank{position:fixed!important;z-index:41;left:16px;bottom:calc(14px + env(safe-area-inset-bottom,0px));}
+#am3d-rank{left:145px}
+@media(min-width:800px){#am3d-controls{bottom:18px}#am3d-status{bottom:90px}}
 </style>
 <link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#000000"><style>
 /* v4 */
@@ -520,7 +542,7 @@ nav .pl2{width:38px;height:38px;flex:0 0 38px;align-self:center;margin:0 5px;bor
 <style id="amlink-empire-troop-motion">
 .empire-statusbar{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;padding:10px 12px;border:1px solid #ffffff25;border-radius:13px;background:#ffffff0c;font-size:12px}
 .empire-statusbar b{color:#f6dca2}
-.empire-units{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.empire-units{position:absolute;inset:0;pointer-events:none;overflow:hidden}.empire-live-unit{position:absolute;z-index:3;transform:translate(-50%,-50%);font-size:clamp(16px,3vw,25px);filter:drop-shadow(0 2px 3px #000b);transition:left .55s linear,top .55s linear}.empire-live-unit.team-1{filter:drop-shadow(0 2px 3px #000b) hue-rotate(125deg)}
 .empire-unit{position:absolute;bottom:18%;font-size:clamp(16px,3vw,25px);filter:drop-shadow(0 3px 3px #0009);animation:empireMarch 3.2s ease-in-out infinite alternate}
 .empire-unit.left{left:20%;--march:34vw}.empire-unit.right{right:20%;--march:-34vw;animation-direction:alternate-reverse}
 .empire-unit:nth-child(2){animation-delay:-.8s;bottom:31%}.empire-unit:nth-child(3){animation-delay:-1.6s;bottom:43%}
@@ -545,7 +567,10 @@ nav .pl2{width:38px;height:38px;flex:0 0 38px;align-self:center;margin:0 5px;bor
     <div class="intro-loader"><i></i></div>
   </section>
   <div id="login"><h1 class="lg" aria-label="Amlink"><span style="--i:0">A</span><span style="--i:1">m</span><span style="--i:2">l</span><span style="--i:3">i</span><span style="--i:4">n</span><span style="--i:5">k</span></h1><p>Share, chat and connect.</p><div id="gbtn" style="justify-self:center"></div><button class="pri" data-a="su">Create account with email</button><button class="pri sec" data-a="li">Log in with email</button><p class="er" id="le"></p></div>
-  <div id="tb"><b class="brandmark">Amlink<span class="branddot">✦</span></b><div class="seg primary-swipe-nav"><button data-a="nv" data-t="feed">Home</button><button data-a="nv" data-t="reels">Reels</button><button data-a="nv" data-t="people">Friends</button></div><button class="top-notif" data-a="nv" data-t="alerts" aria-label="Notifications"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><b id="tnb" hidden></b></button><button class="menu-trigger" data-a="dr" aria-label="Settings and privacy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
+  <div id="tb"><b class="brandmark">Amlink<span class="branddot">✦</span></b><div class="seg primary-swipe-nav" aria-label="Main sections">
+<button data-a="nv" data-t="feed" aria-label="Home" title="Home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 3l9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></button>
+<button data-a="nv" data-t="reels" aria-label="Reels" title="Reels"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m10 8 6 4-6 4zM4 8h16M8 4l3 4m4-4 3 4"/></svg></button>
+<button data-a="nv" data-t="people" aria-label="Friends" title="Friends"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c2.8 0 4.5 1.8 4.5 4.5"/></svg></button></div><button class="top-notif" data-a="nv" data-t="alerts" aria-label="Notifications"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><b id="tnb" hidden></b></button><button class="menu-trigger" data-a="dr" aria-label="Settings and privacy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
   <div id="main"></div>
   <nav><button data-t="feed"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1z"/></svg>Home</button><button data-t="people"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c2.8 0 4.5 1.8 4.5 4.5"/></svg>Friends</button><button data-t="games"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="11" rx="5"/><path d="M7 10v5M4.5 12.5h5M16 11.5h.01M18.5 14h.01"/></svg>Games</button><button class="pl2" data-a="plus" aria-label="Create">+</button><button data-t="alerts"><svg viewBox="0 0 24 24"><path d="M4 4h16v12H9l-5 4z"/></svg>Inbox<b id="nb" hidden></b></button><button data-t="me"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>Profile</button></nav>
   <div id="scrim" data-a="cs"></div>
@@ -2145,7 +2170,7 @@ nav button.on{color:var(--rd)}nav button.on svg{fill:currentColor}
  nav .nx{display:flex}
  nav button{font-weight:700;border-radius:14px}
  nav .pl2{padding:0 18px;width:auto}
- nav .pl2::after{content:"Create";font-size:16px;margin-left:8px;font-weight:800}
+ nav .pl2::after{content:"";display:none}
  /* reels: rounded 9:16 card with the action buttons beside it */
  .rl,.reel{background:var(--bg)}
  .rl .empty{color:var(--mut)!important}
@@ -4341,7 +4366,71 @@ async function openCommunity(id){
    start.onclick=()=>{if(ended){toast('Close and reopen the game for a fresh verified run.');return}beginRun()};
    status.textContent=roomID?'Connecting to live room…':'World ready. Start your run.';
    if(autoStart){beginRun()}
-  }catch(err){stage.innerHTML='<div style="position:absolute;inset:0;display:grid;place-content:center;padding:24px;color:white;text-align:center;background:radial-gradient(circle at 50% 25%,#203a55,#05080e 65%)"><b style="font-size:22px">3D world could not start</b><p style="max-width:300px;line-height:1.5;color:#cbd5e1">The browser could not load the 3D engine or create a graphics context. Check data connection, update Chrome, and enable hardware acceleration.</p><button id="am3d-retry" style="padding:13px 20px;border-radius:13px;border:0;font-weight:800">Retry 3D engine</button></div>';status.textContent='Graphics startup failed';start.disabled=true;document.getElementById('am3d-retry')?.addEventListener('click',()=>launch(id,roomID,autoStart));console.warn('Amlink 3D startup error:',err);}
+  }catch(err){
+    console.warn('Amlink WebGL unavailable; starting 2D compatibility mode:',err);
+    stage.innerHTML='<canvas id="am3d-compat" style="display:block;width:100%;height:100%;touch-action:none"></canvas><div id="compat-badge" style="position:absolute;top:12px;left:12px;background:#07111ddd;color:#fff;padding:7px 10px;border-radius:10px;font:700 11px system-ui">COMPATIBILITY MODE</div>';
+    const cv=document.getElementById('am3d-compat'),cx=cv.getContext('2d');
+    if(!cx){stage.innerHTML='<div style="padding:24px;color:white;text-align:center">This browser cannot create a graphics canvas. Try Chrome with hardware acceleration enabled.</div>';status.textContent='Graphics unavailable';return;}
+    let cw=0,ch=0,raf2=0,run=false,elapsed=0,carX=0,carSpeed=0,moveX=0,jumpY=0,boost=0,last=performance.now(),closed=false,compatTimer=null,compatRoomPoll=null,compatLastSync=0,compatOpponent=null,compatScoreSaved=false;
+    const resize2=()=>{const r=stage.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,1.5);cw=Math.max(1,r.width);ch=Math.max(1,r.height);cv.width=Math.floor(cw*d);cv.height=Math.floor(ch*d);cx.setTransform(d,0,0,d,0,0)};
+    resize2();window.addEventListener('resize',resize2);
+    const held2={left:false,right:false,accelerate:false,brake:false,reverse:false,handbrake:false};
+    const down=e=>{const k=e.key.toLowerCase();if(['arrowleft','a'].includes(k))held2.left=true;if(['arrowright','d'].includes(k))held2.right=true;if(['arrowup','w'].includes(k))held2.accelerate=true;if(['arrowdown','s'].includes(k))held2.brake=true;if(k==='shift')held2.handbrake=true;if(k==='control')held2.reverse=true;};
+    const up=e=>{const k=e.key.toLowerCase();if(['arrowleft','a'].includes(k))held2.left=false;if(['arrowright','d'].includes(k))held2.right=false;if(['arrowup','w'].includes(k))held2.accelerate=false;if(['arrowdown','s'].includes(k))held2.brake=false;if(k==='shift')held2.handbrake=false;if(k==='control')held2.reverse=false;};
+    document.addEventListener('keydown',down);document.addEventListener('keyup',up);
+    document.querySelectorAll('#am3d-controls [data-hold]').forEach(b=>{
+      const key=b.dataset.hold,press=e=>{e.preventDefault();held2[key]=true},release=e=>{e.preventDefault();held2[key]=false};
+      b.addEventListener('pointerdown',press);['pointerup','pointercancel','pointerleave'].forEach(ev=>b.addEventListener(ev,release));
+    });
+    document.querySelectorAll('#am3d-controls [data-move]').forEach(b=>b.addEventListener('click',()=>{const m=b.dataset.move;if(m==='left')moveX=Math.max(-1,moveX-.25);if(m==='right')moveX=Math.min(1,moveX+.25);if(m==='jump')jumpY=.9;if(m==='boost')boost=1.8;if(m==='uturn'){held2.reverse=!held2.reverse;moveX=-moveX;}}));
+    const rounded=(x,y,w,hh,r,col)=>{cx.fillStyle=col;cx.beginPath();cx.roundRect(x,y,w,hh,r);cx.fill()};
+    function drawRoad(t){
+      const w=cw,h=ch, horizon=h*.25;cx.fillStyle='#86c9ef';cx.fillRect(0,0,w,h);
+      const sky=cx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,'#53a9df');sky.addColorStop(1,'#e4f5ff');cx.fillStyle=sky;cx.fillRect(0,0,w,horizon+20);
+      // distant hills, tree line and curved highway
+      for(let n=0;n<7;n++){const x=n*w/6;cx.fillStyle=n%2?'#477b48':'#5e8d4f';cx.beginPath();cx.arc(x,horizon+10,35+(n%3)*17,Math.PI,Math.PI*2);cx.fill()}
+      cx.fillStyle='#4a7547';cx.fillRect(0,horizon+22,w,h-horizon);
+      const bend=Math.sin(t*.00022)*w*.13+Math.sin(t*.00008)*w*.08;
+      const road=(z)=>w/2+bend*(1-z)+Math.sin(t*.00022+z*2)*w*.04*(1-z);
+      cx.beginPath();cx.moveTo(road(0)-w*.045,horizon);cx.lineTo(road(0)+w*.045,horizon);cx.lineTo(road(1)+w*.58,h);cx.lineTo(road(1)-w*.58,h);cx.closePath();cx.fillStyle='#343b45';cx.fill();
+      for(let k=0;k<2;k++){cx.strokeStyle=k?'#f4d35e':'#f5f6f8';cx.lineWidth=2;cx.beginPath();cx.moveTo(road(0)+(k?0:-w*.028),horizon);cx.lineTo(road(1)+(k?0:-w*.36),h);cx.stroke()}
+      for(let n=0;n<18;n++){const z=((n/18+(t*.00016)%1)%1),y=horizon+z*z*(h-horizon),x=road(z),sz=3+z*15;cx.fillStyle='#fff';cx.fillRect(x-sz*.5,y,Math.max(1,sz*.07),sz*.65)}
+      for(let n=0;n<12;n++){const z=((n/12+(t*.00009)%1)%1),y=horizon+z*z*(h-horizon),x=road(z),sz=4+z*26;[-1,1].forEach(side=>{cx.fillStyle='#79563b';cx.fillRect(x+side*(w*.09+z*w*.45)-sz*.08,y-sz*.6,sz*.16,sz*.7);cx.fillStyle=n%3===0?'#d45a38':'#27683e';cx.beginPath();cx.arc(x+side*(w*.09+z*w*.45),y-sz*.65,sz*.45,0,Math.PI*2);cx.fill()})}
+      // traffic cars
+      for(let n=0;n<4;n++){const z=((n*.23+(t*.00011)%1)%1),y=horizon+z*z*(h-horizon),x=road(z)+(n%2?1:-1)*w*.13*z,ww=8+z*35,hh=ww*.62;rounded(x-ww/2,y-hh,ww,hh,ww*.15,['#f4c542','#e8e8e8','#df5149','#39a6b7'][n])}
+      // visible multiplayer rival, positioned from server-reported progress/lane
+      if(compatOpponent){const oz=Math.max(0,Math.min(1,Number(compatOpponent.Progress||0)/100)),ox=road(oz)+(Number(compatOpponent.Lane||0)*w*.16*oz),ow=10+oz*42,oh=ow*.58;rounded(ox-ow/2,horizon+oz*oz*(h-horizon)-oh,ow,oh,ow*.16,'#e33b55')}
+      // player's vivid hypercar silhouette
+      const px=w/2+carX*w*.22,py=h*.79+jumpY*-h*.13,scale=Math.min(w/330,1.45);
+      cx.save();cx.translate(px,py);cx.scale(scale,scale);
+      cx.fillStyle='#0008';cx.beginPath();cx.ellipse(0,52,104,20,0,0,Math.PI*2);cx.fill();
+      rounded(-104,-5,208,75,30,'#52ed19');rounded(-82,-31,164,65,36,'#68f51e');
+      cx.fillStyle='#15232b';cx.beginPath();cx.moveTo(-55,-22);cx.lineTo(-33,-68);cx.lineTo(33,-68);cx.lineTo(55,-22);cx.closePath();cx.fill();
+      cx.fillStyle='#a9c6d0';cx.beginPath();cx.moveTo(-44,-25);cx.lineTo(-26,-61);cx.lineTo(26,-61);cx.lineTo(44,-25);cx.closePath();cx.fill();
+      rounded(-99,4,31,22,9,'#ed253d');rounded(68,4,31,22,9,'#ed253d');
+      rounded(-67,44,134,16,5,'#141a20');rounded(-83,53,28,12,4,'#17191d');rounded(55,53,28,12,4,'#17191d');
+      cx.fillStyle='#38dfff';for(const side of [-1,1]){cx.beginPath();cx.ellipse(side*61,68,8,18,0,0,Math.PI*2);cx.fill();cx.globalAlpha=.35;cx.beginPath();cx.ellipse(side*61,89,13,28,0,0,Math.PI*2);cx.fill();cx.globalAlpha=1}
+      cx.restore();
+    }
+    function drawIsland(t){
+      cx.fillStyle='#8bd5fa';cx.fillRect(0,0,cw,ch);cx.fillStyle='#268a57';cx.beginPath();cx.ellipse(cw/2,ch*.58,cw*.48,ch*.52,0,0,Math.PI*2);cx.fill();
+      for(let n=0;n<28;n++){const x=(n*83%Math.max(1,cw)),y=(n*137%Math.max(1,ch));cx.fillStyle=n%2?'#155e3b':'#347d42';cx.beginPath();cx.arc(x,y,5+(n%5)*2,0,Math.PI*2);cx.fill()}
+      cx.fillStyle='#c7a56b';cx.fillRect(cw*.46,ch*.25,cw*.08,ch*.55);
+      const x=cw/2+moveX*cw*.22,y=ch*.58-jumpY*ch*.12;cx.fillStyle='#ffd166';cx.beginPath();cx.arc(x,y-14,9,0,Math.PI*2);cx.fill();rounded(x-8,y-5,16,27,6,'#2563eb');
+      cx.fillStyle='#fff';cx.font='bold 14px system-ui';cx.fillText('LOST ISLAND · MOVE WITH THE CONTROLS',14,28);
+    }
+    const compatFinish=async()=>{if(!run||compatScoreSaved)return;run=false;compatScoreSaved=true;const finalScore=Math.max(1,Math.floor(id==='streetracer'?elapsed*100+carSpeed*500:elapsed*60+Math.abs(moveX)*100));status.textContent=`Compatibility run complete · score ${finalScore}`;start.disabled=false;start.textContent='Run again';try{const result=await A('gscore',{game:id,score:finalScore,tok:token});status.textContent+=result.New?' · New personal best!':` · Best ${result.Best}`;await A('gboard?g='+id)}catch(err){status.textContent+=' · Score not saved: '+err.message}if(roomID){try{await A('roomtick',{id:roomID,score:String(finalScore),progress:'100',lane:String(Math.round(carX)),finished:'true'})}catch(err){status.textContent+=' · Multiplayer result could not sync'}}};
+    async function compatSync(){if(!roomID||!run||closed)return;const progress=Math.min(99,Math.floor(elapsed/45*100)),score=Math.floor(elapsed*100+carSpeed*500);try{await A('roomtick',{id:roomID,score:String(score),progress:String(progress),lane:String(Math.round(carX)),finished:'false'});const state=await A('roomstate?id='+encodeURIComponent(roomID));const meId=ME?.ID;compatOpponent=(state.Players||[]).find(x=>x.U?.ID!==meId)||null}catch(e){status.textContent='Multiplayer reconnecting…'}}
+    function frame2(now){if(closed||!stage.isConnected)return;raf2=requestAnimationFrame(frame2);const dt=Math.min(.05,(now-last)/1000);last=now;
+      if(run){elapsed+=dt;if(id==='streetracer'){const reverse=held2.reverse;const braking=held2.brake||held2.handbrake;carSpeed=Math.max(-.35,Math.min(1.2,carSpeed+((held2.accelerate&&!reverse)?.55:braking?-(held2.handbrake?1.25:.8):reverse?-.38:0)*dt));carX=Math.max(-1,Math.min(1,carX+((held2.right?1:0)-(held2.left?1:0))*dt*(held2.handbrake?2.5:1.8)));if(boost>0){carSpeed=Math.min(1.35,carSpeed+dt*.7);boost-=dt}}else{moveX=Math.max(-1,Math.min(1,moveX+((held2.right?1:0)-(held2.left?1:0))*dt));jumpY=Math.max(0,jumpY-dt*1.5)}if(roomID&&now-compatLastSync>1000){compatLastSync=now;compatSync()}if(elapsed>=45)compatFinish();}
+      if(id==='streetracer'){drawRoad(now);const sp=document.getElementById('race-speed'),ge=document.getElementById('race-gear'),mo=document.getElementById('race-mode');if(sp)sp.textContent=String(Math.round(Math.abs(carSpeed)*220));if(ge)ge.textContent=carSpeed<-.03?'R':carSpeed<.03?'N':'D';if(mo)mo.textContent=held2.handbrake?'DRIFT':held2.reverse?'REVERSE':boost>0?'NITRO':'DRIVE'}else drawIsland(now);
+    }
+    frame2(performance.now());
+    window.AM3D_STOP=()=>{closed=true;cancelAnimationFrame(raf2);clearInterval(compatTimer);clearInterval(compatRoomPoll);window.removeEventListener('resize',resize2);document.removeEventListener('keydown',down);document.removeEventListener('keyup',up)};
+    start.disabled=false;start.textContent='Start run';start.onclick=()=>{run=true;elapsed=0;carSpeed=0;carX=0;moveX=0;jumpY=0;boost=0;compatScoreSaved=false;compatOpponent=null;last=performance.now();start.disabled=false;status.textContent='Compatibility run started';if(roomID)compatSync()};
+    status.textContent=id==='streetracer'?'3D unavailable · playable 2D compatibility mode':'3D unavailable · playable island compatibility mode';
+    if(autoStart){run=true;elapsed=0;compatScoreSaved=false;start.disabled=false;status.textContent='Compatibility run started'}
+  }
  }
 })();
 </script>
@@ -4360,7 +4449,7 @@ async function openCommunity(id){
  document.addEventListener('click',async e=>{const b=e.target.closest('[data-empire]');if(!b)return;e.preventDefault();if(b.dataset.empire==='create')return empireCreate();if(b.dataset.empire==='browse')return empireBrowse();if(b.dataset.empire==='join')return empireJoinPrompt()});
  async function empireCreate(){try{modal('<div class="amx-card"><h3>🏰 Creating your kingdom…</h3><p class="sub">Preparing the battlefield and your starting army.</p></div>');const g=await A('empirecreate',{});if(!g||!g.ID)throw new Error('The server did not return a kingdom room.');empireBattle(g)}catch(e){modal('<h3>Empire could not open</h3><p class="sub">'+esc(e.message||'Unknown server error')+'</p><button class="amx-action amx-primary" id="empire-retry-create">Try again</button>');$('#empire-retry-create')?.addEventListener('click',empireCreate)}}
  async function empireBrowse(){try{const rows=await A('empirelist');modal(`<h3>🏰 Open Empire battles</h3><p class="sub">Two-player real-time kingdom raids.</p><div id="empire-list">${rows.map(g=>`<div class="amx-card"><b>Kingdom battle · ${g.Players}/2</b><p>Room ${esc(g.Code)}</p><button class="amx-action amx-primary" data-empire-join="${esc(g.Code)}">Join battle</button></div>`).join('')||'<p class="empty">No open battles. Create one and invite a friend.</p>'}</div>`);$('#empire-list').onclick=e=>{const x=e.target.closest('[data-empire-join]');if(x)A('empirejoin',{code:x.dataset.empireJoin}).then(empireBattle).catch(err=>toast(err.message))}}catch(e){toast(e.message)}}
- function empireJoinPrompt(){modal(`<h3>Join Empire battle</h3><p class="sub">Enter your friend's six-character room code.</p><input id="empire-code" class="amx-dialog-input" maxlength="6" placeholder="ABC123" autocomplete="off"><button class="amx-action amx-primary" id="empire-code-go">Join battle</button>`);$('#empire-code-go').onclick=async()=>{try{const g=await A('empirejoin',{code:$('#empire-code').value.trim().toUpperCase()});empireBattle(g)}catch(e){toast(e.message)}}}
+ function empireJoinPrompt(){modal(`<h3>Join Empire battle</h3><p class="sub">Enter your friend's six-character room code.</p><input id="empire-code" class="amx-dialog-input" maxlength="6" placeholder="ABC123" autocomplete="off"><button class="amx-action amx-primary" id="empire-code-go">Join battle</button>`);$('#empire-code-go').onclick=async()=>{const b=$('#empire-code-go');b.disabled=true;b.textContent='Joining…';try{const g=await A('empirejoin',{code:$('#empire-code').value.trim().toUpperCase()});empireBattle(g)}catch(e){let p=$('#empire-join-error');if(!p){b.insertAdjacentHTML('beforebegin','<p id="empire-join-error" class="er" role="alert"></p>');p=$('#empire-join-error')}p.textContent=e.message;b.disabled=false;b.textContent='Join battle'}}}
  const troops=[['spearmen','🛡️','Spearmen',3],['swordsmen','⚔️','Swordsmen',4],['archers','🏹','Archers',3],['knights','🐎','Knights',6],['guards','🏰','Shield guards',5]];
  let empireAudio=null;function empireSound(kind='clash'){try{empireAudio=empireAudio||new(window.AudioContext||window.webkitAudioContext)();if(empireAudio.state==='suspended')empireAudio.resume();const o=empireAudio.createOscillator(),g=empireAudio.createGain(),t=empireAudio.currentTime;o.type=kind==='clash'?'sawtooth':'triangle';o.frequency.setValueAtTime(kind==='clash'?145:kind==='recruit'?480:320,t);o.frequency.exponentialRampToValueAtTime(kind==='clash'?58:180,t+.28);g.gain.setValueAtTime(.045,t);g.gain.exponentialRampToValueAtTime(.001,t+.3);o.connect(g).connect(empireAudio.destination);o.start(t);o.stop(t+.31)}catch(e){}}
  function empireBattle(initial){
@@ -4370,7 +4459,8 @@ async function openCommunity(id){
    const mine=(g.Army||{})[me]||{},enemy=(g.Army||{})[rival]||{};
    const pending=g.Pending||{},mineSubmitted=!!pending[me],rivalSubmitted=!!pending[rival];
    const box=$('#md .box');if(!box)return;
-   const unitSet=(army,side)=>{const defs=[['spearmen','🛡️'],['swordsmen','⚔️'],['archers','🏹'],['knights','🐎']];let out='';defs.forEach(([k,ico])=>{const n=Math.min(3,Number(army[k]||0));for(let i=0;i<n;i++)out+=`<span class="empire-unit ${side}" aria-hidden="true">${ico}</span>`});return out};
+   const unitSet=(army,side)=>{const defs=[['spearmen','🛡️'],['swordsmen','⚔️'],['archers','🏹'],['knights','🐎'],['guards','🏰']];let out='';defs.forEach(([k,ico])=>{const n=Math.min(2,Number(army[k]||0));for(let i=0;i<n;i++)out+=`<span class="empire-unit ${side}" aria-hidden="true">${ico}</span>`});return out};
+   const liveSet=()=> (g.LiveUnits||[]).filter(u=>Number(u.hp)>0).map(u=>{const left=Math.max(3,Math.min(97,50+(Number(u.x)||0)*2.0)),top=Math.max(12,Math.min(88,50+(Number(u.z)||0)*2.7));const ico=({spearmen:'🛡️',swordsmen:'⚔️',archers:'🏹',knights:'🐎',guards:'🏰'})[u.type]||'⚔️';return `<span class="empire-live-unit team-${Number(u.team)||0}" style="left:${left}%;top:${top}%" title="${esc(u.type)} · ${Number(u.hp)||0} HP">${ico}</span>`}).join('');
    const total=a=>Object.values(a).reduce((x,y)=>x+Number(y||0),0);
    let note=g.Status==='waiting'?'Your kingdom is ready. Share the room code below, or use Find battle on another account to join. The raid starts when a rival joins.':g.Status==='finished'?'Raid complete. See the battle log for the result.':'Recruit and deploy troops. Your armies move and fight continuously while the raid is active.';
    box.innerHTML=`<div class="amx-card empire-cinematic" style="text-align:center;background:radial-gradient(circle at 50% 10%,#526d9a,#151b2a 55%,#090b12)">
@@ -4381,7 +4471,7 @@ async function openCommunity(id){
      <div class="empire-castle empire-castle-left"><span>♜</span><b>YOUR KEEP</b></div>
      <div class="empire-lane"><i>⚔</i><i>◆</i><i>⚔</i></div>
      <div class="empire-castle empire-castle-right"><span>♜</span><b>RIVAL KEEP</b></div>
-     <div class="empire-units">${unitSet(mine,'left')}${unitSet(enemy,'right')}</div>
+     <div class="empire-units">${liveSet()}${(g.LiveUnits||[]).length? '':unitSet(mine,'left')+unitSet(enemy,'right')}</div>
     </div>
     <div class="amx-game-grid"><div><b>Your kingdom</b><p>❤️ ${g.HP?.[me]??100} health</p><p>🪙 ${g.Gold?.[me]??0} gold</p><p>Army: ${total(mine)}</p></div><div><b>Rival kingdom</b><p>❤️ ${g.HP?.[rival]??100} health</p><p>Army: ${total(enemy)}</p><p>${rivalSubmitted?'Tactic submitted':'Awaiting tactic'}</p></div></div>
    </div>
@@ -4394,7 +4484,7 @@ async function openCommunity(id){
    lastVersion=Number(g.Version||g.Updated||lastVersion);
   };
   draw();
-  interval=setInterval(async()=>{if(closed)return;try{const next=await A('empirestate?id='+encodeURIComponent(g.ID));const oldKey=JSON.stringify({HP:g.HP,Gold:g.Gold,Army:g.Army,Buildings:g.Buildings,Status:g.Status,Turn:g.Turn,Pending:g.Pending});const newKey=JSON.stringify({HP:next.HP,Gold:next.Gold,Army:next.Army,Buildings:next.Buildings,Status:next.Status,Turn:next.Turn,Pending:next.Pending});g=next;lastVersion=Number(g.Updated||0);const battleBox=document.querySelector('#md .box');const stage=battleBox?.querySelector('.empire-battlefield');if(stage){stage.dataset.empireLive=JSON.stringify(g.LiveUnits||[]);if(stage._empire3dUpdate)stage._empire3dUpdate();}if(oldKey!==newKey||next.Status!==initial.Status)draw();if(g.Status==='finished'){clearInterval(interval)}}catch(e){const note=document.querySelector('#md .empire-turn-note');if(note)note.textContent='Connection to the kingdom server was interrupted. Reconnecting…';console.warn('Empire state polling failed:',e)}},700);
+  interval=setInterval(async()=>{if(closed)return;try{const next=await A('empirestate?id='+encodeURIComponent(g.ID));const oldKey=JSON.stringify({HP:g.HP,Gold:g.Gold,Army:g.Army,Buildings:g.Buildings,LiveUnits:g.LiveUnits,Status:g.Status,Turn:g.Turn,Pending:g.Pending});const newKey=JSON.stringify({HP:next.HP,Gold:next.Gold,Army:next.Army,Buildings:next.Buildings,LiveUnits:next.LiveUnits,Status:next.Status,Turn:next.Turn,Pending:next.Pending});g=next;lastVersion=Number(g.Updated||0);const battleBox=document.querySelector('#md .box');const stage=battleBox?.querySelector('.empire-battlefield');if(stage){stage.dataset.empireLive=JSON.stringify(g.LiveUnits||[]);if(stage._empire3dUpdate)stage._empire3dUpdate();}if(oldKey!==newKey||next.Status!==initial.Status)draw();if(g.Status==='finished'){clearInterval(interval)}}catch(e){const note=document.querySelector('#md .empire-turn-note');if(note)note.textContent='Connection to the kingdom server was interrupted. Reconnecting…';console.warn('Empire state polling failed:',e)}},700);
   const close=$('#md .close');if(close)close.addEventListener('click',()=>{closed=true;clearInterval(interval)},{once:true});
   const mo=new MutationObserver(()=>{if($('#md')?.hidden){closed=true;clearInterval(interval);mo.disconnect()}});if($('#md'))mo.observe($('#md'),{attributes:true,attributeFilter:['hidden']});
  }
@@ -4434,7 +4524,7 @@ async function openCommunity(id){
  $('#li-create').onclick=async()=>{try{const w=await A('islandcreate',{name:$('#li-name').value.trim(),private:String($('#li-private').checked)});play(w)}catch(e){toast(e.message)}};
  $('#li-join').onclick=()=>join($('#li-code').value.trim());$('#li-list').onclick=e=>{const b=e.target.closest('[data-li-visit]');if(b)join(b.dataset.liVisit)};
  }
- async function play(initial){let w=initial,closed=false,interval=null,moveTimer=null,three=null,scene=null,cam=null,renderer=null,me=null,remote={},objects={},pos={x:(initial.Players.find(p=>p.U?.ID===ME.ID)?.X||0),z:(initial.Players.find(p=>p.U?.ID===ME.ID)?.Z||0)},selected='cabin',busy=false;
+ async function play(initial){let w=initial,closed=false,interval=null,moveTimer=null,three=null,scene=null,cam=null,renderer=null,me=null,remote={},objects={},pos={x:(initial.Players.find(p=>p.U?.ID===ME.ID)?.X||0),z:(initial.Players.find(p=>p.U?.ID===ME.ID)?.Z||0)},selected='cabin',busy=false,fallbackDraw=null;
  const cost={cabin:'20 wood + 5 stone',house:'35 wood + 20 stone',farm:'15 wood + 5 stone',bridge:'25 wood + 10 stone',dock:'30 wood + 15 stone',village:'60 wood + 45 stone',decoration:'5 wood + 2 stone'};
  modal(`<div class="am3d-head"><div><small>SHARED ISLAND · ${esc(w.Name)}</small><h3>🏝️ ${esc(w.Name)}</h3></div><button class="ed" id="li-leave">Leave</button></div><div id="li-stage" style="height:100dvh;width:100%;overflow:hidden;background:#8bd2e8;position:absolute;inset:0"><div style="padding:30px;text-align:center">Loading island…</div></div><div class="amx-card"><b id="li-res"></b><p id="li-people" class="sub"></p></div><div class="amx-card"><b>Gather resources</b><div class="gcb"><button class="amx-action" data-li-gather="wood">🪵 Wood +5</button><button class="amx-action" data-li-gather="stone">🪨 Stone +5</button><button class="amx-action" data-li-gather="food">🥥 Food +5</button><button class="amx-action" data-li-gather="crystal">💎 Crystal +1</button></div></div><div class="amx-card"><b>Build on your island</b><div class="gcb" id="li-builds">${Object.keys(cost).map(k=>`<button class="amx-action ${k==='cabin'?'amx-primary':''}" data-li-build="${k}">${({cabin:'🛖 Cabin',house:'🏠 House',farm:'🌱 Farm',bridge:'🌉 Bridge',dock:'🛶 Dock',village:'🏘️ Village',decoration:'🌼 Decor'})[k]}</button>`).join('')}</div><p class="sub" id="li-cost">Cabin · ${cost.cabin}</p><button class="amx-action amx-primary" id="li-place">＋ Place nearby</button></div><div class="amx-card"><b>Move around</b><div class="gcb" style="justify-content:center"><button class="amx-action" data-li-move="up">▲</button></div><div class="gcb" style="justify-content:center"><button class="amx-action" data-li-move="left">◀</button><button class="amx-action" data-li-move="down">▼</button><button class="amx-action" data-li-move="right">▶</button></div><small class="sub">Keyboard: WASD or arrow keys. Up to 30 players per island.</small></div><p class="sub">Invite code: <b style="letter-spacing:3px">${esc(w.Code)}</b> · Your island progress is saved. Voice chat will be added later.</p>`);
  const box=$('#md .box'),stage=$('#li-stage');stage.insertAdjacentHTML('beforeend',`<div class="li-live-hud"><b>ISLAND EXPLORER</b><span id="li-mini-res">Loading resources…</span></div><div class="li-touch-pad"><button data-li-move="up" aria-label="Move forward">▲</button><div><button data-li-move="left" aria-label="Move left">◀</button><button data-li-move="down" aria-label="Move backward">▼</button><button data-li-move="right" aria-label="Move right">▶</button></div></div>`);
@@ -4444,14 +4534,14 @@ async function openCommunity(id){
  $('#li-builds').onclick=e=>{const b=e.target.closest('[data-li-build]');if(!b)return;selected=b.dataset.liBuild;$('#li-cost').textContent=`${selected} · ${cost[selected]}`;$('#li-builds').querySelectorAll('button').forEach(x=>x.classList.toggle('amx-primary',x===b))};
  box.addEventListener('click',async e=>{const g=e.target.closest('[data-li-gather]');if(g){try{w=await A('islandgather',{id:w.ID,kind:g.dataset.liGather});hud()}catch(err){toast(err.message)}return}const m=e.target.closest('[data-li-move]');if(m)step(m.dataset.liMove)});
  $('#li-place').onclick=async()=>{try{w=await A('islandbuild',{id:w.ID,kind:selected,x:String(pos.x+3),z:String(pos.z+2)});hud();drawObjects()}catch(e){toast(e.message)}};
- const dirs={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};function step(d){const v=dirs[d];if(!v)return;pos.x=Math.max(-47,Math.min(47,pos.x+v[0]*1.5));pos.z=Math.max(-47,Math.min(47,pos.z+v[1]*1.5));if(me)me.position.set(pos.x,0,pos.z)}
+ const dirs={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};function step(d){const v=dirs[d];if(!v)return;pos.x=Math.max(-47,Math.min(47,pos.x+v[0]*1.5));pos.z=Math.max(-47,Math.min(47,pos.z+v[1]*1.5));if(me)me.position.set(pos.x,0,pos.z);if(fallbackDraw)fallbackDraw()}
  function keys(e){const d={w:'up',arrowup:'up',s:'down',arrowdown:'down',a:'left',arrowleft:'left',d:'right',arrowright:'right'}[e.key.toLowerCase()];if(d){e.preventDefault();step(d)}}window.addEventListener('keydown',keys);
  function drawObjects(){if(!three)return;for(const b of w.Builds||[]){if(objects[b.ID])continue;const group=new three.Group(),wood=new three.MeshStandardMaterial({color:0x98603a}),wall=new three.MeshStandardMaterial({color:b.Kind==='farm'?0x5d9a42:b.Kind==='decoration'?'#e9b8ca':0xd8bd91});const base=new three.Mesh(new three.BoxGeometry(b.Kind==='village'?3.6:2.5,1.7,b.Kind==='village'?3.6:2.5),wall);base.position.y=.85;group.add(base);if(!['farm','decoration'].includes(b.Kind)){const roof=new three.Mesh(new three.ConeGeometry(2,1.5,4),wood);roof.position.y=2.35;roof.rotation.y=Math.PI/4;group.add(roof)}group.position.set(b.X,0,b.Z);scene.add(group);objects[b.ID]=group}const live=new Set();for(const p of w.Players||[]){const id=p.U?.ID;if(!id||id===ME.ID)continue;live.add(id);let g=remote[id];if(!g){g=new three.Group();const body=new three.Mesh(new three.CapsuleGeometry(.32,.8,4,8),new three.MeshStandardMaterial({color:0x355fbd}));body.position.y=.8;g.add(body);const head=new three.Mesh(new three.SphereGeometry(.24,12,12),new three.MeshStandardMaterial({color:0xf0c39c}));head.position.y=1.5;g.add(head);g.scale.setScalar(1.18);scene.add(g);remote[id]=g}g.position.set(p.X||0,0,p.Z||0)}for(const id of Object.keys(remote)){if(!live.has(id)){scene.remove(remote[id]);delete remote[id]}}}
  try{try{three=await import('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js')}catch(primaryErr){three=await import('https://unpkg.com/three@0.160.0/build/three.module.js')}scene=new three.Scene();scene.background=new three.Color(0x9ad9ec);scene.fog=new three.Fog(0x9ad9ec,35,90);cam=new three.PerspectiveCamera(58,stage.clientWidth/Math.max(1,stage.clientHeight),.1,180);renderer=new three.WebGLRenderer({antialias:false,powerPreference:'low-power',stencil:false});renderer.setPixelRatio(Math.min(devicePixelRatio||1,.9));renderer.shadowMap.enabled=true;renderer.shadowMap.type=three.PCFSoftShadowMap;renderer.outputColorSpace=three.SRGBColorSpace;renderer.toneMapping=three.ACESFilmicToneMapping;renderer.setSize(stage.clientWidth,stage.clientHeight||window.innerHeight);const loading=stage.querySelector(':scope > div:not(.li-live-hud):not(.li-touch-pad)');if(loading)loading.remove();stage.insertBefore(renderer.domElement,stage.firstChild);scene.add(new three.HemisphereLight(0xffffff,0x456b42,2));const sun=new three.DirectionalLight(0xfff1d5,3);sun.position.set(8,18,5);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene.add(sun);const mat=c=>new three.MeshStandardMaterial({color:c});const water=new three.Mesh(new three.CircleGeometry(65,64),mat(0x318fb4));water.rotation.x=-Math.PI/2;water.position.y=-.4;scene.add(water);const island=new three.Mesh(new three.CircleGeometry(48,64),mat(0xd7c18b));island.rotation.x=-Math.PI/2;island.position.y=-.2;scene.add(island);const lawn=new three.Mesh(new three.CircleGeometry(34,64),mat(0x559653));lawn.rotation.x=-Math.PI/2;lawn.position.y=-.08;scene.add(lawn);for(let i=0;i<52;i++){const a=i*2.399,r=10+(i%7)*4,x=Math.cos(a)*r,z=Math.sin(a)*r;const trunk=new three.Mesh(new three.CylinderGeometry(.14,.22,1.8,9),mat(0x79502e));trunk.position.set(x,.8,z);trunk.castShadow=true;scene.add(trunk);for(let j=0;j<4;j++){const crown=new three.Mesh(new three.SphereGeometry(.82+(j%2)*.15,12,10),mat([0x287447,0x34854b,0x1d633a,0x4c9147][j]));crown.position.set(x+(Math.random()-.5)*.55,1.9+j*.24,z+(Math.random()-.5)*.55);crown.scale.set(1.1,.8,1);crown.castShadow=true;scene.add(crown)}}
  for(let i=0;i<24;i++){const a=Math.random()*Math.PI*2,r=25+Math.random()*18,rock=new three.Mesh(new three.DodecahedronGeometry(.5+Math.random()*.8),mat(0x8c887a));rock.position.set(Math.cos(a)*r,-.08,Math.sin(a)*r);rock.scale.y=.55;rock.castShadow=true;scene.add(rock)}
  // Visible winding footpath, clustered shrubs and small huts make the island readable as a place to explore.
  const pathPts=[];for(let i=0;i<36;i++){const t=i/35,a=t*Math.PI*1.55,r=7+t*18;pathPts.push(new three.Vector3(Math.cos(a)*r,-.055,Math.sin(a)*r-3))}const pathCurve=new three.CatmullRomCurve3(pathPts);const pathMesh=new three.Mesh(new three.TubeGeometry(pathCurve,100,.62,8,false),mat(0xc6b184));pathMesh.scale.y=.025;scene.add(pathMesh);for(let i=0;i<9;i++){const x=-25+i*6,z=-18+(i%3)*13;const bush=new three.Mesh(new three.DodecahedronGeometry(1.15,1),mat(i%2?0x347b43:0x28683b));bush.position.set(x,.65,z);bush.scale.set(1.35,.72,1.05);scene.add(bush)}for(let i=0;i<3;i++){const hut=new three.Group(),wall=new three.Mesh(new three.BoxGeometry(2.5,1.6,2.2),mat(0xb99a70)),roof=new three.Mesh(new three.ConeGeometry(1.95,1.35,4),mat(0x72513b));wall.position.y=.8;roof.position.y=2.15;roof.rotation.y=Math.PI/4;hut.add(wall,roof);hut.position.set(-20+i*18,0,-24-(i%2)*9);scene.add(hut)}me=new three.Group();const body=new three.Mesh(new three.CapsuleGeometry(.32,.8,4,8),mat(0x24334a));body.position.y=.8;me.add(body);const head=new three.Mesh(new three.SphereGeometry(.24,12,12),mat(0xf0c39c));head.position.y=1.5;me.add(head);me.scale.setScalar(1.22);scene.add(me);const remote={};function render(){if(closed)return;requestAnimationFrame(render);me.position.set(pos.x,0,pos.z);cam.position.set(pos.x+5.2,6.6,pos.z+8.2);cam.lookAt(pos.x,.75,pos.z);renderer.render(scene,cam)}render();drawObjects();
- }catch(e){const msg=document.createElement('div');msg.style.cssText='position:absolute;inset:45% 12px auto;padding:12px;border-radius:12px;background:#07131ddd;color:white;text-align:center;z-index:7';msg.textContent='Island graphics could not start. Update Chrome or check your connection, then retry.';stage.appendChild(msg);console.warn('Lost Island 3D startup error:',e);toast('Island graphics could not start')}
+ }catch(e){console.warn('Lost Island 3D startup error; starting 2D island fallback:',e);stage.querySelectorAll('canvas').forEach(c=>c.remove());const cv=document.createElement('canvas');cv.style.cssText='width:100%;height:100%;display:block;touch-action:none';stage.appendChild(cv);const cx=cv.getContext('2d');if(cx){let cw=1,ch=1;const resize=()=>{const r=stage.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,1.5);cw=Math.max(1,r.width);ch=Math.max(1,r.height);cv.width=cw*d;cv.height=ch*d;cx.setTransform(d,0,0,d,0,0);fallbackDraw()};fallbackDraw=()=>{cx.clearRect(0,0,cw,ch);cx.fillStyle='#83d2ee';cx.fillRect(0,0,cw,ch);cx.fillStyle='#1b83a7';cx.fillRect(0,ch*.64,cw,ch*.36);cx.fillStyle='#d8c18b';cx.beginPath();cx.ellipse(cw*.5,ch*.57,cw*.47,ch*.48,0,0,Math.PI*2);cx.fill();cx.fillStyle='#3b914e';cx.beginPath();cx.ellipse(cw*.5,ch*.55,cw*.39,ch*.39,0,0,Math.PI*2);cx.fill();for(let i=0;i<28;i++){const x=(i*79)%cw,y=ch*.2+(i*47)%(ch*.6);cx.fillStyle='#17623c';cx.beginPath();cx.arc(x,y,7+(i%4)*3,0,Math.PI*2);cx.fill()}cx.fillStyle='#a87b4c';cx.beginPath();cx.arc(cw*.5+pos.x*3,ch*.55+pos.z*2,11,0,Math.PI*2);cx.fill();cx.fillStyle='#fff';cx.font='bold 13px system-ui';cx.fillText('LOST ISLAND · 2D MODE',14,28)};resize();window.addEventListener('resize',resize);stage.dataset.fallback='1'}else{const msg=document.createElement('div');msg.textContent='Island graphics unavailable in this browser.';stage.appendChild(msg)}toast('Lost Island opened in compatibility mode')}
  moveTimer=setInterval(async()=>{if(closed||busy)return;busy=true;try{await A('islandmove',{id:w.ID,x:String(pos.x),z:String(pos.z)})}catch(e){}busy=false},500);
  interval=setInterval(async()=>{if(closed)return;try{w=await A('islandstate?id='+encodeURIComponent(w.ID));hud();drawObjects()}catch(e){toast(e.message);clearInterval(interval)}},1800);
  }
@@ -4653,6 +4743,95 @@ async function openCommunity(id){
 @media(min-width:900px){#feed,.feed,.home-feed{max-width:900px;margin-inline:auto}.rpc,.post{border-radius:18px}}
 @media(max-width:700px){.empire-invite-box strong{font-size:25px}#md:has(#am3d-stage) #am3d-stage{min-height:100dvh}}
 </style>
+
+<style id="amlink-light-contrast-motion-v1">
+/* Light-mode contrast repair: ensure text and controls remain readable on pale surfaces. */
+:root[data-t="light"]{
+  color-scheme:light;
+  --bg:#f5f7fb!important;--fg:#111827!important;--mut:#596579!important;
+  --card:#ffffff!important;--line:#d9e0ea!important;--acc:#2457c5!important;
+}
+:root[data-t="light"] body,
+:root[data-t="light"] #app,
+:root[data-t="light"] #main,
+:root[data-t="light"] nav,
+:root[data-t="light"] #tb{color:#111827}
+:root[data-t="light"] .post,
+:root[data-t="light"] .comp,
+:root[data-t="light"] .rpc,
+:root[data-t="light"] .am-feature-card,
+:root[data-t="light"] .am-setting,
+:root[data-t="light"] .am-menu-card,
+:root[data-t="light"] .box,
+:root[data-t="light"] .pr,
+:root[data-t="light"] .prof,
+:root[data-t="light"] .pt,
+:root[data-t="light"] .seg,
+:root[data-t="light"] .atb,
+:root[data-t="light"] .ctl,
+:root[data-t="light"] .shg,
+:root[data-t="light"] .shi,
+:root[data-t="light"] .am-chiprow{
+  color:#172033;
+}
+:root[data-t="light"] .post :is(p,b,strong,h1,h2,h3,h4,label,small,span),
+:root[data-t="light"] .rpc :is(p,b,strong,h1,h2,h3,h4,label,small,span),
+:root[data-t="light"] .am-feature-card :is(p,b,strong,h1,h2,h3,h4,label,small,span),
+:root[data-t="light"] .am-setting :is(p,b,strong,label,small,span),
+:root[data-t="light"] .box :is(p,b,strong,h1,h2,h3,h4,label,small,span){
+  color:inherit;
+}
+:root[data-t="light"] :is(.post,.rpc,.am-feature-card,.am-setting,.box,.am-menu-card) small,
+:root[data-t="light"] .sub,
+:root[data-t="light"] .empty{color:#596579!important}
+:root[data-t="light"] input,
+:root[data-t="light"] textarea,
+:root[data-t="light"] select{color:#111827!important;background:#fff!important;border-color:#cbd5e1!important}
+:root[data-t="light"] input::placeholder,
+:root[data-t="light"] textarea::placeholder{color:#64748b!important;opacity:1}
+:root[data-t="light"] .ed,
+:root[data-t="light"] .fl,
+:root[data-t="light"] .post footer button,
+:root[data-t="light"] .pt button,
+:root[data-t="light"] .seg button,
+:root[data-t="light"] .atb button,
+:root[data-t="light"] .am-chiprow button{
+  color:#172033;
+}
+:root[data-t="light"] .fl{border-color:#2457c5;color:#2457c5}
+:root[data-t="light"] .fl.on{background:#2457c5;color:#fff}
+:root[data-t="light"] .post footer button{background:#f8fafc;border:1px solid #dbe2ec}
+:root[data-t="light"] nav button{color:#596579}
+:root[data-t="light"] nav button.on{color:#174ea6}
+:root[data-t="light"] #tb .primary-swipe-nav button{color:#344054}
+:root[data-t="light"] #tb .primary-swipe-nav button.on{color:#fff;background:linear-gradient(110deg,#315bd6,#7655d9);}
+:root[data-t="light"] .pri{color:#101828!important}
+:root[data-t="light"] .pri.sec{color:#172033!important;border-color:#cbd5e1!important}
+:root[data-t="light"] .am-menu-card{background:#fff;color:#172033;border-color:#d9e0ea}
+:root[data-t="light"] .am-menu-card :is(p,span,b,strong,small){color:inherit}
+:root[data-t="light"] .rpc button:not(.pri),
+:root[data-t="light"] .am-feature-card button:not(.pri){text-shadow:none}
+/* Consistent tactile motion for buttons; respects reduced-motion settings. */
+button{
+  -webkit-tap-highlight-color:transparent;
+  transition:transform .16s cubic-bezier(.2,.8,.2,1),box-shadow .18s ease,
+             background-color .18s ease,border-color .18s ease,filter .18s ease;
+  transform-origin:center;
+}
+@media(hover:hover){button:not(:disabled):hover{transform:translateY(-2px);filter:brightness(1.035);box-shadow:0 5px 14px #64748b22}}
+button:not(:disabled):active{transform:translateY(1px) scale(.96);filter:brightness(.97)}
+button:disabled{cursor:not-allowed;opacity:.58}
+.pri:not(:disabled),nav .pl2,.am-chiprow button,.ed{will-change:transform}
+nav .pl2{animation:amPlusFloat 3s ease-in-out infinite}
+@keyframes amPlusFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-2px) scale(1.035)}}
+@keyframes amButtonPop{0%{transform:scale(.96)}65%{transform:scale(1.025)}100%{transform:scale(1)}}
+button:focus-visible{animation:amButtonPop .22s ease-out}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  nav .pl2{animation:none!important}
+}
+</style>
+
 </body>
 </html>
 <style id="amlink-game-audio-controls-v2">
