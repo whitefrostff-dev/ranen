@@ -8857,8 +8857,17 @@ func extraEmpire() {
 				break
 			}
 		}
-		if g == nil || g.Status != "waiting" || g.Host == u.ID {
-			fail(w, 404, "Open Empire battle not found")
+		if g == nil {
+			fail(w, 404, "Empire battle code was not found. Check the six characters or create a new battle.")
+			return
+		}
+		// Let the creator reopen their own room code without adding themselves twice.
+		if g.Host == u.ID {
+			js(w, empireView(g, u.ID))
+			return
+		}
+		if g.Status != "waiting" {
+			fail(w, 409, "This Empire battle has already started or finished.")
 			return
 		}
 		g.Opponent = u.ID
