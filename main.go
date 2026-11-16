@@ -5094,7 +5094,7 @@ func touch(id string) {
 func init() { extra9() }
 
 func extra9() {
-	caps := map[string]int{"snake": 2000, "memory": 1000, "streetracer": 100000, "skyparkour": 100000, "lostisland": 100000, "neonrunner": 100000, "amlinkfps": 100000}
+	caps := map[string]int{"snake": 2000, "memory": 1000, "streetracer": 100000, "skyparkour": 100000, "lostisland": 100000, "neonrunner": 100000, "amlinkfps": 100000, "granny": 100000}
 
 	api("gme", func(u *User, w http.ResponseWriter, r *http.Request) {
 		touch(u.ID)
@@ -5154,7 +5154,7 @@ func extra9() {
 			fail(w, 400, "Score rejected")
 			return
 		}
-		if strings.HasPrefix(game, "streetracer") || game == "streetracer" || game == "skyparkour" || game == "lostisland" || game == "neonrunner" || game == "amlinkfps" {
+		if strings.HasPrefix(game, "streetracer") || game == "streetracer" || game == "skyparkour" || game == "lostisland" || game == "neonrunner" || game == "amlinkfps" || game == "granny" {
 			if el < 8 || sc > el*450 {
 				fail(w, 400, "Score rejected. Play a full round and submit again")
 				return
@@ -5209,7 +5209,7 @@ func extra9() {
 		}
 		sort.Slice(l, func(a, c int) bool { return l[a].v > l[c].v })
 		// The Top 1 badge is a live title: it follows the current global leader per 3D game.
-		if game == "streetracer" || game == "skyparkour" || game == "lostisland" || game == "neonrunner" || game == "amlinkfps" {
+		if game == "streetracer" || game == "skyparkour" || game == "lostisland" || game == "neonrunner" || game == "amlinkfps" || game == "granny" {
 			badgeID := "top1_" + game
 			for _, gp := range x4().G {
 				filtered := gp.Badges[:0]
@@ -8233,7 +8233,7 @@ func init() { extra13() }
 func extra13() {
 	api("gstart", func(u *User, w http.ResponseWriter, r *http.Request) {
 		game := in(r)["game"]
-		if game != "snake" && game != "memory" && game != "streetracer" && game != "skyparkour" && game != "lostisland" && game != "neonrunner" && game != "amlinkfps" {
+		if game != "snake" && game != "memory" && game != "streetracer" && game != "skyparkour" && game != "lostisland" && game != "neonrunner" && game != "amlinkfps" && game != "granny" {
 			fail(w, 400, "Unknown game")
 			return
 		}
